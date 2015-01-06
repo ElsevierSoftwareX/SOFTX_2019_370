@@ -2,6 +2,10 @@
 #include <armadillo>
 #include "Numpy.hpp"
 
+
+/**
+  Read in a NumPy array and return an Armadillo matrix
+*/
 arma::mat load_npy_file(const std::string& filename)
 {
     std::vector<int> shape;
@@ -17,10 +21,10 @@ arma::mat load_npy_file(const std::string& filename)
 
     arma::mat matrix(nrows, ncols);
 
-    for(i = data.begin(); i != data.end(); i++){
+    for (i = data.begin(); i != data.end(); i++) {
         matrix(row, col) = (*i);
         col++;
-        if(col == ncols){
+        if (col == ncols) {
             col = 0;
             row++;
         }
