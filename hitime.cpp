@@ -35,11 +35,24 @@ arma::mat load_npy_file(const std::string& filename)
     return matrix;
 }
 
+void show_usage(char *cmd)
+{
+    using namespace std;
+
+    cout << "Usage:   " << cmd <<" [-option] [argument]"<<endl;
+    cout << "option:  " << "-h  show help information"<<endl;
+    cout << "         " << "-u username"<<endl;
+    cout << "         " << "-p  password"<<endl;
+    cout << "         " << "-s  save the password: 0(save password) 1(forget password)"<<endl;
+    cout << "         " << "-v  show version infomation"<<endl;
+    cout << "example: " << cmd <<" -uusername -ppassword -s1"<<endl;
+}
+
 int main(int argc, char *argv[])
 {
  
     if (argc == 1) {
-        std::cout<<"No arguments.You should run this program in terminal with several arguments."<<std::endl;
+        show_usage(argv[0]);
         exit(1);
     } else { 
         /*for loop,each loop print a argument once a time. Note that the 
@@ -68,3 +81,5 @@ int main(int argc, char *argv[])
     
     return 0;
 }
+
+
