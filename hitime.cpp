@@ -1,4 +1,6 @@
 #include <iostream>
+#include <stdlib.h>
+
 #include <armadillo>
 #include "Numpy.hpp"
 
@@ -33,8 +35,24 @@ arma::mat load_npy_file(const std::string& filename)
     return matrix;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+ 
+    if (argc == 1) {
+        std::cout<<"No arguments.You should run this program in terminal with several arguments."<<std::endl;
+        exit(1);
+    } else { 
+        /*for loop,each loop print a argument once a time. Note that the 
+          loop begin with argv[1], because argv[0] represent the program's 
+          name.*/
+        std::cout<<"The arguments you put are:"<<std::endl;
+        for(int i=1;i<argc;i++) {
+            std::cout<<argv[i]<<std::endl;
+        }
+        return 0;
+    }
+
+/*
     std::string mz_file = "./data/testing_mz.npy";
     arma::mat mz_mat = load_npy_file(mz_file);
     mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
@@ -46,6 +64,7 @@ int main()
     std::string intensity_file = "./data/testing_intensity.npy";
     arma::mat intensity_mat = load_npy_file(intensity_file);
     intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
-
+*/
+    
     return 0;
 }
