@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
     float mz_sigma        = default_mz_sigma;
     float mz_delta        = default_mz_delta;
     float min_sample      = default_min_sample;
+    int half_rt_window;
 
     std::string file_dir = "./";
     std::string mz_file = "";
@@ -169,7 +170,8 @@ int main(int argc, char *argv[])
         std::cout << std::endl;
         exit(1);
     }
-    
+
+/*
     std::cout << "File Directory: " << file_dir << std::endl;
     std::cout << "MZ File: " << mz_file << std::endl;
     std::cout << "Time File: " << time_file << std::endl;
@@ -183,7 +185,10 @@ int main(int argc, char *argv[])
 
     arma::mat intensity_mat = load_npy_file(intensity_file);
     intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
-    
+*/
+
+    half_rt_window = static_cast<int>(rt_sigma * rt_width / 2.355);
+
     return 0;
 }
 
