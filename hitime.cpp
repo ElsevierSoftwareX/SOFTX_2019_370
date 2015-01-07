@@ -54,15 +54,34 @@ void show_usage(char *cmd)
 {
     using namespace std;
 
-    cout << "Usage:     " << cmd << " [-options] [arguments]" << endl;
-    cout << "options:   " << "-h  show this help information" << endl;
-    cout << "           " << "-d  directory  path to data files" << endl;
-    cout << "arguments: " << "mz_file    name of mz NumPy file" << endl;
-    cout << "           " << "time_file  name of time NumPy file" << endl;
-    cout << "           " << "int_file   name of intensity NumPy file"; 
-    cout << endl;
-    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy ";
-    cout << "intensity.npy" << endl;
+    cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
+    cout                                                            << endl;
+    cout << "options:   " << "-h  show this help information"       << endl;
+    cout << "           " << "-d  directory  path to data files"    << endl;
+    cout << "           " << "-i  ratio of doublet intensities (isotope \n";
+    cout << "           " << "    / parent)"                        << endl;
+    cout << "           " << "-r  full width at half maximum for \n"       ;
+    cout << "           " << "    retention time in number of scans"<< endl;
+    cout << "           " << "-R  retention time width boundary in \n"     ;
+    cout << "           " << "    standard deviations"              << endl;
+    cout << "           " << "-p  m/z tolerance in parts per million"      ;
+    cout                                                            << endl;
+    cout << "           " << "-m  m/z full width at half maximum in \n"    ;
+    cout << "           " << "    parts per million"                << endl;
+    cout << "           " << "-M  m/z window boundary in standard \n"      ;
+    cout << "           " << "    deviations"                       << endl;
+    cout << "           " << "-D  m/z difference for doublets"      << endl;
+    cout << "           " << "-s  minimum number of data points \n"        ;
+    cout << "           " << "    required in each sample region"   << endl;
+    cout                                                            << endl;
+    cout << "arguments: " << "mz_file    name of mz NumPy file"     << endl;
+    cout << "           " << "time_file  name of time NumPy file"   << endl;
+    cout << "           " << "int_file   name of intensity NumPy file"     ;
+    cout                                                            << endl;
+    cout                                                            << endl;
+    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy "         ;
+    cout << "intensity.npy"                                         << endl;
+    cout                                                            << endl;
 }
 
 int main(int argc, char *argv[])
@@ -70,6 +89,15 @@ int main(int argc, char *argv[])
  
     char opt;
     int opt_idx;
+
+    float intensity_ratio = default_intensity_ratio;
+    float rt_width        = default_rt_width;
+    float rt_sigma        = default_rt_sigma;
+    float ppm             = default_ppm;
+    float mz_width        = default_fwhm;
+    float mz_sigma        = default_mz_sigma;
+    float mz_delta        = default_mz_delta;
+    float min_sample      = default_min_sample;
 
     std::string file_dir = "./";
     std::string mz_file = "";
@@ -82,7 +110,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    while ((opt = getopt (argc, argv, "hd:")) != -1) {
+    while ((opt = getopt (argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1) {
         
         switch (opt) {
             case 'h':
@@ -92,10 +120,34 @@ int main(int argc, char *argv[])
             case 'd':
                 file_dir = optarg;
                 break;
+            case 'i':
+                intensity_ratio = std::stof(std::string(optarg));
+                break;
+            case 'r':
+                rt_width = std::stof(std::string(optarg));
+                break;
+            case 'R':
+                rt_sigma = std::stof(std::string(optarg));
+                break;
+            case 'p':
+                ppm = std::stof(std::string(optarg));
+                break;
+            case 'm':
+                mz_width = std::stof(std::string(optarg));
+                break;
+            case 'M':
+                mz_sigma = std::stof(std::string(optarg));
+                break;
+            case 'D':
+                mz_delta = std::stof(std::string(optarg));
+                break;
+            case 's':
+                min_sample = std::stof(std::string(optarg));
+                break;
         }
       
     }
-     
+
     for (opt_idx = optind; opt_idx < argc; opt_idx++) {
         
         if (mz_file == "") { 
