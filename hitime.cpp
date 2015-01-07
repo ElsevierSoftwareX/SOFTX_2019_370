@@ -71,6 +71,15 @@ int main(int argc, char *argv[])
     char opt;
     int opt_idx;
 
+    float intensity_ratio = default_intensity_ratio;
+    float rt_width        = default_rt_width;
+    float rt_sigma        = default_rt_sigma;
+    float ppm             = default_ppm;
+    float mz_width        = default_fwhm;
+    float mz_sigma        = default_mz_sigma;
+    float mz_delta        = default_mz_delta;
+    float min_sample      = default_min_sample;
+
     std::string file_dir = "./";
     std::string mz_file = "";
     std::string time_file = "";
@@ -82,7 +91,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    while ((opt = getopt (argc, argv, "hd:")) != -1) {
+    while ((opt = getopt (argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1) {
         
         switch (opt) {
             case 'h':
@@ -92,10 +101,34 @@ int main(int argc, char *argv[])
             case 'd':
                 file_dir = optarg;
                 break;
+            case 'i':
+                intensity_ratio = std::stof(std::string(optarg));
+                break;
+            case 'r':
+                rt_width = std::stof(std::string(optarg));
+                break;
+            case 'R':
+                rt_sigma = std::stof(std::string(optarg));
+                break;
+            case 'p':
+                ppm = std::stof(std::string(optarg));
+                break;
+            case 'm':
+                mz_width = std::stof(std::string(optarg));
+                break;
+            case 'M':
+                mz_sigma = std::stof(std::string(optarg));
+                break;
+            case 'D':
+                mz_delta = std::stof(std::string(optarg));
+                break;
+            case 's':
+                min_sample = std::stof(std::string(optarg));
+                break;
         }
       
     }
-     
+
     for (opt_idx = optind; opt_idx < argc; opt_idx++) {
         
         if (mz_file == "") { 
