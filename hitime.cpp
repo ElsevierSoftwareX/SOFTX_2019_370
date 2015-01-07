@@ -54,15 +54,34 @@ void show_usage(char *cmd)
 {
     using namespace std;
 
-    cout << "Usage:     " << cmd << " [-options] [arguments]" << endl;
-    cout << "options:   " << "-h  show this help information" << endl;
-    cout << "           " << "-d  directory  path to data files" << endl;
-    cout << "arguments: " << "mz_file    name of mz NumPy file" << endl;
-    cout << "           " << "time_file  name of time NumPy file" << endl;
-    cout << "           " << "int_file   name of intensity NumPy file"; 
-    cout << endl;
-    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy ";
-    cout << "intensity.npy" << endl;
+    cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
+    cout                                                            << endl;
+    cout << "options:   " << "-h  show this help information"       << endl;
+    cout << "           " << "-d  directory  path to data files"    << endl;
+    cout << "           " << "-i  ratio of doublet intensities (isotope \n";
+    cout << "           " << "    / parent)"                        << endl;
+    cout << "           " << "-r  full width at half maximum for \n"       ;
+    cout << "           " << "    retention time in number of scans"<< endl;
+    cout << "           " << "-R  retention time width boundary in \n"     ;
+    cout << "           " << "    standard deviations"              << endl;
+    cout << "           " << "-p  m/z tolerance in parts per million"      ;
+    cout                                                            << endl;
+    cout << "           " << "-m  m/z full width at half maximum in \n"    ;
+    cout << "           " << "    parts per million"                << endl;
+    cout << "           " << "-M  m/z window boundary in standard \n"      ;
+    cout << "           " << "    deviations"                       << endl;
+    cout << "           " << "-D  m/z difference for doublets"      << endl;
+    cout << "           " << "-s  minimum number of data points \n"        ;
+    cout << "           " << "    required in each sample region"   << endl;
+    cout                                                            << endl;
+    cout << "arguments: " << "mz_file    name of mz NumPy file"     << endl;
+    cout << "           " << "time_file  name of time NumPy file"   << endl;
+    cout << "           " << "int_file   name of intensity NumPy file"     ;
+    cout                                                            << endl;
+    cout                                                            << endl;
+    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy "         ;
+    cout << "intensity.npy"                                         << endl;
+    cout                                                            << endl;
 }
 
 int main(int argc, char *argv[])
