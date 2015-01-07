@@ -39,13 +39,15 @@ void show_usage(char *cmd)
 {
     using namespace std;
 
-    cout << "Usage:   " << cmd <<" [-option] [argument]"<<endl;
-    cout << "option:  " << "-h  show help information"<<endl;
-    cout << "         " << "-u username"<<endl;
-    cout << "         " << "-p  password"<<endl;
-    cout << "         " << "-s  save the password: 0(save password) 1(forget password)"<<endl;
-    cout << "         " << "-v  show version infomation"<<endl;
-    cout << "example: " << cmd <<" -uusername -ppassword -s1"<<endl;
+    cout << "Usage:     " << cmd << " [-options] [arguments]" << endl;
+    cout << "options:   " << "-h  show this help information" << endl;
+    cout << "           " << "-d  directory  path to data files" << endl;
+    cout << "arguments: " << "mz_file    name of mz NumPy file" << endl;
+    cout << "           " << "time_file  name of time NumPy file" << endl;
+    cout << "           " << "int_file   name of intensity NumPy file"; 
+    cout << endl;
+    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy ";
+    cout << "intensity.npy" << endl;
 }
 
 int main(int argc, char *argv[])
