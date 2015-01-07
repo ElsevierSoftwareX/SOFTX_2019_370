@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stdlib.h>
+#include <unistd.h>
 
 #include <armadillo>
 #include "Numpy.hpp"
@@ -51,33 +51,69 @@ void show_usage(char *cmd)
 int main(int argc, char *argv[])
 {
  
+    char opt;
+    int opt_idx;
+
+    std::string file_dir = "./";
+    std::string mz_file = "";
+    std::string time_file = "";
+    std::string intensity_file = "";
+
+    // Show usage if no options are given
     if (argc == 1) {
         show_usage(argv[0]);
         exit(1);
-    } else { 
-        /*for loop,each loop print a argument once a time. Note that the 
-          loop begin with argv[1], because argv[0] represent the program's 
-          name.*/
-        std::cout<<"The arguments you put are:"<<std::endl;
-        for(int i=1;i<argc;i++) {
-            std::cout<<argv[i]<<std::endl;
-        }
-        return 0;
     }
 
-/*
-    std::string mz_file = "./data/testing_mz.npy";
+    while ((opt = getopt (argc, argv, "hd:")) != -1) {
+        
+        switch (opt) {
+            case 'h':
+                show_usage(argv[0]);
+                exit(1);
+                break;
+            case 'd':
+                file_dir = optarg;
+                break;
+        }
+      
+    }
+     
+    for (opt_idx = optind; opt_idx < argc; opt_idx++) {
+        
+        if (mz_file == "") { 
+            mz_file = file_dir + argv[opt_idx];
+        } else if (time_file == "") {
+            time_file = file_dir + argv[opt_idx];
+        } else if (intensity_file == "") {
+            intensity_file = file_dir + argv[opt_idx];
+        } else {
+            std::cout << "Too many arguments supplied. See usage.";
+            std::cout << std::endl;
+            exit(1);
+        }
+
+    }
+
+    if (intensity_file == "") {
+        std::cout << "Insufficient arguments supplies. See usage.";
+        std::cout << std::endl;
+        exit(1);
+    }
+    
+    std::cout << "File Directory: " << file_dir << std::endl;
+    std::cout << "MZ File: " << mz_file << std::endl;
+    std::cout << "Time File: " << time_file << std::endl;
+    std::cout << "Intensity File: " << intensity_file << std::endl;
+    
     arma::mat mz_mat = load_npy_file(mz_file);
     mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
 
-    std::string time_file = "./data/testing_time.npy";
     arma::mat time_mat = load_npy_file(time_file);
     time_mat.submat(0, 0, 5, 5).print("Time Data:");
 
-    std::string intensity_file = "./data/testing_intensity.npy";
     arma::mat intensity_mat = load_npy_file(intensity_file);
     intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
-*/
     
     return 0;
 }
