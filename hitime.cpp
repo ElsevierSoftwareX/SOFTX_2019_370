@@ -1,5 +1,6 @@
 #include <iostream>
 #include <unistd.h>
+#include <math.h>
 
 #include <armadillo>
 #include "Numpy.hpp"
@@ -19,6 +20,64 @@ const float default_rt_sigma        = 1.5;
 // minimum number of samples in score regions
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
+
+
+class MZWindow {
+    
+    public:
+        unsigned int centre_row;
+        unsigned int centre_col;
+        double centre_mz;
+        float tolerance;
+        unsigned int col_half_length;
+        std::vector<int> row_lower_bound;
+        std::vector<int> row_upper_bound;
+
+    void SetBounds (arma::mat matrix) 
+    {
+        int start_col = std::max(0U, centre_col - col_half_length);
+        int end_col = std::min(centre_col + col_half_length, 
+                                matrix.n_cols-1);
+        arma::uvec indexes;
+        
+        std::cout << matrix.n_rows << " ROWS " << matrix.n_cols << " COLS " << std::endl;
+
+        std::cout << "Start: " << start_col << " End: " << end_col << std::endl;
+
+        std::cout << "MZ: " << centre_mz << std::endl;
+
+        for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
+            std::cout << col_idx << std::endl;
+            matrix.col(col_idx).print("Col: ");
+            indexes = arma::find(matrix.col(col_idx) > centre_mz - tolerance
+                            && matrix.col(col_idx) < centre_mz + tolerance);
+            indexes.print("Found: ");
+            if (indexes.n_elem > 0) {
+                std::cout << "INDEXES " << indexes.n_elem << std::endl;
+                row_lower_bound.push_back(indexes(0));
+                row_upper_bound.push_back(indexes(indexes.n_elem-1));
+            } else {
+                std::cout << "NONE FOUND" << std::endl;
+                row_lower_bound.push_back(-1);
+                row_upper_bound.push_back(-1);
+            }
+        }
+
+        for (std::vector<int>::const_iterator i = row_lower_bound.begin();
+             i != row_lower_bound.end(); ++i) {
+            std::cout << (*i) << " ";
+        }
+
+        std::cout << std::endl;
+        for (std::vector<int>::const_iterator i = row_upper_bound.begin(); 
+             i != row_upper_bound.end(); ++i) {
+            std::cout << (*i) << " ";
+        }
+        std::cout << std::endl;
+
+    }
+
+};
 
 /**
   Read in a NumPy array and return an Armadillo matrix
@@ -86,7 +145,8 @@ void show_usage(char *cmd)
 
 int main(int argc, char *argv[])
 {
- 
+
+
     char opt;
     int opt_idx;
 
@@ -185,9 +245,58 @@ int main(int argc, char *argv[])
 
     arma::mat intensity_mat = load_npy_file(intensity_file);
     intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
-*/
 
-    half_rt_window = static_cast<int>(rt_sigma * rt_width / 2.355);
+*/
+//    half_rt_window = static_cast<int>(ceil(rt_sigma * rt_width / 2.355));
+/*
+    arma::mat A = arma::randu<arma::mat>(5, 5);
+    arma::mat B = arma::randu<arma::mat>(5, 5);
+
+    A.print("A:");
+    B.print("B:");
+
+    arma::uvec q1 = arma::find(B.col(0) > 0.5);
+    q1.print("Q1:");
+    arma::uvec q2 = arma::find(B.col(2) > 0.5 && B.col(2) < 0.7);
+    q2.print("Q2:");
+
+    int head = q1(0);
+    int tail = q1(q1.n_elem-1);
+    std::cout << "Head: " << head << " Tail: " << tail << std::endl;
+
+    A.zeros();
+    A.elem(q1).ones();
+
+    A.print("A2:");
+
+    arma::mat::col_iterator c = B.begin_col(1);
+    arma::mat::col_iterator d = B.begin_col(3);
+
+    for (arma::mat::col_iterator i = c; i != d; ++i) { 
+        std::cout << (*i) << std::endl;
+    }
+*/
+    arma::mat C;
+    C << 0.11 << 0.01 << 0.09 << 0.10 << 0.12 << 0.08 << 0.09 << arma::endr
+      << 0.19 << 0.14 << 0.23 << 0.19 << 0.28 << 0.16 << 0.24 << arma::endr
+      << 0.31 << 0.26 << 0.27 << 0.34 << 0.32 << 0.28 << 0.32 << arma::endr
+      << 0.43 << 0.38 << 0.41 << 0.48 << 0.38 << 0.43 << 0.41 << arma::endr
+      << 0.49 << 0.54 << 0.46 << 0.53 << 0.51 << 0.50 << 0.49 << arma::endr
+      << 0.62 << 0.64 << 0.58 << 0.61 << 0.66 << 0.58 << 0.63 << arma::endr
+      << 0.70 << 0.68 << 0.71 << 0.70 << 0.72 << 0.69 << 0.66 << arma::endr
+      << 0.76 << 0.81 << 0.79 << 0.77 << 0.83 << 0.84 << 0.81 << arma::endr
+      << 0.89 << 0.92 << 0.96 << 0.89 << 0.91 << 0.95 << 0.92 << arma::endr;
+
+    C.print("C: ");
+
+    MZWindow window;
+    window.centre_row = 2;
+    window.centre_col = 3;
+    window.centre_mz = C(2, 3);
+    window.tolerance = 0.15;
+    window.col_half_length = 2;
+    
+    window.SetBounds(C);
 
     return 0;
 }
