@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <math.h>
+#include <iomanip>
 
 #include <armadillo>
 #include "Numpy.hpp"
@@ -33,8 +34,15 @@ class MZWindow {
         std::vector<int> row_lower_bound;
         std::vector<int> row_upper_bound;
 
-    void SetBounds (arma::mat matrix) 
+    void SetBounds (arma::mat matrix, unsigned int x,
+                    unsigned int y, float tol, unsigned int half) 
     {
+        centre_row = x;
+        centre_col = y;
+        centre_mz = matrix(centre_row, centre_col);
+        tolerance = tol;
+        col_half_length = half;
+        
         int start_col = std::max(0U, centre_col - col_half_length);
         int end_col = std::min(centre_col + col_half_length, 
                                 matrix.n_cols-1);
@@ -228,20 +236,21 @@ int main(int argc, char *argv[])
     std::cout << "MZ File: " << mz_file << std::endl;
     std::cout << "Time File: " << time_file << std::endl;
     std::cout << "Intensity File: " << intensity_file << std::endl;
-    
+ 
+*/    
     arma::mat mz_mat = load_npy_file(mz_file);
-    mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
+//    mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
 
     arma::mat time_mat = load_npy_file(time_file);
-    time_mat.submat(0, 0, 5, 5).print("Time Data:");
+//    time_mat.submat(0, 0, 5, 5).print("Time Data:");
 
     arma::mat intensity_mat = load_npy_file(intensity_file);
-    intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
+//    intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
 
-*/
+
 //    half_rt_window = static_cast<int>(ceil(rt_sigma * rt_width / 2.355));
 
-/*
+
     arma::mat C;
     C << 0.11 << 0.01 << 0.09 << 0.10 << 0.12 << 0.08 << 0.09 << arma::endr
       << 0.19 << 0.14 << 0.23 << 0.19 << 0.28 << 0.16 << 0.24 << arma::endr
@@ -256,14 +265,14 @@ int main(int argc, char *argv[])
     C.print("C: ");
 
     MZWindow window;
-    window.centre_row = 2;
-    window.centre_col = 3;
-    window.centre_mz = C(2, 3);
-    window.tolerance = 0.15;
-    window.col_half_length = 2;
-    
-    window.SetBounds(C);
-*/
+    window.SetBounds(C, 2, 3, 0.15, 2);
+
+    arma::mat D = mz_mat.submat(20, 20, 30, 24);
+    D.print("D:");
+
+    MZWindow wind2;
+    wind2.SetBounds(D, 3, 4, 0.02, 3);
+
     return 0;
 }
 
