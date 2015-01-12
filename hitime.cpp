@@ -39,30 +39,22 @@ class MZWindow {
         int end_col = std::min(centre_col + col_half_length, 
                                 matrix.n_cols-1);
         arma::uvec indexes;
-        
-        std::cout << matrix.n_rows << " ROWS " << matrix.n_cols << " COLS " << std::endl;
-
-        std::cout << "Start: " << start_col << " End: " << end_col << std::endl;
-
-        std::cout << "MZ: " << centre_mz << std::endl;
 
         for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
-            std::cout << col_idx << std::endl;
-            matrix.col(col_idx).print("Col: ");
+            
             indexes = arma::find(matrix.col(col_idx) > centre_mz - tolerance
                             && matrix.col(col_idx) < centre_mz + tolerance);
-            indexes.print("Found: ");
+            
             if (indexes.n_elem > 0) {
-                std::cout << "INDEXES " << indexes.n_elem << std::endl;
                 row_lower_bound.push_back(indexes(0));
                 row_upper_bound.push_back(indexes(indexes.n_elem-1));
             } else {
-                std::cout << "NONE FOUND" << std::endl;
                 row_lower_bound.push_back(-1);
                 row_upper_bound.push_back(-1);
             }
         }
 
+/*        
         for (std::vector<int>::const_iterator i = row_lower_bound.begin();
              i != row_lower_bound.end(); ++i) {
             std::cout << (*i) << " ";
@@ -74,7 +66,7 @@ class MZWindow {
             std::cout << (*i) << " ";
         }
         std::cout << std::endl;
-
+*/
     }
 
 };
@@ -248,34 +240,8 @@ int main(int argc, char *argv[])
 
 */
 //    half_rt_window = static_cast<int>(ceil(rt_sigma * rt_width / 2.355));
+
 /*
-    arma::mat A = arma::randu<arma::mat>(5, 5);
-    arma::mat B = arma::randu<arma::mat>(5, 5);
-
-    A.print("A:");
-    B.print("B:");
-
-    arma::uvec q1 = arma::find(B.col(0) > 0.5);
-    q1.print("Q1:");
-    arma::uvec q2 = arma::find(B.col(2) > 0.5 && B.col(2) < 0.7);
-    q2.print("Q2:");
-
-    int head = q1(0);
-    int tail = q1(q1.n_elem-1);
-    std::cout << "Head: " << head << " Tail: " << tail << std::endl;
-
-    A.zeros();
-    A.elem(q1).ones();
-
-    A.print("A2:");
-
-    arma::mat::col_iterator c = B.begin_col(1);
-    arma::mat::col_iterator d = B.begin_col(3);
-
-    for (arma::mat::col_iterator i = c; i != d; ++i) { 
-        std::cout << (*i) << std::endl;
-    }
-*/
     arma::mat C;
     C << 0.11 << 0.01 << 0.09 << 0.10 << 0.12 << 0.08 << 0.09 << arma::endr
       << 0.19 << 0.14 << 0.23 << 0.19 << 0.28 << 0.16 << 0.24 << arma::endr
@@ -297,7 +263,7 @@ int main(int argc, char *argv[])
     window.col_half_length = 2;
     
     window.SetBounds(C);
-
+*/
     return 0;
 }
 
