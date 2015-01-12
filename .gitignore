@@ -88,3 +88,7 @@ target/
 
 ### OSX
 .DS_Store
+
+### Other
+*.swp
+
