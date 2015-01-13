@@ -36,10 +36,10 @@ class MZWindow {
     void SetBounds (arma::mat matrix, unsigned int col,
                     unsigned int half, double mz, float tol) 
     {
-        centre_col = col;
+        centre_col      = col;
         col_half_length = half;
-        centre_mz = mz;
-        tolerance = tol;
+        centre_mz       = mz;
+        tolerance       = tol;
         
         unsigned int start_col = std::max(0U, centre_col - col_half_length);
         unsigned int end_col = std::min(centre_col + col_half_length, 
@@ -105,8 +105,8 @@ arma::mat load_npy_file(const std::string& filename)
 
     int nrows = shape[0];
     int ncols = shape[1];
-    int row = 0;
-    int col = 0;
+    int row   = 0;
+    int col   = 0;
     std::vector<double>::const_iterator i;
 
     arma::mat matrix(nrows, ncols);
@@ -174,9 +174,9 @@ int main(int argc, char *argv[])
     float min_sample      = default_min_sample;
     int half_rt_window;
 
-    std::string file_dir = "./";
-    std::string mz_file = "";
-    std::string time_file = "";
+    std::string file_dir       = "./";
+    std::string mz_file        = "";
+    std::string time_file      = "";
     std::string intensity_file = "";
 
     // Show usage if no options are given
@@ -281,14 +281,14 @@ int main(int argc, char *argv[])
     MZWindow window;
     //window.SetBounds(C, 2, 3, 0.15, 2);
 
-    arma::mat D = mz_mat.submat(20, 20, 30, 24);
-    D.print("D:");
+    //arma::mat D = mz_mat.submat(20, 20, 30, 24);
+    //D.print("D:");
 
-    MZWindow wind2;
-    wind2.SetBounds(D, 4, 3, D(3,4), 0.02);
-    wind2.PrintBounds();
+    //MZWindow wind2;
+    //wind2.SetBounds(D, 4, 3, D(3,4), 0.02);
+    //wind2.PrintBounds();
 
-    time_mat.submat(20, 20, 30, 24).print("Time: ");
+    //time_mat.submat(20, 20, 30, 24).print("Time: ");
 
     DoubleWindow dwind;
     dwind.SetWindows(C, 3, 2, C(2, 3), 0.3, 0.11, 0.16); 
