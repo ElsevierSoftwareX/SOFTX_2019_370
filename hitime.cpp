@@ -59,8 +59,10 @@ class MZWindow {
                 row_upper_bound.push_back(-1);
             }
         }
+    }
 
-/*        
+    void PrintBounds ()
+    {
         for (std::vector<int>::const_iterator i = row_lower_bound.begin();
              i != row_lower_bound.end(); ++i) {
             std::cout << (*i) << " ";
@@ -72,7 +74,6 @@ class MZWindow {
             std::cout << (*i) << " ";
         }
         std::cout << std::endl;
-*/
     }
 
 };
@@ -87,10 +88,10 @@ class DoubleWindow {
                      double mz, float delta, float lo_tol, float hi_tol)
     {
         lo_window.SetBounds(matrix, col, half, mz, lo_tol);
-        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol)
+        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol);
     }
 
-}
+};
 
 /**
   Read in a NumPy array and return an Armadillo matrix
@@ -285,11 +286,14 @@ int main(int argc, char *argv[])
 
     MZWindow wind2;
     wind2.SetBounds(D, 4, 3, D(3,4), 0.02);
+    wind2.PrintBounds();
 
     time_mat.submat(20, 20, 30, 24).print("Time: ");
 
     DoubleWindow dwind;
     dwind.SetWindows(C, 3, 2, C(2, 3), 0.3, 0.11, 0.16); 
+    dwind.lo_window.PrintBounds();
+    dwind.hi_window.PrintBounds();
 
     return 0;
 }
