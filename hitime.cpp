@@ -26,7 +26,6 @@ const float default_min_sample      = default_rt_width * default_rt_sigma
 class MZWindow {
     
     public:
-        unsigned int centre_row;
         unsigned int centre_col;
         double centre_mz;
         float tolerance;
@@ -34,18 +33,17 @@ class MZWindow {
         std::vector<int> row_lower_bound;
         std::vector<int> row_upper_bound;
 
-    void SetBounds (arma::mat matrix, unsigned int x,
-                    unsigned int y, float tol, unsigned int half) 
+    void SetBounds (arma::mat matrix, unsigned int col,
+                    unsigned int half, double mz, float tol) 
     {
-        centre_row = x;
-        centre_col = y;
-        centre_mz = matrix(centre_row, centre_col);
-        tolerance = tol;
+        centre_col = col;
         col_half_length = half;
+        centre_mz = mz;
+        tolerance = tol;
         
-        int start_col = std::max(0U, centre_col - col_half_length);
-        int end_col = std::min(centre_col + col_half_length, 
-                                matrix.n_cols-1);
+        unsigned int start_col = std::max(0U, centre_col - col_half_length);
+        unsigned int end_col = std::min(centre_col + col_half_length, 
+                                        matrix.n_cols-1);
         arma::uvec indexes;
 
         for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
@@ -78,6 +76,21 @@ class MZWindow {
     }
 
 };
+
+class DoubleWindow {
+
+    public:
+        MZWindow lo_window;
+        MZWindow hi_window;
+
+    void SetWindows (arma::mat matrix, unsigned int col, unsigned int half,
+                     double mz, float delta, float lo_tol, float hi_tol)
+    {
+        lo_window.SetBounds(matrix, col, half, mz, lo_tol);
+        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol)
+    }
+
+}
 
 /**
   Read in a NumPy array and return an Armadillo matrix
@@ -265,13 +278,18 @@ int main(int argc, char *argv[])
     C.print("C: ");
 
     MZWindow window;
-    window.SetBounds(C, 2, 3, 0.15, 2);
+    //window.SetBounds(C, 2, 3, 0.15, 2);
 
     arma::mat D = mz_mat.submat(20, 20, 30, 24);
     D.print("D:");
 
     MZWindow wind2;
-    wind2.SetBounds(D, 3, 4, 0.02, 3);
+    wind2.SetBounds(D, 4, 3, D(3,4), 0.02);
+
+    time_mat.submat(20, 20, 30, 24).print("Time: ");
+
+    DoubleWindow dwind;
+    dwind.SetWindows(C, 3, 2, C(2, 3), 0.3, 0.11, 0.16); 
 
     return 0;
 }
