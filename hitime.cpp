@@ -2,9 +2,13 @@
 #include <unistd.h>
 #include <math.h>
 #include <iomanip>
+#include <cstdlib>
+#include <string>
 
 //#include <armadillo>
 //#include "Numpy.hpp"
+
+/************************* CONSTANTS *************************/
 
 // default difference in mass of isotopes
 const float default_mz_delta        = 6.0201;
@@ -22,44 +26,121 @@ const float default_rt_sigma        = 1.5;
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
 
-void show_usage(char *cmd)
-{
-    using namespace std;
+/************************* FUNCTION DECLARATIONS *************************/
 
-    cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
-    cout                                                            << endl;
-    cout << "options:   " << "-h  show this help information"       << endl;
-    cout << "           " << "-d  directory  path to data files"    << endl;
-    cout << "           " << "-i  ratio of doublet intensities (isotope \n";
-    cout << "           " << "    / parent)"                        << endl;
-    cout << "           " << "-r  full width at half maximum for \n"       ;
-    cout << "           " << "    retention time in number of scans"<< endl;
-    cout << "           " << "-R  retention time width boundary in \n"     ;
-    cout << "           " << "    standard deviations"              << endl;
-    cout << "           " << "-p  m/z tolerance in parts per million"      ;
-    cout                                                            << endl;
-    cout << "           " << "-m  m/z full width at half maximum in \n"    ;
-    cout << "           " << "    parts per million"                << endl;
-    cout << "           " << "-M  m/z window boundary in standard \n"      ;
-    cout << "           " << "    deviations"                       << endl;
-    cout << "           " << "-D  m/z difference for doublets"      << endl;
-    cout << "           " << "-s  minimum number of data points \n"        ;
-    cout << "           " << "    required in each sample region"   << endl;
-    cout                                                            << endl;
-    cout << "arguments: " << "mz_file    name of mz NumPy file"     << endl;
-    cout << "           " << "time_file  name of time NumPy file"   << endl;
-    cout << "           " << "int_file   name of intensity NumPy file"     ;
-    cout                                                            << endl;
-    cout                                                            << endl;
-    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy "         ;
-    cout << "intensity.npy"                                         << endl;
-    cout                                                            << endl;
-}
+void show_usage(char *cmd);
+
+/************************* CLASSES *************************/
+
+class Options {
+
+    public:
+        float intensity_ratio;
+        float rt_width;
+        float rt_sigma;
+        float ppm;
+        float mz_width;
+        float mz_sigma;
+        float mz_delta;
+        float min_sample;
+        int half_rt_window;
+        std::string file_dir;
+        std::string mz_file;
+        std::string time_file;
+        std::string intensity_file;
+
+        Options(int argc, char *argv[])
+        {
+            char opt;
+            int opt_idx;
+
+            intensity_ratio = default_intensity_ratio;
+            rt_width        = default_rt_width;
+            rt_sigma        = default_rt_sigma;
+            ppm             = default_ppm;
+            mz_width        = default_fwhm;
+            mz_sigma        = default_mz_sigma;
+            mz_delta        = default_mz_delta;
+            min_sample      = default_min_sample;
+            half_rt_window;
+
+            file_dir       = "./";
+            mz_file        = "";
+            time_file      = "";
+            intensity_file = "";
+
+            // Show usage and exit if no options are given
+            if (argc == 1) {
+                show_usage(argv[0]);
+                exit(1);
+            }
+
+            while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1){
+        
+                switch (opt) {
+                    case 'h':
+                        show_usage(argv[0]);
+                        exit(1);
+                        break;
+                    case 'd':
+                        file_dir = optarg;
+                        break;
+                    case 'i':
+                        intensity_ratio = std::stof(std::string(optarg));
+                        break;
+                    case 'r':
+                        rt_width = std::stof(std::string(optarg));
+                        break;
+                    case 'R':
+                        rt_sigma = std::stof(std::string(optarg));
+                        break;
+                    case 'p':
+                        ppm = std::stof(std::string(optarg));
+                        break;
+                    case 'm':
+                        mz_width = std::stof(std::string(optarg));
+                        break;
+                    case 'M':
+                        mz_sigma = std::stof(std::string(optarg));
+                        break;
+                    case 'D':
+                        mz_delta = std::stof(std::string(optarg));
+                        break;
+                    case 's':
+                        min_sample = std::stof(std::string(optarg));
+                        break;
+                }
+            }
+
+            for (opt_idx = optind; opt_idx < argc; opt_idx++) {
+        
+                if (mz_file == "") { 
+                    mz_file = file_dir + argv[opt_idx];
+                } else if (time_file == "") {
+                    time_file = file_dir + argv[opt_idx];
+                } else if (intensity_file == "") {
+                    intensity_file = file_dir + argv[opt_idx];
+                } else {
+                    std::cout << "Too many arguments supplied. See usage.";
+                    std::cout << std::endl;
+                    exit(1);
+                }
+            }
+
+            if (intensity_file == "") {
+                std::cout << "Insufficient arguments supplies. See usage.";
+                std::cout << std::endl;
+                exit(1);
+            }
+        }
+};
+
+/************************* MAIN *************************/
 
 int main(int argc, char *argv[])
 {
 
-
+    std::string test("hi");
     char opt;
     int opt_idx;
 
@@ -146,6 +227,44 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+/************************* FUNCTION DEFINITIONS *************************/
+
+void show_usage(char *cmd)
+{
+    using namespace std;
+
+    cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
+    cout                                                            << endl;
+    cout << "options:   " << "-h  show this help information"       << endl;
+    cout << "           " << "-d  directory  path to data files"    << endl;
+    cout << "           " << "-i  ratio of doublet intensities (isotope \n";
+    cout << "           " << "    / parent)"                        << endl;
+    cout << "           " << "-r  full width at half maximum for \n"       ;
+    cout << "           " << "    retention time in number of scans"<< endl;
+    cout << "           " << "-R  retention time width boundary in \n"     ;
+    cout << "           " << "    standard deviations"              << endl;
+    cout << "           " << "-p  m/z tolerance in parts per million"      ;
+    cout                                                            << endl;
+    cout << "           " << "-m  m/z full width at half maximum in \n"    ;
+    cout << "           " << "    parts per million"                << endl;
+    cout << "           " << "-M  m/z window boundary in standard \n"      ;
+    cout << "           " << "    deviations"                       << endl;
+    cout << "           " << "-D  m/z difference for doublets"      << endl;
+    cout << "           " << "-s  minimum number of data points \n"        ;
+    cout << "           " << "    required in each sample region"   << endl;
+    cout                                                            << endl;
+    cout << "arguments: " << "mz_file    name of mz NumPy file"     << endl;
+    cout << "           " << "time_file  name of time NumPy file"   << endl;
+    cout << "           " << "int_file   name of intensity NumPy file"     ;
+    cout                                                            << endl;
+    cout                                                            << endl;
+    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy "         ;
+    cout << "intensity.npy"                                         << endl;
+    cout                                                            << endl;
+}
+
+/************************* OLD CODE *************************/
 
 /*
 class MZWindow {
