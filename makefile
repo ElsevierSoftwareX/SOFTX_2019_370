@@ -1,5 +1,6 @@
 CC=gcc
 CXX=g++
+CXXFLAGS=-std=c++0x
 RM=rm -f
 
 SRCS=hitime.cpp
