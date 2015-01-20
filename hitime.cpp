@@ -3,8 +3,8 @@
 #include <math.h>
 #include <iomanip>
 
-#include <armadillo>
-#include "Numpy.hpp"
+//#include <armadillo>
+//#include "Numpy.hpp"
 
 // default difference in mass of isotopes
 const float default_mz_delta        = 6.0201;
@@ -21,107 +21,6 @@ const float default_rt_sigma        = 1.5;
 // minimum number of samples in score regions
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
-
-
-class MZWindow {
-    
-    public:
-        unsigned int centre_col;
-        double centre_mz;
-        float tolerance;
-        unsigned int col_half_length;
-        std::vector<int> row_lower_bound;
-        std::vector<int> row_upper_bound;
-
-    void SetBounds (arma::mat matrix, unsigned int col,
-                    unsigned int half, double mz, float tol) 
-    {
-        centre_col      = col;
-        col_half_length = half;
-        centre_mz       = mz;
-        tolerance       = tol;
-        
-        unsigned int start_col = std::max(0U, centre_col - col_half_length);
-        unsigned int end_col = std::min(centre_col + col_half_length, 
-                                        matrix.n_cols-1);
-        arma::uvec indexes;
-
-        for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
-            
-            indexes = arma::find(matrix.col(col_idx) > centre_mz - tolerance
-                            && matrix.col(col_idx) < centre_mz + tolerance);
-            
-            if (indexes.n_elem > 0) {
-                row_lower_bound.push_back(indexes(0));
-                row_upper_bound.push_back(indexes(indexes.n_elem-1));
-            } else {
-                row_lower_bound.push_back(-1);
-                row_upper_bound.push_back(-1);
-            }
-        }
-    }
-
-    void PrintBounds ()
-    {
-        for (std::vector<int>::const_iterator i = row_lower_bound.begin();
-             i != row_lower_bound.end(); ++i) {
-            std::cout << (*i) << " ";
-        }
-
-        std::cout << std::endl;
-        for (std::vector<int>::const_iterator i = row_upper_bound.begin(); 
-             i != row_upper_bound.end(); ++i) {
-            std::cout << (*i) << " ";
-        }
-        std::cout << std::endl;
-    }
-
-};
-
-class DoubleWindow {
-
-    public:
-        MZWindow lo_window;
-        MZWindow hi_window;
-
-    void SetWindows (arma::mat matrix, unsigned int col, unsigned int half,
-                     double mz, float delta, float lo_tol, float hi_tol)
-    {
-        lo_window.SetBounds(matrix, col, half, mz, lo_tol);
-        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol);
-    }
-
-};
-
-/**
-  Read in a NumPy array and return an Armadillo matrix
-*/
-arma::mat load_npy_file(const std::string& filename)
-{
-    std::vector<int> shape;
-    std::vector<double> data;
-    
-    aoba::LoadArrayFromNumpy(filename, shape, data);
-
-    int nrows = shape[0];
-    int ncols = shape[1];
-    int row   = 0;
-    int col   = 0;
-    std::vector<double>::const_iterator i;
-
-    arma::mat matrix(nrows, ncols);
-
-    for (i = data.begin(); i != data.end(); i++) {
-        matrix(row, col) = (*i);
-        col++;
-        if (col == ncols) {
-            col = 0;
-            row++;
-        }
-    }
-
-    return matrix;
-}
 
 void show_usage(char *cmd)
 {
@@ -245,13 +144,121 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    return 0;
+}
+
+/*
+class MZWindow {
+    
+    public:
+        unsigned int centre_col;
+        double centre_mz;
+        float tolerance;
+        unsigned int col_half_length;
+        std::vector<int> row_lower_bound;
+        std::vector<int> row_upper_bound;
+
+    void SetBounds (arma::mat matrix, unsigned int col,
+                    unsigned int half, double mz, float tol) 
+    {
+        centre_col      = col;
+        col_half_length = half;
+        centre_mz       = mz;
+        tolerance       = tol;
+        
+        unsigned int start_col = std::max(0U, centre_col - col_half_length);
+        unsigned int end_col = std::min(centre_col + col_half_length, 
+                                        matrix.n_cols-1);
+        arma::uvec indexes;
+
+        for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
+            
+            indexes = arma::find(matrix.col(col_idx) > centre_mz - tolerance
+                            && matrix.col(col_idx) < centre_mz + tolerance);
+            
+            if (indexes.n_elem > 0) {
+                row_lower_bound.push_back(indexes(0));
+                row_upper_bound.push_back(indexes(indexes.n_elem-1));
+            } else {
+                row_lower_bound.push_back(-1);
+                row_upper_bound.push_back(-1);
+            }
+        }
+    }
+
+    void PrintBounds ()
+    {
+        for (std::vector<int>::const_iterator i = row_lower_bound.begin();
+             i != row_lower_bound.end(); ++i) {
+            std::cout << (*i) << " ";
+        }
+
+        std::cout << std::endl;
+        for (std::vector<int>::const_iterator i = row_upper_bound.begin(); 
+             i != row_upper_bound.end(); ++i) {
+            std::cout << (*i) << " ";
+        }
+        std::cout << std::endl;
+    }
+
+};
+
+class DoubleWindow {
+
+    public:
+        MZWindow lo_window;
+        MZWindow hi_window;
+
+    void SetWindows (arma::mat matrix, unsigned int col, unsigned int half,
+                     double mz, float delta, float lo_tol, float hi_tol)
+    {
+        lo_window.SetBounds(matrix, col, half, mz, lo_tol);
+        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol);
+    }
+
+};
+
+*/
+
+/**
+  Read in a NumPy array and return an Armadillo matrix
+*/
+/*
+arma::mat load_npy_file(const std::string& filename)
+{
+    std::vector<int> shape;
+    std::vector<double> data;
+    
+    aoba::LoadArrayFromNumpy(filename, shape, data);
+
+    int nrows = shape[0];
+    int ncols = shape[1];
+    int row   = 0;
+    int col   = 0;
+    std::vector<double>::const_iterator i;
+
+    arma::mat matrix(nrows, ncols);
+
+    for (i = data.begin(); i != data.end(); i++) {
+        matrix(row, col) = (*i);
+        col++;
+        if (col == ncols) {
+            col = 0;
+            row++;
+        }
+    }
+
+    return matrix;
+}
+*/
 /*
     std::cout << "File Directory: " << file_dir << std::endl;
     std::cout << "MZ File: " << mz_file << std::endl;
     std::cout << "Time File: " << time_file << std::endl;
     std::cout << "Intensity File: " << intensity_file << std::endl;
  
-*/    
+*/
+/*
     arma::mat mz_mat = load_npy_file(mz_file);
 //    mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
 
@@ -295,7 +302,4 @@ int main(int argc, char *argv[])
     dwind.lo_window.PrintBounds();
     dwind.hi_window.PrintBounds();
 
-    return 0;
-}
-
-
+*/
