@@ -224,7 +224,6 @@ void show_usage(char *cmd)
     cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
     cout                                                            << endl;
     cout << "options:   " << "-h  show this help information"       << endl;
-    cout << "           " << "-d  directory  path to data files"    << endl;
     cout << "           " << "-i  ratio of doublet intensities (isotope \n";
     cout << "           " << "    / parent)"                        << endl;
     cout << "           " << "-r  full width at half maximum for \n"       ;
@@ -241,13 +240,9 @@ void show_usage(char *cmd)
     cout << "           " << "-s  minimum number of data points \n"        ;
     cout << "           " << "    required in each sample region"   << endl;
     cout                                                            << endl;
-    cout << "arguments: " << "mz_file    name of mz NumPy file"     << endl;
-    cout << "           " << "time_file  name of time NumPy file"   << endl;
-    cout << "           " << "int_file   name of intensity NumPy file"     ;
+    cout << "arguments: " << "mzML_file     path to mzML file"      << endl;
     cout                                                            << endl;
-    cout                                                            << endl;
-    cout << "example:   " << cmd << " -d ./data/ mz.npy time.npy "         ;
-    cout << "intensity.npy"                                         << endl;
+    cout << "example:   " << cmd << " example.mzML"                 << endl;
     cout                                                            << endl;
 }
 
