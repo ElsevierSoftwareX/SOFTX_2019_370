@@ -45,79 +45,9 @@ class Options {
         float min_sample;
         std::string mzML_file;
 
-        Options(int argc, char *argv[])
-        {
-            char opt;
-            int opt_idx;
-
-            intensity_ratio = default_intensity_ratio;
-            rt_width        = default_rt_width;
-            rt_sigma        = default_rt_sigma;
-            ppm             = default_ppm;
-            mz_width        = default_fwhm;
-            mz_sigma        = default_mz_sigma;
-            mz_delta        = default_mz_delta;
-            min_sample      = default_min_sample;
-            mzML_file        = "";
-
-            // Show usage and exit if no options are given
-            if (argc == 1) {
-                show_usage(argv[0]);
-                exit(1);
-            }
-
-            while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1){
+        Options(int argc, char *argv[]);
         
-                switch (opt) {
-                    case 'h':
-                        show_usage(argv[0]);
-                        exit(1);
-                        break;
-                    case 'i':
-                        intensity_ratio = std::stof(std::string(optarg));
-                        break;
-                    case 'r':
-                        rt_width = std::stof(std::string(optarg));
-                        break;
-                    case 'R':
-                        rt_sigma = std::stof(std::string(optarg));
-                        break;
-                    case 'p':
-                        ppm = std::stof(std::string(optarg));
-                        break;
-                    case 'm':
-                        mz_width = std::stof(std::string(optarg));
-                        break;
-                    case 'M':
-                        mz_sigma = std::stof(std::string(optarg));
-                        break;
-                    case 'D':
-                        mz_delta = std::stof(std::string(optarg));
-                        break;
-                    case 's':
-                        min_sample = std::stof(std::string(optarg));
-                        break;
-                }
-            }
-
-            for (opt_idx = optind; opt_idx < argc; opt_idx++) {
-        
-                if (mzML_file == "") { 
-                    mzML_file = argv[opt_idx];
-                } else {
-                    std::cout << "Too many arguments supplied. See usage.";
-                    std::cout << std::endl;
-                    exit(1);
-                }
-            }
-
-            if (mzML_file == "") {
-                std::cout << "Insufficient arguments supplies. See usage.";
-                std::cout << std::endl;
-                exit(1);
-            }
-        }
-};
+        };
 
 /************************* MAIN *************************/
 
@@ -126,92 +56,8 @@ int main(int argc, char *argv[])
 
     Options opts(argc, argv);
    
-    /*
-    std::string test("hi");
-    char opt;
-    int opt_idx;
-
-    float intensity_ratio = default_intensity_ratio;
-    float rt_width        = default_rt_width;
-    float rt_sigma        = default_rt_sigma;
-    float ppm             = default_ppm;
-    float mz_width        = default_fwhm;
-    float mz_sigma        = default_mz_sigma;
-    float mz_delta        = default_mz_delta;
-    float min_sample      = default_min_sample;
-    int half_rt_window;
-
-    std::string file_dir       = "./";
-    std::string mz_file        = "";
-    std::string time_file      = "";
-    std::string intensity_file = "";
-
-    // Show usage if no options are given
-    if (argc == 1) {
-        show_usage(argv[0]);
-        exit(1);
-    }
-
-    while ((opt = getopt (argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1) {
-        
-        switch (opt) {
-            case 'h':
-                show_usage(argv[0]);
-                exit(1);
-                break;
-            case 'd':
-                file_dir = optarg;
-                break;
-            case 'i':
-                intensity_ratio = std::stof(std::string(optarg));
-                break;
-            case 'r':
-                rt_width = std::stof(std::string(optarg));
-                break;
-            case 'R':
-                rt_sigma = std::stof(std::string(optarg));
-                break;
-            case 'p':
-                ppm = std::stof(std::string(optarg));
-                break;
-            case 'm':
-                mz_width = std::stof(std::string(optarg));
-                break;
-            case 'M':
-                mz_sigma = std::stof(std::string(optarg));
-                break;
-            case 'D':
-                mz_delta = std::stof(std::string(optarg));
-                break;
-            case 's':
-                min_sample = std::stof(std::string(optarg));
-                break;
-        }
-      
-    }
-
-    for (opt_idx = optind; opt_idx < argc; opt_idx++) {
-        
-        if (mz_file == "") { 
-            mz_file = file_dir + argv[opt_idx];
-        } else if (time_file == "") {
-            time_file = file_dir + argv[opt_idx];
-        } else if (intensity_file == "") {
-            intensity_file = file_dir + argv[opt_idx];
-        } else {
-            std::cout << "Too many arguments supplied. See usage.";
-            std::cout << std::endl;
-            exit(1);
-        }
-
-    }
-
-    if (intensity_file == "") {
-        std::cout << "Insufficient arguments supplies. See usage.";
-        std::cout << std::endl;
-        exit(1);
-    }
-    */
+    
+    
     return 0;
 }
 
@@ -245,6 +91,82 @@ void show_usage(char *cmd)
     cout << "example:   " << cmd << " example.mzML"                 << endl;
     cout                                                            << endl;
 }
+
+/************************* CLASS METHODS *************************/
+
+Options::Options(int argc, char *argv[])
+{
+    char opt;
+    int opt_idx;
+
+    intensity_ratio = default_intensity_ratio;
+    rt_width        = default_rt_width;
+    rt_sigma        = default_rt_sigma;
+    ppm             = default_ppm;
+    mz_width        = default_fwhm;
+    mz_sigma        = default_mz_sigma;
+    mz_delta        = default_mz_delta;
+    min_sample      = default_min_sample;
+    mzML_file        = "";
+
+    // Show usage and exit if no options are given
+    if (argc == 1) {
+        show_usage(argv[0]);
+        exit(1);
+    }
+
+    while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1){
+        
+        switch (opt) {
+            case 'h':
+                show_usage(argv[0]);
+                exit(1);
+                break;
+            case 'i':
+                intensity_ratio = std::stof(std::string(optarg));
+                break;
+            case 'r':
+                rt_width = std::stof(std::string(optarg));
+                break;
+            case 'R':
+                rt_sigma = std::stof(std::string(optarg));
+                break;
+            case 'p':
+                ppm = std::stof(std::string(optarg));
+                break;
+            case 'm':
+                mz_width = std::stof(std::string(optarg));
+                break;
+            case 'M':
+                mz_sigma = std::stof(std::string(optarg));
+                break;
+            case 'D':
+                mz_delta = std::stof(std::string(optarg));
+                break;
+            case 's':
+                min_sample = std::stof(std::string(optarg));
+                break;
+        }
+    }
+
+    for (opt_idx = optind; opt_idx < argc; opt_idx++) {
+
+        if (mzML_file == "") { 
+            mzML_file = argv[opt_idx];
+        } else {
+            std::cout << "Too many arguments supplied. See usage.";
+            std::cout << std::endl;
+            exit(1);
+        }
+    }
+
+    if (mzML_file == "") {
+        std::cout << "Insufficient arguments supplies. See usage.";
+        std::cout << std::endl;
+        exit(1);
+    }
+}
+
 
 /************************* OLD CODE *************************/
 
