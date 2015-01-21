@@ -31,7 +31,7 @@ In order to run the compiled program the ProteoWizard libraries must be able
 to be located. This is done by adding them to the `LD_LIBRARY_PATH` 
 environment variable.
 
-`export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/pwiz/3.0.7069/lib/`
+`export LD_LIBRARY_PATH=/usr/local/pwiz/3.0.7069-gcc/lib/:$LD_LIBRARY_PATH`
 
 ### Step 4: Compile
 
