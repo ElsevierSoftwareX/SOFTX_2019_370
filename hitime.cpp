@@ -95,17 +95,19 @@ int main(int argc, char *argv[])
     pwiz::msdata::MZIntensityPair pair;
     pair = pairs[0];
 
-    std::cout << "Pair: " << pair.mz << " " << pair.intensity << std::endl;
+    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
+    std::cout << std::endl;
 
-    MySpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
+    pwiz::analysis::SpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
                                                     150.2, 150.3);
     spectrum = mz_window.spectrum(0, getBinaryData);
     spectrum->getMZIntensityPairs(pairs);
     pair = pairs[0];
 
-    std::cout << "WINDOW 1: " << std::endl;
+    std::cout << "WINDOW 1 (150.2 - 150.3): " << std::endl;
     std::cout << "Num Pairs: " << pairs.size() << std::endl;
-    std::cout << "Pair: " << pair.mz << " " << pair.intensity << std::endl;
+    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
+    std::cout << std::endl;
 
     std::cout << "Done!" << std::endl;
 
