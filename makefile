@@ -2,7 +2,7 @@ CC	  = gcc
 CXX	  = g++
 XFLAGS    = -Wall
 UFLAGS    = # User overridable at command line
-STD	  = -std=c++0x
+STD	  = -std=c++11
 
 INC1	  = /vlsci/VR0345/shared/pwiz 
 INC2	  = /vlsci/VR0345/shared/pwiz/libraries/boost-aux
