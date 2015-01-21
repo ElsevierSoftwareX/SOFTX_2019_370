@@ -43,11 +43,7 @@ class Options {
         float mz_sigma;
         float mz_delta;
         float min_sample;
-        int half_rt_window;
-        std::string file_dir;
-        std::string mz_file;
-        std::string time_file;
-        std::string intensity_file;
+        std::string mzML_file;
 
         Options(int argc, char *argv[])
         {
@@ -62,12 +58,7 @@ class Options {
             mz_sigma        = default_mz_sigma;
             mz_delta        = default_mz_delta;
             min_sample      = default_min_sample;
-            half_rt_window;
-
-            file_dir       = "./";
-            mz_file        = "";
-            time_file      = "";
-            intensity_file = "";
+            mzML_file        = "";
 
             // Show usage and exit if no options are given
             if (argc == 1) {
@@ -81,9 +72,6 @@ class Options {
                     case 'h':
                         show_usage(argv[0]);
                         exit(1);
-                        break;
-                    case 'd':
-                        file_dir = optarg;
                         break;
                     case 'i':
                         intensity_ratio = std::stof(std::string(optarg));
@@ -114,12 +102,8 @@ class Options {
 
             for (opt_idx = optind; opt_idx < argc; opt_idx++) {
         
-                if (mz_file == "") { 
-                    mz_file = file_dir + argv[opt_idx];
-                } else if (time_file == "") {
-                    time_file = file_dir + argv[opt_idx];
-                } else if (intensity_file == "") {
-                    intensity_file = file_dir + argv[opt_idx];
+                if (mzML_file == "") { 
+                    mzML_file = argv[opt_idx];
                 } else {
                     std::cout << "Too many arguments supplied. See usage.";
                     std::cout << std::endl;
@@ -127,7 +111,7 @@ class Options {
                 }
             }
 
-            if (intensity_file == "") {
+            if (mzML_file == "") {
                 std::cout << "Insufficient arguments supplies. See usage.";
                 std::cout << std::endl;
                 exit(1);
@@ -140,6 +124,9 @@ class Options {
 int main(int argc, char *argv[])
 {
 
+    Options opts(argc, argv);
+   
+    /*
     std::string test("hi");
     char opt;
     int opt_idx;
@@ -224,7 +211,7 @@ int main(int argc, char *argv[])
         std::cout << std::endl;
         exit(1);
     }
-
+    */
     return 0;
 }
 
