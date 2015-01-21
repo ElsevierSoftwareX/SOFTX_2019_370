@@ -6,6 +6,8 @@
 #include <string>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
+#include "pwiz/data/msdata/MSDataFile.hpp"
+#include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
 //#include <armadillo>
 //#include "Numpy.hpp"
 
@@ -73,7 +75,52 @@ int main(int argc, char *argv[])
     Options opts(argc, argv);
    
     pwiz::msdata::FullReaderList readers;
+    pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
+
+    std::cout << "Timestamp: " << msd.run.startTimeStamp << std::endl;
+
+    pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
+    const bool getBinaryData = true;
+    size_t numSpectra = spectrumList.size();
+
+    std::cout << "Num Spectra: " << numSpectra << std::endl;
     
+    pwiz::msdata::SpectrumPtr spectrum;
+    std::vector<pwiz::msdata::MZIntensityPair> pairs;
+    spectrum = spectrumList.spectrum(0, getBinaryData);
+    spectrum->getMZIntensityPairs(pairs);
+
+    std::cout << "Num Pairs: " << pairs.size() << std::endl;
+
+    pwiz::msdata::MZIntensityPair pair;
+    pair = pairs[0];
+
+    std::cout << "Pair: " << pair.mz << " " << pair.intensity << std::endl;
+
+    pwiz::analysis::SpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
+                                                    150.2, 150.3);
+    spectrum = mz_window.spectrum(0, getBinaryData);
+    spectrum->getMZIntensityPairs(pairs);
+    pair = pairs[0];
+
+    std::cout << "WINDOW 1: " << std::endl;
+    std::cout << "Num Pairs: " << pairs.size() << std::endl;
+    std::cout << "Pair: " << pair.mz << " " << pair.intensity << std::endl;
+
+    /*
+    mz_window(msd.run.spectrumListPtr, 150.4, 150.5);
+
+    spectrum = mz_window.spectrum(0, getBinaryData);
+    spectrum->getMZIntensityPairs(pairs);
+    pair = pairs[0];
+
+    std::cout << "WINDOW 2: " << std::endl;
+    std::cout << "Num Pairs: " << pairs.size() << std::endl;
+    std::cout << "Pair: " << pair.mz << " " << pair.intensity << std::endl;
+    */
+
+    std::cout << "Done!" << std::endl;
+
     return 0;
 }
 
