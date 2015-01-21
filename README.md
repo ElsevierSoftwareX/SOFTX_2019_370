@@ -19,7 +19,7 @@ libraries as well as taking advantage newer compiler features. For a
 successful build these must be available.
 
 ```
-    module load gcc/4.9.1
+    module load gcc/4.8.1
     module load pwiz-gcc/3.0.7069
     module load boost-gcc/1.57.0
 ```
