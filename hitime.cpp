@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
 
+    
     std::cout << "Timestamp: " << msd.run.startTimeStamp << std::endl;
 
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
