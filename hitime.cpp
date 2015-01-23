@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <string>
+#include <cmath>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -32,7 +33,10 @@ const float default_rt_sigma        = 1.5;
 // minimum number of samples in score regions
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
-
+// pi
+constexpr double pi() { return std::atan(1) * 4; } 
+// sqrt 2pi
+const double root2pi = sqrt(2.0 * pi());
 
 /*-----------------------------------------------------------------------*/ 
 /************************* FUNCTION DECLARATIONS *************************/
@@ -86,10 +90,10 @@ int main(int argc, char *argv[])
                                                     150.2, 150.3);
     
     
-    float rt_sigma = opts.rt_width / 2.355;
+    float  rt_sigma     = opts.rt_width / 2.355;
     double mz_ppm_sigma = opts.mz_width / 2.355e6;
-    int rt_len = spectrumList.size();
-    int mid_win = rt_len / 2;
+    int    rt_len       = spectrumList.size();
+    int    mid_win      = rt_len / 2;
     pwiz::msdata::SpectrumPtr mz_mu_vect = spectrumList.spectrum(mid_win, 
                                                             getBinaryData);
     double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
@@ -121,6 +125,17 @@ int main(int argc, char *argv[])
         shape_hi.push_back(data);
         len_lo.push_back(0);
         len_lo.push_back(0);
+    }
+
+    std::vector<float> rt_shape;
+
+    for (int i = 0; i < rt_len; ++i) {
+
+        float pt = (i - mid_win) / rt_sigma;
+        pt = -0.5 * pt * pt;
+        pt = exp(pt) / (rt_sigma * root2pi); 
+    
+        rt_shape.push_back(pt);
     }
 
     std::cout << "Done!" << std::endl;
