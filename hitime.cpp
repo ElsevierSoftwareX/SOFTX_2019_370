@@ -138,6 +138,18 @@ int main(int argc, char *argv[])
         rt_shape.push_back(pt);
     }
 
+    for (int rowi = 0; rowi < rt_len; rowi++) {
+        
+        pwiz::msdata::SpectrumPtr row_spectrum;
+        row_spectrum = spectrumList.spectrum(rowi, getBinaryData);
+
+        std::vector<pwiz::msdata::MZIntensityPair> row_pairs;
+        row_spectrum->getMZIntensityPairs(row_pairs);
+
+        float rt_lo = rt_shape[rowi];
+        float rt_hi = rt_lo;
+    }
+    
     std::cout << "Done!" << std::endl;
 
     return 0;
