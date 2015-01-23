@@ -100,18 +100,28 @@ int main(int argc, char *argv[])
     std::vector<double> points_hi_lo;
     std::vector<double> points_hi_hi;
 
+    std::vector<std::vector<double>> data_lo;
+    std::vector<std::vector<double>> data_hi;
+    std::vector<std::vector<double>> shape_lo;
+    std::vector<std::vector<double>> shape_hi;
+    std::vector<int> len_lo;
+    std::vector<int> len_hi;
+
     mz_mu_vect->getMZIntensityPairs(pairs);
     for (auto pair : pairs) {
         points_lo_lo.push_back(pair.mz * lo_tol);
         points_lo_hi.push_back(pair.mz * hi_tol);
         points_hi_lo.push_back((pair.mz + opts.mz_delta) * lo_tol);
         points_hi_hi.push_back((pair.mz + opts.mz_delta) * hi_tol);
+
+        std::vector<double> data;
+        data_lo.push_back(data);
+        data_hi.push_back(data);
+        shape_lo.push_back(data);
+        shape_hi.push_back(data);
+        len_lo.push_back(0);
+        len_lo.push_back(0);
     }
-    
-    std::cout << "Lo Lo: " << points_lo_lo[0] << std::endl;
-    std::cout << "Lo Hi: " << points_lo_hi[0] << std::endl;
-    std::cout << "Hi Lo: " << points_hi_lo[0] << std::endl;
-    std::cout << "Hi Hi: " << points_hi_hi[0] << std::endl;
 
     std::cout << "Done!" << std::endl;
 
