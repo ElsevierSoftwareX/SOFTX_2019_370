@@ -203,9 +203,78 @@ int main(int argc, char *argv[])
             }
         }
     }
+
+    for (size_t leni = 0; leni < len_lo.size(); ++leni) {
+        if (len_lo[leni] < opts.min_sample) {
+            data_lo[leni]  = {0.0};
+            shape_lo[leni] = {0.0};
+        }
+    }
+
+    for (size_t leni = 0; leni < len_hi.size(); ++leni) {
+        if (len_hi[leni] < opts.min_sample) {
+            data_lo[leni]  = {0.0};
+            shape_lo[leni] = {0.0};
+        }
+    }
+
+    std::vector<std::vector<double>> dataAB;
+    std::vector<std::vector<double>> nAB;
+
+    for (size_t i = 0; i < data_lo.size(); ++i) {
+        
+        std::vector<double> dataAB_row;
+        size_t length_lo = data_lo[i].size();
+        size_t length_hi = data_hi[i].size();
+        
+        for (auto lo_value : data_lo[i]){
+            dataAB_row.push_back(lo_value * length_hi);
+        }
+        for (auto hi_value : data_hi[i]){
+            dataAB_row.push_back(hi_value * length_lo);
+        }
+        dataAB.push_back(dataAB_row);
+
+        std::vector<double> nAB_row;
+        nAB_row.push_back(length_lo + length_hi);
+        nAB.push_back(nAB_row);
+    }
+
+    std::vector<std::vector<double>> shapeAB;
+    std::vector<std::vector<double>> shapeA0;
+    std::vector<std::vector<double>> shapeB0;
+    std::vector<std::vector<double>> shape1r;
+
+    for (size_t i = 0; i < shape_lo.size(); ++i) {
+        
+        std::vector<double> shapeAB_row;
+        std::vector<double> shapeA0_row;
+        std::vector<double> shapeB0_row;
+        std::vector<double> shape1r_row;
+        size_t length_lo = shape_lo[i].size();
+        size_t length_hi = shape_hi[i].size();
+        
+        for (auto lo_value : shape_lo[i]){
+            shapeAB_row.push_back(lo_value * length_hi);
+            shapeA0_row.push_back(lo_value * length_hi);
+            shapeB0_row.push_back(0.0);
+            shape1r_row.push_back(length_hi);
+        }
+        for (auto hi_value : shape_hi[i]){
+            shapeAB_row.push_back(hi_value * length_lo);
+            shapeA0_row.push_back(0.0);
+            shapeB0_row.push_back(hi_value * length_lo);
+            shape1r_row.push_back(opts.intensity_ratio * length_lo);
+        }
+        
+        shapeAB.push_back(shapeAB_row);
+        shapeA0.push_back(shapeA0_row);
+        shapeB0.push_back(shapeB0_row);
+        shape1r.push_back(shape1r_row);
+    }
+    
     
     std::cout << "Done!" << std::endl;
-
     return 0;
 }
 
@@ -263,7 +332,7 @@ Options::Options(int argc, char *argv[])
     mz_sigma        = default_mz_sigma;
     mz_delta        = default_mz_delta;
     min_sample      = default_min_sample;
-    mzML_file        = "";
+    mzML_file       = "";
 
     // Show usage and exit if no options are given
     if (argc == 1) {
