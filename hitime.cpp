@@ -45,6 +45,9 @@ const double root2pi = sqrt(2.0 * pi());
 
 void show_usage(char *cmd);
 
+template <class T>
+std::vector<double> centre_vector(std::vector<T> vect);
+
 
 /*-----------------------------------------------------------------------*/
 /******************************** CLASSES ********************************/
@@ -272,8 +275,7 @@ int main(int argc, char *argv[])
         shapeB0.push_back(shapeB0_row);
         shape1r.push_back(shape1r_row);
     }
-    
-    
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
@@ -311,6 +313,20 @@ void show_usage(char *cmd)
     cout                                                            << endl;
     cout << "example:   " << cmd << " example.mzML"                 << endl;
     cout                                                            << endl;
+}
+
+template <class T> 
+std::vector<double> centre_vector(std::vector<T> vect)
+{
+    double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
+    double mean = sum / vect.size();
+    std::vector<double> centered;
+
+    for (auto v : vect) {
+        centered.push_back(v - mean);
+    }
+
+    return centered;
 }
 
 
