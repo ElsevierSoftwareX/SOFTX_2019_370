@@ -167,9 +167,6 @@ int main(int argc, char *argv[])
             float rt_lo = rt_shape[rowi];
             float rt_hi = rt_lo;
 
-            //std::vector<double> lo_mzs;
-            //std::vector<double> lo_amps;
-            
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
@@ -184,6 +181,25 @@ int main(int argc, char *argv[])
             } else {
                 data_lo[mzi].push_back(0);
                 shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+            }
+            
+            centre += opts.mz_delta;
+            sigma = centre * mz_ppm_sigma;
+            
+            if (hi_pairs.size() > 0) {
+            
+                for (auto pair : hi_pairs) {
+                    float mz = (pair.mz - centre) / sigma;
+                    mz = -0.5 * mz * mz;
+                    mz = exp(mz) / (sigma * root2pi);
+                    shape_hi[mzi].push_back(mz);
+                    data_hi[mzi].push_back(pair.intensity);
+                }
+                len_hi[mzi] += hi_pairs.size();
+
+            } else {
+                data_hi[mzi].push_back(0);
+                shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
             }
         }
     }
