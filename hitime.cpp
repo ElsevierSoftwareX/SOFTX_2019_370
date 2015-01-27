@@ -83,12 +83,8 @@ int main(int argc, char *argv[])
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
     pwiz::msdata::SpectrumPtr spectrum;
-    std::vector<pwiz::msdata::MZIntensityPair> pairs;
+    std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::MZIntensityPair pair;
-
-    pwiz::analysis::SpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
-                                                    150.2, 150.3);
-    
     
     float  rt_sigma     = opts.rt_width / 2.355;
     double mz_ppm_sigma = opts.mz_width / 2.355e6;
@@ -111,8 +107,8 @@ int main(int argc, char *argv[])
     std::vector<int> len_lo;
     std::vector<int> len_hi;
 
-    mz_mu_vect->getMZIntensityPairs(pairs);
-    for (auto pair : pairs) {
+    mz_mu_vect->getMZIntensityPairs(mz_mu_pairs);
+    for (auto pair : mz_mu_pairs) {
         points_lo_lo.push_back(pair.mz * lo_tol);
         points_lo_hi.push_back(pair.mz * hi_tol);
         points_hi_lo.push_back((pair.mz + opts.mz_delta) * lo_tol);
@@ -124,7 +120,7 @@ int main(int argc, char *argv[])
         shape_lo.push_back(data);
         shape_hi.push_back(data);
         len_lo.push_back(0);
-        len_lo.push_back(0);
+        len_hi.push_back(0);
     }
 
     std::vector<float> rt_shape;
@@ -137,17 +133,59 @@ int main(int argc, char *argv[])
     
         rt_shape.push_back(pt);
     }
+    
+    for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
+    
+        double lo_tol_lo = points_lo_lo[mzi];
+        double lo_tol_hi = points_lo_hi[mzi];
+        double hi_tol_lo = points_hi_lo[mzi];
+        double hi_tol_hi = points_hi_hi[mzi];
+        double centre    = mz_mu_pairs[mzi].mz;
+        double sigma     = centre * mz_ppm_sigma;
 
-    for (int rowi = 0; rowi < rt_len; rowi++) {
+        pwiz::analysis::SpectrumList_MZWindow lo_window(
+                                                    msd.run.spectrumListPtr,
+                                                    lo_tol_lo, lo_tol_hi);
+        pwiz::analysis::SpectrumList_MZWindow hi_window(
+                                                    msd.run.spectrumListPtr,
+                                                    hi_tol_lo, hi_tol_hi);
+            
+    
+        for (int rowi = 0; rowi < rt_len; ++rowi) {
         
-        pwiz::msdata::SpectrumPtr row_spectrum;
-        row_spectrum = spectrumList.spectrum(rowi, getBinaryData);
+            pwiz::msdata::SpectrumPtr lo_spectrum;
+            pwiz::msdata::SpectrumPtr hi_spectrum;
+            std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
+            std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
+            
+            lo_spectrum = lo_window.spectrum(rowi, getBinaryData);
+            hi_spectrum = hi_window.spectrum(rowi, getBinaryData);
+        
+            lo_spectrum->getMZIntensityPairs(lo_pairs);
+            hi_spectrum->getMZIntensityPairs(hi_pairs);
+        
+            float rt_lo = rt_shape[rowi];
+            float rt_hi = rt_lo;
 
-        std::vector<pwiz::msdata::MZIntensityPair> row_pairs;
-        row_spectrum->getMZIntensityPairs(row_pairs);
+            //std::vector<double> lo_mzs;
+            //std::vector<double> lo_amps;
+            
+            if (lo_pairs.size() > 0) {
+            
+                for (auto pair : lo_pairs) {
+                    float mz = (pair.mz - centre) / sigma;
+                    mz = -0.5 * mz * mz;
+                    mz = exp(mz) / (sigma * root2pi);
+                    shape_lo[mzi].push_back(mz);
+                    data_lo[mzi].push_back(pair.intensity);
+                }
+                len_lo[mzi] += lo_pairs.size();
 
-        float rt_lo = rt_shape[rowi];
-        float rt_hi = rt_lo;
+            } else {
+                data_lo[mzi].push_back(0);
+                shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+            }
+        }
     }
     
     std::cout << "Done!" << std::endl;
