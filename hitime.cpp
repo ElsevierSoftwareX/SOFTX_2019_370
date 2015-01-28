@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -42,13 +43,23 @@ const double root2pi = sqrt(2.0 * pi());
 /************************* FUNCTION DECLARATIONS *************************/
 /*-----------------------------------------------------------------------*/
 
+//template <typename T>
+//using vect_function = std::vector<T> (*)(std::vector<T>);
+//vect_function v;
+
+
+
+
 
 void show_usage(char *cmd);
 
-template <class T>
-std::vector<double> centre_vector(std::vector<T> vect);
+//template <class T>
+std::vector<double> centre_vector(std::vector<double> vect);
 
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
+  
 /*-----------------------------------------------------------------------*/
 /******************************** CLASSES ********************************/
 /*-----------------------------------------------------------------------*/
@@ -78,7 +89,7 @@ class Options {
 
 int main(int argc, char *argv[])
 {
-
+/*
     Options opts(argc, argv);
    
     const bool getBinaryData = true;
@@ -274,6 +285,26 @@ int main(int argc, char *argv[])
         shapeA0.push_back(shapeA0_row);
         shapeB0.push_back(shapeB0_row);
         shape1r.push_back(shape1r_row);
+    } 
+*/
+    std::vector<double> x = {1 ,5, 2, 5, 2, 3,2, 5};
+    std::vector<std::vector<double>> xx;
+
+    for (int i = 0; i < 5; ++i){
+        xx.push_back(x);
+    }
+
+    xx = apply_vect_func(xx, centre_vector);
+    
+    //for (size_t i = 0; i < xx.size(); ++i) {
+    //    xx[i] = centre_vector(xx[i]);
+    //}
+    
+    for (auto a : xx){
+        std::cout << "NEW VECTOR: " << std::endl;
+        for (auto b : a) {
+            std::cout << b << std::endl;
+        }
     }
 
     std::cout << "Done!" << std::endl;
@@ -315,8 +346,8 @@ void show_usage(char *cmd)
     cout                                                            << endl;
 }
 
-template <class T> 
-std::vector<double> centre_vector(std::vector<T> vect)
+//template <class T> 
+std::vector<double> centre_vector(std::vector<double> vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
     double mean = sum / vect.size();
@@ -329,6 +360,17 @@ std::vector<double> centre_vector(std::vector<T> vect)
     return centered;
 }
 
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect, F func)
+{
+    std::vector<T> applied;
+    
+    for (auto v : vect) {
+        applied.push_back(func(v));
+    }
+
+    return applied;
+}
 
 /*-----------------------------------------------------------------------*/
 /***************************** CLASS METHODS *****************************/
