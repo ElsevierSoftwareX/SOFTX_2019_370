@@ -89,7 +89,7 @@ class Options {
 
 int main(int argc, char *argv[])
 {
-/*
+
     Options opts(argc, argv);
    
     const bool getBinaryData = true;
@@ -286,27 +286,13 @@ int main(int argc, char *argv[])
         shapeB0.push_back(shapeB0_row);
         shape1r.push_back(shape1r_row);
     } 
-*/
-    std::vector<double> x = {1 ,5, 2, 5, 2, 3,2, 5};
-    std::vector<std::vector<double>> xx;
 
-    for (int i = 0; i < 5; ++i){
-        xx.push_back(x);
-    }
-
-    xx = apply_vect_func(xx, centre_vector);
+    dataAB  = apply_vect_func(dataAB, centre_vector);
+    shapeAB = apply_vect_func(shapeAB, centre_vector);
+    shapeA0 = apply_vect_func(shapeA0, centre_vector);
+    shapeB0 = apply_vect_func(shapeB0, centre_vector);
+    shape1r = apply_vect_func(shape1r, centre_vector);
     
-    //for (size_t i = 0; i < xx.size(); ++i) {
-    //    xx[i] = centre_vector(xx[i]);
-    //}
-    
-    for (auto a : xx){
-        std::cout << "NEW VECTOR: " << std::endl;
-        for (auto b : a) {
-            std::cout << b << std::endl;
-        }
-    }
-
     std::cout << "Done!" << std::endl;
     return 0;
 }
