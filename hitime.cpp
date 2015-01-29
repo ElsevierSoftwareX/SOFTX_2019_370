@@ -59,10 +59,16 @@ std::vector<double> div_vectors(std::vector<double> vect1,
                                                 std::vector<double> vect2);
   
 std::vector<double> correl_vectors(std::vector<double> vect1,
-                    std::vector<double> vect2, std::vector<double> vect3);
+                     std::vector<double> vect2, std::vector<double> vect3);
 
 std::vector<double> rm_vectors(std::vector<double> vect1, 
                                                 std::vector<double> vect2);
+
+std::vector<double> f_vectors(std::vector<double> correl_vect,
+                                              std::vector<double> rm_vect);
+
+std::vector<double> h_vectors(std::vector<double> f_vect,
+                                              std::vector<double> rm_vect);
 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
@@ -383,7 +389,23 @@ int main(int argc, char *argv[])
     rm2ABA0 = rm_vectors(correlAB, correlA0);
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
-    
+   
+    std::vector<double> fABA0;
+    std::vector<double> fABB0;
+    std::vector<double> fAB1r;
+
+    fABA0 = f_vectors(correlABA0, rm2ABA0);
+    fABB0 = f_vectors(correlABB0, rm2ABB0);
+    fAB1r = f_vectors(correlAB1r, rm2AB1r);
+
+    std::vector<double> hABA0;
+    std::vector<double> hABB0;
+    std::vector<double> hAB1r;
+
+    hABA0 = h_vectors(fABA0, rm2ABA0);
+    hABB0 = h_vectors(fABB0, rm2ABB0);
+    hAB1r = h_vectors(fAB1r, rm2AB1r);
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
@@ -524,6 +546,52 @@ std::vector<double> rm_vectors(std::vector<double> vect1,
     return rm;
 
 }
+
+std::vector<double> f_vectors(std::vector<double> correl_vect,
+                                              std::vector<double> rm_vect)
+{
+    std::vector<double> f_vect;
+
+    if (correl_vect.size() != rm_vect.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < correl_vect.size(); ++idx) {
+        double correl = correl_vect[idx];
+        double rm     = rm_vect[idx];
+
+        f_vect.push_back((1.0 - correl) / (2.0 * (1.0 - rm)));
+    }
+
+    for (auto& f : f_vect) {
+        if(f > 1.0) {
+            f = 1.0;
+        }
+    }
+
+    return f_vect;
+}
+
+std::vector<double> h_vectors(std::vector<double> f_vect,
+                                              std::vector<double> rm_vect)
+{
+    std::vector<double> h_vect;
+
+    if (f_vect.size() != rm_vect.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < f_vect.size(); ++idx) {
+        double f  = f_vect[idx];
+        double rm = rm_vect[idx];
+
+        h_vect.push_back((1.0 - f * rm) / (1.0 - rm));
+    }
+
+    return h_vect;
+}
+
+
 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func)
