@@ -55,6 +55,12 @@ double sum_vector(std::vector<double> vect);
 std::vector<double> mult_vectors(std::vector<double> vect1, 
                                                 std::vector<double> vect2);
 
+std::vector<double> div_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
+  
+std::vector<double> correl_vectors(std::vector<double> vect1,
+                    std::vector<double> vect2, std::vector<double> vect3);
+
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
@@ -343,7 +349,7 @@ int main(int argc, char *argv[])
     datashape = apply_vect_func(dataAB, shapeB0, mult_vectors);
     SXYB0     = reduce_2D_vect(datashape, sum_vector);
     datashape = apply_vect_func(dataAB, shape1r, mult_vectors);
-    SXYAB     = reduce_2D_vect(datashape, sum_vector);
+    SXY1r     = reduce_2D_vect(datashape, sum_vector);
     datashape = apply_vect_func(shapeAB, shapeA0, mult_vectors);
     SXYABA0   = reduce_2D_vect(datashape, sum_vector);
     datashape = apply_vect_func(shapeAB, shapeB0, mult_vectors);
@@ -351,6 +357,24 @@ int main(int argc, char *argv[])
     datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
     SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
 
+    std::vector<double> correlAB;
+    std::vector<double> correlA0;
+    std::vector<double> correlB0;
+    std::vector<double> correl1r;
+    std::vector<double> correlABA0;
+    std::vector<double> correlABB0;
+    std::vector<double> correlAB1r;
+
+    correlAB   = correl_vectors(SXYAB,   SSXAB, SSY);
+    correlA0   = correl_vectors(SXYA0,   SSXA0, SSY);
+    correlB0   = correl_vectors(SXYB0,   SSXB0, SSY);
+    correl1r   = correl_vectors(SXY1r,   SSX1r, SSY);
+    correlABA0 = correl_vectors(SXYABA0, SSXAB, SSXA0);
+    correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
+    correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
+    
+    
+    
     std::cout << "Done!" << std::endl;
     return 0;
 }
@@ -436,7 +460,50 @@ std::vector<double> mult_vectors(std::vector<double> vect1,
 
     return mult;
 }
-    
+   
+std::vector<double> div_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> divided;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        divided.push_back(vect1[idx] / vect2[idx]);
+    }
+
+    return divided;
+
+}
+
+std::vector<double> correl_vectors(std::vector<double> vect1,
+                    std::vector<double> vect2, std::vector<double> vect3)
+{
+    std::vector<double> correlated;
+    std::vector<double> mult;
+
+    mult = mult_vectors(vect2, vect3);
+    std::transform(mult.begin(), mult.end(), mult.begin(), 
+                                            (double(*)(double)) std::sqrt);
+    correlated = div_vectors(vect1, mult);
+    /*
+    for (auto it = correlated.begin(); it != correlated.end(); ++it) {
+        if (*it < 0) {
+            *it = 0;
+        }
+    }
+    */
+    for (auto& c : correlated) {
+        if(c < 0) {
+            c = 0;
+        }
+    }
+
+    return correlated;
+}
+
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func)
 {
