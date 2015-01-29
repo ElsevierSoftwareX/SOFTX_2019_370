@@ -7,6 +7,7 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+#include <functional>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
 {
 
     Options opts(argc, argv);
-   
+ 
     const bool getBinaryData = true;
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
@@ -258,7 +259,7 @@ int main(int argc, char *argv[])
     }
 
     std::vector<std::vector<double>> dataAB;
-    std::vector<std::vector<double>> nAB;
+    std::vector<double> nAB;
 
     for (size_t i = 0; i < data_lo.size(); ++i) {
         
@@ -274,9 +275,7 @@ int main(int argc, char *argv[])
         }
         dataAB.push_back(dataAB_row);
 
-        std::vector<double> nAB_row;
-        nAB_row.push_back(length_lo + length_hi);
-        nAB.push_back(nAB_row);
+        nAB.push_back(length_lo + length_hi);
     }
 
     std::vector<std::vector<double>> shapeAB;
@@ -406,6 +405,10 @@ int main(int argc, char *argv[])
     hABB0 = h_vectors(fABB0, rm2ABB0);
     hAB1r = h_vectors(fAB1r, rm2AB1r);
 
+    std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
+    std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
+                                                 (double(*)(double)) sqrt);
+    
     std::cout << "Done!" << std::endl;
     return 0;
 }
