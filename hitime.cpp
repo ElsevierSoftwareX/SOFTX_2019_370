@@ -12,8 +12,6 @@
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
-//#include <armadillo>
-//#include "Numpy.hpp"
 
 
 /*-----------------------------------------------------------------------*/
@@ -672,21 +670,6 @@ std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
     return applied;
 }
 
-/*
-template <typename T, typename F>
-std::vector<std::vector<T>> apply_vect_func(
-                                   std::vector<std::vector<T>> vect, F func)
-{
-    std::vector<std::vector<T>> applied;
-    
-    for (auto v : vect) {
-        applied.push_back(func(v));
-    }
-
-    return applied;
-}
-*/
-
 template <typename T, typename F>
 std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
 {
@@ -782,45 +765,4 @@ Options::Options(int argc, char *argv[])
 /******************************* OLD CODE ********************************/
 /*-----------------------------------------------------------------------*/
 
-/*
-    Options opts(argc, argv);
-   
-    pwiz::msdata::FullReaderList readers;
-    pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
-
-    
-    std::cout << "Timestamp: " << msd.run.startTimeStamp << std::endl;
-
-    pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-    const bool getBinaryData = true;
-    size_t numSpectra = spectrumList.size();
-
-    std::cout << "Num Spectra: " << numSpectra << std::endl;
-    
-    pwiz::msdata::SpectrumPtr spectrum;
-    std::vector<pwiz::msdata::MZIntensityPair> pairs;
-    spectrum = spectrumList.spectrum(0, getBinaryData);
-    spectrum->getMZIntensityPairs(pairs);
-
-    std::cout << "Num Pairs: " << pairs.size() << std::endl;
-
-    pwiz::msdata::MZIntensityPair pair;
-    pair = pairs[0];
-
-    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
-    std::cout << std::endl;
-
-    pwiz::analysis::SpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
-                                                    150.2, 150.3);
-    spectrum = mz_window.spectrum(0, getBinaryData);
-    spectrum->getMZIntensityPairs(pairs);
-    pair = pairs[0];
-
-    std::cout << "WINDOW 1 (150.2 - 150.3): " << std::endl;
-    std::cout << "Num Pairs: " << pairs.size() << std::endl;
-    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
-    std::cout << std::endl;
-
-    std::cout << "Done!" << std::endl;
-*/
 
