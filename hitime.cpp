@@ -6,6 +6,7 @@
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -43,21 +44,30 @@ const double root2pi = sqrt(2.0 * pi());
 /************************* FUNCTION DECLARATIONS *************************/
 /*-----------------------------------------------------------------------*/
 
-//template <typename T>
-//using vect_function = std::vector<T> (*)(std::vector<T>);
-//vect_function v;
-
-
-
-
-
 void show_usage(char *cmd);
 
-//template <class T>
 std::vector<double> centre_vector(std::vector<double> vect);
+
+std::vector<double> square_vector(std::vector<double> vect);
+
+double sum_vector(std::vector<double> vect);
+
+std::vector<double> mult_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
+                                                                    F func);
+
+//template <typename T, typename F>
+//std::vector<std::vector<T>> apply_vect_func(
+//                                  std::vector<std::vector<T>> vect, F func);
+
+template <typename T, typename F>
+std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 
   
 /*-----------------------------------------------------------------------*/
@@ -287,12 +297,60 @@ int main(int argc, char *argv[])
         shape1r.push_back(shape1r_row);
     } 
 
-    dataAB  = apply_vect_func(dataAB, centre_vector);
+    dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
-    
+   
+    std::vector<std::vector<double>> data2AB;
+    std::vector<std::vector<double>> shape2AB;
+    std::vector<std::vector<double>> shape2A0;
+    std::vector<std::vector<double>> shape2B0;
+    std::vector<std::vector<double>> shape21r;
+
+    data2AB  = apply_vect_func(dataAB,  square_vector);
+    shape2AB = apply_vect_func(shapeAB, square_vector);
+    shape2A0 = apply_vect_func(shapeA0, square_vector);
+    shape2B0 = apply_vect_func(shapeB0, square_vector);
+    shape21r = apply_vect_func(shape1r, square_vector);
+
+    std::vector<double> SSY;
+    std::vector<double> SSXAB;
+    std::vector<double> SSXA0;
+    std::vector<double> SSXB0;
+    std::vector<double> SSX1r;
+
+    SSY   = reduce_2D_vect(data2AB,  sum_vector);
+    SSXAB = reduce_2D_vect(shape2AB, sum_vector);
+    SSXA0 = reduce_2D_vect(shape2A0, sum_vector);
+    SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
+    SSX1r = reduce_2D_vect(shape21r, sum_vector);
+
+    std::vector<std::vector<double>> datashape;
+    std::vector<double> SXYAB;
+    std::vector<double> SXYA0;
+    std::vector<double> SXYB0;
+    std::vector<double> SXY1r;
+    std::vector<double> SXYABA0;
+    std::vector<double> SXYABB0;
+    std::vector<double> SXYAB1r;
+
+    datashape = apply_vect_func(dataAB, shapeAB, mult_vectors);
+    SXYAB     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shapeA0, mult_vectors);
+    SXYA0     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shapeB0, mult_vectors);
+    SXYB0     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shape1r, mult_vectors);
+    SXYAB     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shapeA0, mult_vectors);
+    SXYABA0   = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shapeB0, mult_vectors);
+    SXYABB0   = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
+    SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
@@ -332,7 +390,6 @@ void show_usage(char *cmd)
     cout                                                            << endl;
 }
 
-//template <class T> 
 std::vector<double> centre_vector(std::vector<double> vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
@@ -346,6 +403,40 @@ std::vector<double> centre_vector(std::vector<double> vect)
     return centered;
 }
 
+std::vector<double> square_vector(std::vector<double> vect)
+{
+    std::vector<double> squared;
+
+    for (auto v : vect) {
+        squared.push_back(v * v);
+    }
+
+    return squared;
+}
+
+double sum_vector(std::vector<double> vect)
+{
+    double sum = std::accumulate(vect.begin(), vect.end(), 0.0);
+
+    return sum;
+}
+   
+std::vector<double> mult_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> mult;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        mult.push_back(vect1[idx] * vect2[idx]);
+    }
+
+    return mult;
+}
+    
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func)
 {
@@ -356,6 +447,50 @@ std::vector<T> apply_vect_func(std::vector<T> vect, F func)
     }
 
     return applied;
+}
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2, 
+                                                                     F func)
+{
+    std::vector<T> applied;
+    
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        applied.push_back(func(vect1[idx], vect2[idx]));
+    }
+
+    return applied;
+}
+
+/*
+template <typename T, typename F>
+std::vector<std::vector<T>> apply_vect_func(
+                                   std::vector<std::vector<T>> vect, F func)
+{
+    std::vector<std::vector<T>> applied;
+    
+    for (auto v : vect) {
+        applied.push_back(func(v));
+    }
+
+    return applied;
+}
+*/
+
+template <typename T, typename F>
+std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
+{
+    std::vector<T> reduced;
+
+    for (auto vect : vect2D) {
+        reduced.push_back(func(vect));
+    }
+
+    return reduced;
 }
 
 /*-----------------------------------------------------------------------*/
