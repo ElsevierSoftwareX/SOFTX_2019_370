@@ -71,6 +71,12 @@ std::vector<double> f_vectors(std::vector<double> correl_vect,
 std::vector<double> h_vectors(std::vector<double> f_vect,
                                               std::vector<double> rm_vect);
 
+std::vector<double> z_vectors(std::vector<double> cor1,
+                              std::vector<double> cor2,
+                              std::vector<double> sqrtn,
+                              std::vector<double> cross_cor,
+                              std::vector<double> h_vect);
+
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
@@ -408,6 +414,15 @@ int main(int argc, char *argv[])
     std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
     std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
                                                  (double(*)(double)) sqrt);
+   
+
+    std::vector<double> zABA0;
+    std::vector<double> zABB0;
+    std::vector<double> zAB1r;
+
+    zABA0 = z_vectors(correlAB, correlA0, nAB, correlABA0, hABA0);
+    zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
+    zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
     
     std::cout << "Done!" << std::endl;
     return 0;
@@ -594,7 +609,27 @@ std::vector<double> h_vectors(std::vector<double> f_vect,
     return h_vect;
 }
 
+std::vector<double> z_vectors(std::vector<double> cor1,
+                              std::vector<double> cor2,
+                              std::vector<double> sqrtn,
+                              std::vector<double> cross_cor,
+                              std::vector<double> h_vect)
+{
+    std::vector<double> z_vect;
 
+    for (size_t idx = 0; idx < cor1.size(); ++idx) {
+        
+        double z1  = std::atanh(cor1[idx]);
+        double z2  = std::atanh(cor2[idx]);
+        
+        double num   = (z1 - z2) * sqrtn[idx];
+        double denom = 2.0 * (1.0 - cross_cor[idx]) * h_vect[idx];
+
+        z_vect.push_back(num / std::sqrt(denom));
+    }
+
+    return z_vect;
+}
 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func)
