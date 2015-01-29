@@ -4,12 +4,14 @@
 #include <iomanip>
 #include <cstdlib>
 #include <string>
+#include <cmath>
+#include <algorithm>
+#include <stdexcept>
+#include <functional>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
-//#include <armadillo>
-//#include "Numpy.hpp"
 
 
 /*-----------------------------------------------------------------------*/
@@ -32,16 +34,62 @@ const float default_rt_sigma        = 1.5;
 // minimum number of samples in score regions
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
-
+// pi
+constexpr double pi() { return std::atan(1) * 4; } 
+// sqrt 2pi
+const double root2pi = sqrt(2.0 * pi());
 
 /*-----------------------------------------------------------------------*/ 
 /************************* FUNCTION DECLARATIONS *************************/
 /*-----------------------------------------------------------------------*/
 
-
 void show_usage(char *cmd);
 
+std::vector<double> centre_vector(std::vector<double> vect);
 
+std::vector<double> square_vector(std::vector<double> vect);
+
+double sum_vector(std::vector<double> vect);
+
+std::vector<double> mult_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
+
+std::vector<double> div_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
+  
+std::vector<double> correl_vectors(std::vector<double> vect1,
+                     std::vector<double> vect2, std::vector<double> vect3);
+
+std::vector<double> rm_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
+
+std::vector<double> f_vectors(std::vector<double> correl_vect,
+                                              std::vector<double> rm_vect);
+
+std::vector<double> h_vectors(std::vector<double> f_vect,
+                                              std::vector<double> rm_vect);
+
+std::vector<double> z_vectors(std::vector<double> cor1,
+                              std::vector<double> cor2,
+                              std::vector<double> sqrtn,
+                              std::vector<double> cross_cor,
+                              std::vector<double> h_vect);
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect, F func);
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
+                                                                    F func);
+
+//template <typename T, typename F>
+//std::vector<std::vector<T>> apply_vect_func(
+//                                  std::vector<std::vector<T>> vect, F func);
+
+template <typename T, typename F>
+std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
+
+  
 /*-----------------------------------------------------------------------*/
 /******************************** CLASSES ********************************/
 /*-----------------------------------------------------------------------*/
@@ -73,44 +121,320 @@ int main(int argc, char *argv[])
 {
 
     Options opts(argc, argv);
-   
+ 
+    const bool getBinaryData = true;
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
-
-    std::cout << "Timestamp: " << msd.run.startTimeStamp << std::endl;
-
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-    const bool getBinaryData = true;
-    size_t numSpectra = spectrumList.size();
-
-    std::cout << "Num Spectra: " << numSpectra << std::endl;
-    
     pwiz::msdata::SpectrumPtr spectrum;
-    std::vector<pwiz::msdata::MZIntensityPair> pairs;
-    spectrum = spectrumList.spectrum(0, getBinaryData);
-    spectrum->getMZIntensityPairs(pairs);
-
-    std::cout << "Num Pairs: " << pairs.size() << std::endl;
-
+    std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::MZIntensityPair pair;
-    pair = pairs[0];
+    
+    float  rt_sigma     = opts.rt_width / 2.355;
+    double mz_ppm_sigma = opts.mz_width / 2.355e6;
+    int    rt_len       = spectrumList.size();
+    int    mid_win      = rt_len / 2;
+    pwiz::msdata::SpectrumPtr mz_mu_vect = spectrumList.spectrum(mid_win, 
+                                                            getBinaryData);
+    double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
+    double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
-    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
-    std::cout << std::endl;
+    std::vector<double> points_lo_lo;
+    std::vector<double> points_lo_hi;
+    std::vector<double> points_hi_lo;
+    std::vector<double> points_hi_hi;
 
-    pwiz::analysis::SpectrumList_MZWindow mz_window(msd.run.spectrumListPtr,
-                                                    150.2, 150.3);
-    spectrum = mz_window.spectrum(0, getBinaryData);
-    spectrum->getMZIntensityPairs(pairs);
-    pair = pairs[0];
+    std::vector<std::vector<double>> data_lo;
+    std::vector<std::vector<double>> data_hi;
+    std::vector<std::vector<double>> shape_lo;
+    std::vector<std::vector<double>> shape_hi;
+    std::vector<int> len_lo;
+    std::vector<int> len_hi;
 
-    std::cout << "WINDOW 1 (150.2 - 150.3): " << std::endl;
-    std::cout << "Num Pairs: " << pairs.size() << std::endl;
-    std::cout << "MZ/Int Pair: " << pair.mz << " " << pair.intensity; 
-    std::cout << std::endl;
+    mz_mu_vect->getMZIntensityPairs(mz_mu_pairs);
+    for (auto pair : mz_mu_pairs) {
+        points_lo_lo.push_back(pair.mz * lo_tol);
+        points_lo_hi.push_back(pair.mz * hi_tol);
+        points_hi_lo.push_back((pair.mz + opts.mz_delta) * lo_tol);
+        points_hi_hi.push_back((pair.mz + opts.mz_delta) * hi_tol);
+
+        std::vector<double> data;
+        data_lo.push_back(data);
+        data_hi.push_back(data);
+        shape_lo.push_back(data);
+        shape_hi.push_back(data);
+        len_lo.push_back(0);
+        len_hi.push_back(0);
+    }
+
+    std::vector<float> rt_shape;
+
+    for (int i = 0; i < rt_len; ++i) {
+
+        float pt = (i - mid_win) / rt_sigma;
+        pt = -0.5 * pt * pt;
+        pt = exp(pt) / (rt_sigma * root2pi); 
+    
+        rt_shape.push_back(pt);
+    }
+    
+    for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
+    
+        double lo_tol_lo = points_lo_lo[mzi];
+        double lo_tol_hi = points_lo_hi[mzi];
+        double hi_tol_lo = points_hi_lo[mzi];
+        double hi_tol_hi = points_hi_hi[mzi];
+        double centre    = mz_mu_pairs[mzi].mz;
+        double sigma     = centre * mz_ppm_sigma;
+
+        pwiz::analysis::SpectrumList_MZWindow lo_window(
+                                                    msd.run.spectrumListPtr,
+                                                    lo_tol_lo, lo_tol_hi);
+        pwiz::analysis::SpectrumList_MZWindow hi_window(
+                                                    msd.run.spectrumListPtr,
+                                                    hi_tol_lo, hi_tol_hi);
+            
+    
+        for (int rowi = 0; rowi < rt_len; ++rowi) {
+        
+            pwiz::msdata::SpectrumPtr lo_spectrum;
+            pwiz::msdata::SpectrumPtr hi_spectrum;
+            std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
+            std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
+            
+            lo_spectrum = lo_window.spectrum(rowi, getBinaryData);
+            hi_spectrum = hi_window.spectrum(rowi, getBinaryData);
+        
+            lo_spectrum->getMZIntensityPairs(lo_pairs);
+            hi_spectrum->getMZIntensityPairs(hi_pairs);
+        
+            float rt_lo = rt_shape[rowi];
+            float rt_hi = rt_lo;
+
+            if (lo_pairs.size() > 0) {
+            
+                for (auto pair : lo_pairs) {
+                    float mz = (pair.mz - centre) / sigma;
+                    mz = -0.5 * mz * mz;
+                    mz = exp(mz) / (sigma * root2pi);
+                    shape_lo[mzi].push_back(mz);
+                    data_lo[mzi].push_back(pair.intensity);
+                }
+                len_lo[mzi] += lo_pairs.size();
+
+            } else {
+                data_lo[mzi].push_back(0);
+                shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+            }
+            
+            centre += opts.mz_delta;
+            sigma = centre * mz_ppm_sigma;
+            
+            if (hi_pairs.size() > 0) {
+            
+                for (auto pair : hi_pairs) {
+                    float mz = (pair.mz - centre) / sigma;
+                    mz = -0.5 * mz * mz;
+                    mz = exp(mz) / (sigma * root2pi);
+                    shape_hi[mzi].push_back(mz);
+                    data_hi[mzi].push_back(pair.intensity);
+                }
+                len_hi[mzi] += hi_pairs.size();
+
+            } else {
+                data_hi[mzi].push_back(0);
+                shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
+            }
+        }
+    }
+
+    for (size_t leni = 0; leni < len_lo.size(); ++leni) {
+        if (len_lo[leni] < opts.min_sample) {
+            data_lo[leni]  = {0.0};
+            shape_lo[leni] = {0.0};
+        }
+    }
+
+    for (size_t leni = 0; leni < len_hi.size(); ++leni) {
+        if (len_hi[leni] < opts.min_sample) {
+            data_lo[leni]  = {0.0};
+            shape_lo[leni] = {0.0};
+        }
+    }
+
+    std::vector<std::vector<double>> dataAB;
+    std::vector<double> nAB;
+
+    for (size_t i = 0; i < data_lo.size(); ++i) {
+        
+        std::vector<double> dataAB_row;
+        size_t length_lo = data_lo[i].size();
+        size_t length_hi = data_hi[i].size();
+        
+        for (auto lo_value : data_lo[i]){
+            dataAB_row.push_back(lo_value * length_hi);
+        }
+        for (auto hi_value : data_hi[i]){
+            dataAB_row.push_back(hi_value * length_lo);
+        }
+        dataAB.push_back(dataAB_row);
+
+        nAB.push_back(length_lo + length_hi);
+    }
+
+    std::vector<std::vector<double>> shapeAB;
+    std::vector<std::vector<double>> shapeA0;
+    std::vector<std::vector<double>> shapeB0;
+    std::vector<std::vector<double>> shape1r;
+
+    for (size_t i = 0; i < shape_lo.size(); ++i) {
+        
+        std::vector<double> shapeAB_row;
+        std::vector<double> shapeA0_row;
+        std::vector<double> shapeB0_row;
+        std::vector<double> shape1r_row;
+        size_t length_lo = shape_lo[i].size();
+        size_t length_hi = shape_hi[i].size();
+        
+        for (auto lo_value : shape_lo[i]){
+            shapeAB_row.push_back(lo_value * length_hi);
+            shapeA0_row.push_back(lo_value * length_hi);
+            shapeB0_row.push_back(0.0);
+            shape1r_row.push_back(length_hi);
+        }
+        for (auto hi_value : shape_hi[i]){
+            shapeAB_row.push_back(hi_value * length_lo);
+            shapeA0_row.push_back(0.0);
+            shapeB0_row.push_back(hi_value * length_lo);
+            shape1r_row.push_back(opts.intensity_ratio * length_lo);
+        }
+        
+        shapeAB.push_back(shapeAB_row);
+        shapeA0.push_back(shapeA0_row);
+        shapeB0.push_back(shapeB0_row);
+        shape1r.push_back(shape1r_row);
+    } 
+
+    dataAB  = apply_vect_func(dataAB,  centre_vector);
+    shapeAB = apply_vect_func(shapeAB, centre_vector);
+    shapeA0 = apply_vect_func(shapeA0, centre_vector);
+    shapeB0 = apply_vect_func(shapeB0, centre_vector);
+    shape1r = apply_vect_func(shape1r, centre_vector);
+   
+    std::vector<std::vector<double>> data2AB;
+    std::vector<std::vector<double>> shape2AB;
+    std::vector<std::vector<double>> shape2A0;
+    std::vector<std::vector<double>> shape2B0;
+    std::vector<std::vector<double>> shape21r;
+
+    data2AB  = apply_vect_func(dataAB,  square_vector);
+    shape2AB = apply_vect_func(shapeAB, square_vector);
+    shape2A0 = apply_vect_func(shapeA0, square_vector);
+    shape2B0 = apply_vect_func(shapeB0, square_vector);
+    shape21r = apply_vect_func(shape1r, square_vector);
+
+    std::vector<double> SSY;
+    std::vector<double> SSXAB;
+    std::vector<double> SSXA0;
+    std::vector<double> SSXB0;
+    std::vector<double> SSX1r;
+
+    SSY   = reduce_2D_vect(data2AB,  sum_vector);
+    SSXAB = reduce_2D_vect(shape2AB, sum_vector);
+    SSXA0 = reduce_2D_vect(shape2A0, sum_vector);
+    SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
+    SSX1r = reduce_2D_vect(shape21r, sum_vector);
+
+    std::vector<std::vector<double>> datashape;
+    std::vector<double> SXYAB;
+    std::vector<double> SXYA0;
+    std::vector<double> SXYB0;
+    std::vector<double> SXY1r;
+    std::vector<double> SXYABA0;
+    std::vector<double> SXYABB0;
+    std::vector<double> SXYAB1r;
+
+    datashape = apply_vect_func(dataAB, shapeAB, mult_vectors);
+    SXYAB     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shapeA0, mult_vectors);
+    SXYA0     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shapeB0, mult_vectors);
+    SXYB0     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(dataAB, shape1r, mult_vectors);
+    SXY1r     = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shapeA0, mult_vectors);
+    SXYABA0   = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shapeB0, mult_vectors);
+    SXYABB0   = reduce_2D_vect(datashape, sum_vector);
+    datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
+    SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
+
+    std::vector<double> correlAB;
+    std::vector<double> correlA0;
+    std::vector<double> correlB0;
+    std::vector<double> correl1r;
+    std::vector<double> correlABA0;
+    std::vector<double> correlABB0;
+    std::vector<double> correlAB1r;
+
+    correlAB   = correl_vectors(SXYAB,   SSXAB, SSY);
+    correlA0   = correl_vectors(SXYA0,   SSXA0, SSY);
+    correlB0   = correl_vectors(SXYB0,   SSXB0, SSY);
+    correl1r   = correl_vectors(SXY1r,   SSX1r, SSY);
+    correlABA0 = correl_vectors(SXYABA0, SSXAB, SSXA0);
+    correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
+    correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
+    
+    std::vector<double> rm2ABA0;
+    std::vector<double> rm2ABB0;
+    std::vector<double> rm2AB1r;
+
+    rm2ABA0 = rm_vectors(correlAB, correlA0);
+    rm2ABB0 = rm_vectors(correlAB, correlB0);
+    rm2AB1r = rm_vectors(correlAB, correl1r);
+   
+    std::vector<double> fABA0;
+    std::vector<double> fABB0;
+    std::vector<double> fAB1r;
+
+    fABA0 = f_vectors(correlABA0, rm2ABA0);
+    fABB0 = f_vectors(correlABB0, rm2ABB0);
+    fAB1r = f_vectors(correlAB1r, rm2AB1r);
+
+    std::vector<double> hABA0;
+    std::vector<double> hABB0;
+    std::vector<double> hAB1r;
+
+    hABA0 = h_vectors(fABA0, rm2ABA0);
+    hABB0 = h_vectors(fABB0, rm2ABB0);
+    hAB1r = h_vectors(fAB1r, rm2AB1r);
+
+    std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
+    std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
+                                                 (double(*)(double)) sqrt);
+   
+
+    std::vector<double> zABA0;
+    std::vector<double> zABB0;
+    std::vector<double> zAB1r;
+
+    zABA0 = z_vectors(correlAB, correlA0, nAB, correlABA0, hABA0);
+    zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
+    zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
+    
+    std::vector<double> min_score;
+
+    for (size_t idx = 0; idx < zABA0.size(); ++idx) {
+        double zA0 = zABA0[idx];
+        double zB0 = zABB0[idx];
+        double z1r = zAB1r[idx];
+        min_score.push_back(std::min({zA0, zB0, z1r, 0.0}));
+    }
+
+    std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
+                                              correlB0, correl1r};
 
     std::cout << "Done!" << std::endl;
-
     return 0;
 }
 
@@ -149,6 +473,214 @@ void show_usage(char *cmd)
     cout                                                            << endl;
 }
 
+std::vector<double> centre_vector(std::vector<double> vect)
+{
+    double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
+    double mean = sum / vect.size();
+    std::vector<double> centered;
+
+    for (auto v : vect) {
+        centered.push_back(v - mean);
+    }
+
+    return centered;
+}
+
+std::vector<double> square_vector(std::vector<double> vect)
+{
+    std::vector<double> squared;
+
+    for (auto v : vect) {
+        squared.push_back(v * v);
+    }
+
+    return squared;
+}
+
+double sum_vector(std::vector<double> vect)
+{
+    double sum = std::accumulate(vect.begin(), vect.end(), 0.0);
+
+    return sum;
+}
+   
+std::vector<double> mult_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> mult;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        mult.push_back(vect1[idx] * vect2[idx]);
+    }
+
+    return mult;
+}
+   
+std::vector<double> div_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> divided;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        divided.push_back(vect1[idx] / vect2[idx]);
+    }
+
+    return divided;
+
+}
+
+std::vector<double> correl_vectors(std::vector<double> vect1,
+                    std::vector<double> vect2, std::vector<double> vect3)
+{
+    std::vector<double> correlated;
+    std::vector<double> mult;
+
+    mult = mult_vectors(vect2, vect3);
+    std::transform(mult.begin(), mult.end(), mult.begin(), 
+                                            (double(*)(double)) std::sqrt);
+    correlated = div_vectors(vect1, mult);
+
+    for (auto& c : correlated) {
+        if(c < 0) {
+            c = 0;
+        }
+    }
+
+    return correlated;
+}
+
+std::vector<double> rm_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> rm;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        double tmp = (vect1[idx] * vect1[idx]) + (vect2[idx] * vect2[idx]);
+        rm.push_back(0.5 * tmp);
+    }
+
+    return rm;
+
+}
+
+std::vector<double> f_vectors(std::vector<double> correl_vect,
+                                              std::vector<double> rm_vect)
+{
+    std::vector<double> f_vect;
+
+    if (correl_vect.size() != rm_vect.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < correl_vect.size(); ++idx) {
+        double correl = correl_vect[idx];
+        double rm     = rm_vect[idx];
+
+        f_vect.push_back((1.0 - correl) / (2.0 * (1.0 - rm)));
+    }
+
+    for (auto& f : f_vect) {
+        if(f > 1.0) {
+            f = 1.0;
+        }
+    }
+
+    return f_vect;
+}
+
+std::vector<double> h_vectors(std::vector<double> f_vect,
+                                              std::vector<double> rm_vect)
+{
+    std::vector<double> h_vect;
+
+    if (f_vect.size() != rm_vect.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < f_vect.size(); ++idx) {
+        double f  = f_vect[idx];
+        double rm = rm_vect[idx];
+
+        h_vect.push_back((1.0 - f * rm) / (1.0 - rm));
+    }
+
+    return h_vect;
+}
+
+std::vector<double> z_vectors(std::vector<double> cor1,
+                              std::vector<double> cor2,
+                              std::vector<double> sqrtn,
+                              std::vector<double> cross_cor,
+                              std::vector<double> h_vect)
+{
+    std::vector<double> z_vect;
+
+    for (size_t idx = 0; idx < cor1.size(); ++idx) {
+        
+        double z1  = std::atanh(cor1[idx]);
+        double z2  = std::atanh(cor2[idx]);
+        
+        double num   = (z1 - z2) * sqrtn[idx];
+        double denom = 2.0 * (1.0 - cross_cor[idx]) * h_vect[idx];
+
+        z_vect.push_back(num / std::sqrt(denom));
+    }
+
+    return z_vect;
+}
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect, F func)
+{
+    std::vector<T> applied;
+    
+    for (auto v : vect) {
+        applied.push_back(func(v));
+    }
+
+    return applied;
+}
+
+template <typename T, typename F>
+std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2, 
+                                                                     F func)
+{
+    std::vector<T> applied;
+    
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        applied.push_back(func(vect1[idx], vect2[idx]));
+    }
+
+    return applied;
+}
+
+template <typename T, typename F>
+std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
+{
+    std::vector<T> reduced;
+
+    for (auto vect : vect2D) {
+        reduced.push_back(func(vect));
+    }
+
+    return reduced;
+}
 
 /*-----------------------------------------------------------------------*/
 /***************************** CLASS METHODS *****************************/
@@ -168,7 +700,7 @@ Options::Options(int argc, char *argv[])
     mz_sigma        = default_mz_sigma;
     mz_delta        = default_mz_delta;
     min_sample      = default_min_sample;
-    mzML_file        = "";
+    mzML_file       = "";
 
     // Show usage and exit if no options are given
     if (argc == 1) {
@@ -233,159 +765,4 @@ Options::Options(int argc, char *argv[])
 /******************************* OLD CODE ********************************/
 /*-----------------------------------------------------------------------*/
 
-/*
-class MZWindow {
-    
-    public:
-        unsigned int centre_col;
-        double centre_mz;
-        float tolerance;
-        unsigned int col_half_length;
-        std::vector<int> row_lower_bound;
-        std::vector<int> row_upper_bound;
 
-    void SetBounds (arma::mat matrix, unsigned int col,
-                    unsigned int half, double mz, float tol) 
-    {
-        centre_col      = col;
-        col_half_length = half;
-        centre_mz       = mz;
-        tolerance       = tol;
-        
-        unsigned int start_col = std::max(0U, centre_col - col_half_length);
-        unsigned int end_col = std::min(centre_col + col_half_length, 
-                                        matrix.n_cols-1);
-        arma::uvec indexes;
-
-        for (int col_idx = start_col; col_idx <= end_col; col_idx++) {
-            
-            indexes = arma::find(matrix.col(col_idx) > centre_mz - tolerance
-                            && matrix.col(col_idx) < centre_mz + tolerance);
-            
-            if (indexes.n_elem > 0) {
-                row_lower_bound.push_back(indexes(0));
-                row_upper_bound.push_back(indexes(indexes.n_elem-1));
-            } else {
-                row_lower_bound.push_back(-1);
-                row_upper_bound.push_back(-1);
-            }
-        }
-    }
-
-    void PrintBounds ()
-    {
-        for (std::vector<int>::const_iterator i = row_lower_bound.begin();
-             i != row_lower_bound.end(); ++i) {
-            std::cout << (*i) << " ";
-        }
-
-        std::cout << std::endl;
-        for (std::vector<int>::const_iterator i = row_upper_bound.begin(); 
-             i != row_upper_bound.end(); ++i) {
-            std::cout << (*i) << " ";
-        }
-        std::cout << std::endl;
-    }
-
-};
-
-class DoubleWindow {
-
-    public:
-        MZWindow lo_window;
-        MZWindow hi_window;
-
-    void SetWindows (arma::mat matrix, unsigned int col, unsigned int half,
-                     double mz, float delta, float lo_tol, float hi_tol)
-    {
-        lo_window.SetBounds(matrix, col, half, mz, lo_tol);
-        hi_window.SetBounds(matrix, col, half, mz+delta, hi_tol);
-    }
-
-};
-
-*/
-
-/**
-  Read in a NumPy array and return an Armadillo matrix
-*/
-/*
-arma::mat load_npy_file(const std::string& filename)
-{
-    std::vector<int> shape;
-    std::vector<double> data;
-    
-    aoba::LoadArrayFromNumpy(filename, shape, data);
-
-    int nrows = shape[0];
-    int ncols = shape[1];
-    int row   = 0;
-    int col   = 0;
-    std::vector<double>::const_iterator i;
-
-    arma::mat matrix(nrows, ncols);
-
-    for (i = data.begin(); i != data.end(); i++) {
-        matrix(row, col) = (*i);
-        col++;
-        if (col == ncols) {
-            col = 0;
-            row++;
-        }
-    }
-
-    return matrix;
-}
-*/
-/*
-    std::cout << "File Directory: " << file_dir << std::endl;
-    std::cout << "MZ File: " << mz_file << std::endl;
-    std::cout << "Time File: " << time_file << std::endl;
-    std::cout << "Intensity File: " << intensity_file << std::endl;
- 
-*/
-/*
-    arma::mat mz_mat = load_npy_file(mz_file);
-//    mz_mat.submat(0, 0, 5, 5).print("MZ Data:");
-
-    arma::mat time_mat = load_npy_file(time_file);
-//    time_mat.submat(0, 0, 5, 5).print("Time Data:");
-
-    arma::mat intensity_mat = load_npy_file(intensity_file);
-//    intensity_mat.submat(0, 0, 5, 5).print("Intensity Data:");
-
-
-//    half_rt_window = static_cast<int>(ceil(rt_sigma * rt_width / 2.355));
-
-
-    arma::mat C;
-    C << 0.11 << 0.01 << 0.09 << 0.10 << 0.12 << 0.08 << 0.09 << arma::endr
-      << 0.19 << 0.14 << 0.23 << 0.19 << 0.28 << 0.16 << 0.24 << arma::endr
-      << 0.31 << 0.26 << 0.27 << 0.34 << 0.32 << 0.28 << 0.32 << arma::endr
-      << 0.43 << 0.38 << 0.41 << 0.48 << 0.38 << 0.43 << 0.41 << arma::endr
-      << 0.49 << 0.54 << 0.46 << 0.53 << 0.51 << 0.50 << 0.49 << arma::endr
-      << 0.62 << 0.64 << 0.58 << 0.61 << 0.66 << 0.58 << 0.63 << arma::endr
-      << 0.70 << 0.68 << 0.71 << 0.70 << 0.72 << 0.69 << 0.66 << arma::endr
-      << 0.76 << 0.81 << 0.79 << 0.77 << 0.83 << 0.84 << 0.81 << arma::endr
-      << 0.89 << 0.92 << 0.96 << 0.89 << 0.91 << 0.95 << 0.92 << arma::endr;
-
-    C.print("C: ");
-
-    MZWindow window;
-    //window.SetBounds(C, 2, 3, 0.15, 2);
-
-    //arma::mat D = mz_mat.submat(20, 20, 30, 24);
-    //D.print("D:");
-
-    //MZWindow wind2;
-    //wind2.SetBounds(D, 4, 3, D(3,4), 0.02);
-    //wind2.PrintBounds();
-
-    //time_mat.submat(20, 20, 30, 24).print("Time: ");
-
-    DoubleWindow dwind;
-    dwind.SetWindows(C, 3, 2, C(2, 3), 0.3, 0.11, 0.16); 
-    dwind.lo_window.PrintBounds();
-    dwind.hi_window.PrintBounds();
-
-*/
