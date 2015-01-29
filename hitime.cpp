@@ -61,6 +61,9 @@ std::vector<double> div_vectors(std::vector<double> vect1,
 std::vector<double> correl_vectors(std::vector<double> vect1,
                     std::vector<double> vect2, std::vector<double> vect3);
 
+std::vector<double> rm_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2);
+
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
@@ -373,7 +376,13 @@ int main(int argc, char *argv[])
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
     
-    
+    std::vector<double> rm2ABA0;
+    std::vector<double> rm2ABB0;
+    std::vector<double> rm2AB1r;
+
+    rm2ABA0 = rm_vectors(correlAB, correlA0);
+    rm2ABB0 = rm_vectors(correlAB, correlB0);
+    rm2AB1r = rm_vectors(correlAB, correl1r);
     
     std::cout << "Done!" << std::endl;
     return 0;
@@ -488,13 +497,7 @@ std::vector<double> correl_vectors(std::vector<double> vect1,
     std::transform(mult.begin(), mult.end(), mult.begin(), 
                                             (double(*)(double)) std::sqrt);
     correlated = div_vectors(vect1, mult);
-    /*
-    for (auto it = correlated.begin(); it != correlated.end(); ++it) {
-        if (*it < 0) {
-            *it = 0;
-        }
-    }
-    */
+
     for (auto& c : correlated) {
         if(c < 0) {
             c = 0;
@@ -502,6 +505,24 @@ std::vector<double> correl_vectors(std::vector<double> vect1,
     }
 
     return correlated;
+}
+
+std::vector<double> rm_vectors(std::vector<double> vect1, 
+                                                std::vector<double> vect2)
+{
+    std::vector<double> rm;
+
+    if (vect1.size() != vect2.size()) {
+        throw std::invalid_argument("Vectors have different lengths");
+    }
+
+    for (size_t idx = 0; idx < vect1.size(); ++idx) {
+        double tmp = (vect1[idx] * vect1[idx]) + (vect2[idx] * vect2[idx]);
+        rm.push_back(0.5 * tmp);
+    }
+
+    return rm;
+
 }
 
 template <typename T, typename F>
