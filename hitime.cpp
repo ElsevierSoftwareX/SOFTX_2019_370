@@ -424,6 +424,18 @@ int main(int argc, char *argv[])
     zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
     zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
     
+    std::vector<double> min_score;
+
+    for (size_t idx = 0; idx < zABA0.size(); ++idx) {
+        double zA0 = zABA0[idx];
+        double zB0 = zABB0[idx];
+        double z1r = zAB1r[idx];
+        min_score.push_back(std::min({zA0, zB0, z1r, 0.0}));
+    }
+
+    std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
+                                              correlB0, correl1r};
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
