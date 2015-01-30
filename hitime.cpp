@@ -8,10 +8,12 @@
 #include <algorithm>
 #include <stdexcept>
 #include <functional>
+#include <fstream>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
+#include "pwiz/data/msdata/SpectrumInfo.hpp"
 
 
 /*-----------------------------------------------------------------------*/
@@ -434,6 +436,28 @@ int main(int argc, char *argv[])
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
 
+    pwiz::msdata::SpectrumInfo spectrum_info;
+    spectrum_info.update(*mz_mu_vect, getBinaryData);
+    double rt = spectrum_info.retentionTime;
+
+    std::ofstream outfile;
+    outfile.open("output.txt");
+
+    for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
+        double mz  = mz_mu_pairs[idx].mz;
+        double amp = mz_mu_pairs[idx].intensity;
+        double ms  = min_score[idx];
+        double AB  = correlAB[idx];
+        double A0  = correlA0[idx];
+        double B0  = correlB0[idx];
+        double r1  = correl1r[idx];
+
+        outfile << rt << ", " << mz << ", " << amp << ", " << ms << ", "  
+                << AB << ", " << A0 << ", " << B0  << ", " << r1 << "\n"; 
+    }
+
+    outfile.close();
+    
     std::cout << "Done!" << std::endl;
     return 0;
 }
