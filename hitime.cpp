@@ -13,6 +13,7 @@
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
+#include "pwiz/data/msdata/SpectrumInfo.hpp"
 
 
 /*-----------------------------------------------------------------------*/
@@ -435,6 +436,11 @@ int main(int argc, char *argv[])
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
 
+    pwiz::msdata::SpectrumInfo spectrum_info;
+    spectrum_info.update(*mz_mu_vect, getBinaryData);
+
+    std::cout << spectrum_info.retentionTime << std::endl;
+
     std::ofstream outfile;
     outfile.open("output.txt");
 
@@ -442,7 +448,8 @@ int main(int argc, char *argv[])
             << correlAB.size()  << "\n"
             << correlA0.size()  << "\n"
             << correlB0.size()  << "\n"
-            << correl1r.size()  << "\n";
+            << correl1r.size()  << "\n"
+            << "MZs: " << mz_mu_pairs.size() << "\n";
 
     outfile.close();
     
