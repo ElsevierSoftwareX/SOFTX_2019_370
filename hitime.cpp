@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <functional>
+#include <fstream>
 
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -434,6 +435,17 @@ int main(int argc, char *argv[])
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
 
+    std::ofstream outfile;
+    outfile.open("output.txt");
+
+    outfile << min_score.size() << "\n"
+            << correlAB.size()  << "\n"
+            << correlA0.size()  << "\n"
+            << correlB0.size()  << "\n"
+            << correl1r.size()  << "\n";
+
+    outfile.close();
+    
     std::cout << "Done!" << std::endl;
     return 0;
 }
