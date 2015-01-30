@@ -438,18 +438,23 @@ int main(int argc, char *argv[])
 
     pwiz::msdata::SpectrumInfo spectrum_info;
     spectrum_info.update(*mz_mu_vect, getBinaryData);
-
-    std::cout << spectrum_info.retentionTime << std::endl;
+    double rt = spectrum_info.retentionTime;
 
     std::ofstream outfile;
     outfile.open("output.txt");
 
-    outfile << min_score.size() << "\n"
-            << correlAB.size()  << "\n"
-            << correlA0.size()  << "\n"
-            << correlB0.size()  << "\n"
-            << correl1r.size()  << "\n"
-            << "MZs: " << mz_mu_pairs.size() << "\n";
+    for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
+        double mz  = mz_mu_pairs[idx].mz;
+        double amp = mz_mu_pairs[idx].intensity;
+        double ms  = min_score[idx];
+        double AB  = correlAB[idx];
+        double A0  = correlA0[idx];
+        double B0  = correlB0[idx];
+        double r1  = correl1r[idx];
+
+        outfile << rt << ", " << mz << ", " << amp << ", " << ms << ", "  
+                << AB << ", " << A0 << ", " << B0  << ", " << r1 << "\n"; 
+    }
 
     outfile.close();
     
