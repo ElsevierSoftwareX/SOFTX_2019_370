@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
         len_hi.push_back(0);
     }
 
+    std::cout.precision(10);
     std::cout << "Points LoLo: " << points_lo_lo[0]    << std::endl
               << "Points LoHi: " << points_lo_hi[0]    << std::endl
               << "Points HiLo: " << points_hi_lo[0]    << std::endl
@@ -201,7 +202,6 @@ int main(int argc, char *argv[])
     std::cout << "RT Shape: " << rt_shape.size() << std::endl
               << "RT Shape: " << rt_shape[0]     << std::endl;
 
-
     for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
     
         double lo_tol_lo = points_lo_lo[mzi];
@@ -211,6 +211,8 @@ int main(int argc, char *argv[])
         double centre    = mz_mu_pairs[mzi].mz;
         double sigma     = centre * mz_ppm_sigma;
 
+        //std::cout << "CENTRE: " << centre << std::endl;
+
         pwiz::analysis::SpectrumList_MZWindow lo_window(
                                                     msd.run.spectrumListPtr,
                                                     lo_tol_lo, lo_tol_hi);
@@ -218,9 +220,14 @@ int main(int argc, char *argv[])
                                                     msd.run.spectrumListPtr,
                                                     hi_tol_lo, hi_tol_hi);
             
+        //std::cout << "CENTRE2: " << centre << std::endl;
     
         for (int rowi = 0; rowi < rt_len; ++rowi) {
         
+            //std::cout << "CENTRE3: " << centre << std::endl;
+           
+            centre = mz_mu_pairs[mzi].mz;
+            
             pwiz::msdata::SpectrumPtr lo_spectrum;
             pwiz::msdata::SpectrumPtr hi_spectrum;
             std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
@@ -235,6 +242,7 @@ int main(int argc, char *argv[])
             float rt_lo = rt_shape[rowi];
             float rt_hi = rt_lo;
 
+            //std::cout << "CENTRE4: " << centre << std::endl;
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
@@ -245,13 +253,36 @@ int main(int argc, char *argv[])
                     //std::cout << "MZ: " << pair.mz << std::endl;
                     float mz = (pair.mz - centre) / sigma;
                     //std::cout << "MZ: " << mz << std::endl;
+                    //if ((-0.5 * mz * mz) < -183506) { 
+                    //    std::cout << "MZ i: " << mzi << std::endl;
+                    //    std::cout << "Lo Tol: " << lo_tol_lo << std::endl;
+                    //    std::cout << "Hi Tol: " << lo_tol_hi << std::endl;
+                    //    std::cout << "Row i: " << rowi << std::endl;
+                    //    std::cout << "Centre: " << centre << std::endl;
+                    //    std::cout << "Sigma:  " << sigma << std::endl;
+                    //    std::cout << "Pair mz: " << pair.mz << std::endl;
+                    //    std::cout << "MZ: " << mz << std::endl;
+                    //}
+                    
                     mz = -0.5 * mz * mz;
                     //std::cout << "MZ: " << mz << std::endl;
+                    //if (exp(mz) == 0) {
+                    //    std::cout << "ZERO EXP" << std::endl;
+                    //    std::cout << mz << std::endl;
+                    //    exit(1);
+                    //}
                     mz = rt_lo * exp(mz) / (sigma * root2pi);
+                    //if (mz == 0) {
+                    //    std::cout << "ZERO POINT" << std::endl;
+                    //    std::cout << rt_lo << std::endl;
+                    //    std::cout << sigma << std::endl;
+                    //    std::cout << root2pi << std::endl;
+                    //    exit(1);
+                    //}
                     //std::cout << "MZ: " << mz << std::endl;
                     shape_lo[mzi].push_back(mz);
                     data_lo[mzi].push_back(pair.intensity);
-                    //exit(1); 
+                    
                 }
                 len_lo[mzi] += lo_pairs.size();
 
@@ -296,6 +327,9 @@ int main(int argc, char *argv[])
               << "Len Lo:      " << len_lo[0]          << std::endl
               << "Len Hi:      " << len_hi[0]          << std::endl;   
     
+    //for (auto v : shape_lo[0]) {
+    //    std::cout << v << std::endl;
+    //}
 
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
@@ -308,6 +342,10 @@ int main(int argc, char *argv[])
         if (len_hi[leni] < opts.min_sample) {
             data_hi[leni]  = {0.0};
             shape_hi[leni] = {0.0};
+        } else {
+            for (auto& s : shape_hi[leni]) {
+                s *= opts.intensity_ratio;
+            }
         }
     }
     
@@ -325,8 +363,6 @@ int main(int argc, char *argv[])
               << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl;
 
 
-
-/*
     std::vector<std::vector<double>> dataAB;
     std::vector<double> nAB;
 
@@ -347,6 +383,12 @@ int main(int argc, char *argv[])
         nAB.push_back(length_lo + length_hi);
     }
 
+    std::cout << "Data AB:   " << dataAB.size()    << std::endl
+              << "Data AB 0: " << dataAB[0].size() << std::endl
+              << "Data AB 0: " << dataAB[0][0]     << std::endl
+              << "nAB:       " << nAB.size()       << std::endl
+              << "nAB:       " << nAB[0]           << std::endl;
+     
     std::vector<std::vector<double>> shapeAB;
     std::vector<std::vector<double>> shapeA0;
     std::vector<std::vector<double>> shapeB0;
@@ -380,12 +422,35 @@ int main(int argc, char *argv[])
         shape1r.push_back(shape1r_row);
     } 
 
+    std::cout << "Shape AB:   " << shapeAB.size()    << std::endl
+              << "Shape AB 0: " << shapeAB[0].size() << std::endl
+              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
+              << "Shape A0:   " << shapeA0.size()    << std::endl
+              << "Shape A0 0: " << shapeA0[0].size() << std::endl
+              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
+              << "Shape B0:   " << shapeB0.size()    << std::endl
+              << "Shape B0 0: " << shapeB0[0].size() << std::endl
+              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
+              << "Shape 1r:   " << shape1r.size()    << std::endl
+              << "Shape 1r 0: " << shape1r[0].size() << std::endl
+              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
+
+    //for (auto s : shapeAB[0]) {
+    //    std::cout << s << std::endl;
+    //}
+
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
-   
+
+    std::cout << "Data AB 0:  " << dataAB[0][0]      << std::endl
+              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
+              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
+              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
+              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
+/*               
     std::vector<std::vector<double>> data2AB;
     std::vector<std::vector<double>> shape2AB;
     std::vector<std::vector<double>> shape2A0;
@@ -564,6 +629,9 @@ std::vector<double> centre_vector(std::vector<double> vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
     double mean = sum / vect.size();
+    //std::cout << "Sum: " << sum << std::endl;
+    //std::cout << "Mean: " << mean << std::endl;
+    //exit(1);
     std::vector<double> centered;
 
     for (auto v : vect) {
