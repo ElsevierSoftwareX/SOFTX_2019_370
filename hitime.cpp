@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
               << "Shape A0 0: " << shapeA0[0][0]     << std::endl
               << "Shape B0 0: " << shapeB0[0][0]     << std::endl
               << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
-/*               
+               
     std::vector<std::vector<double>> data2AB;
     std::vector<std::vector<double>> shape2AB;
     std::vector<std::vector<double>> shape2A0;
@@ -462,6 +462,13 @@ int main(int argc, char *argv[])
     shape2A0 = apply_vect_func(shapeA0, square_vector);
     shape2B0 = apply_vect_func(shapeB0, square_vector);
     shape21r = apply_vect_func(shape1r, square_vector);
+
+    std::cout << "Data 2AB 0:  " << data2AB[0][0]      << std::endl
+              << "Shape 2AB 0: " << shape2AB[0][0]     << std::endl
+              << "Shape 2A0 0: " << shape2A0[0][0]     << std::endl
+              << "Shape 2B0 0: " << shape2B0[0][0]     << std::endl
+              << "Shape 21r 0: " << shape21r[0][0]     << std::endl;
+ 
 
     std::vector<double> SSY;
     std::vector<double> SSXAB;
@@ -475,6 +482,13 @@ int main(int argc, char *argv[])
     SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
     SSX1r = reduce_2D_vect(shape21r, sum_vector);
 
+    std::cout << "SSY:   " << SSY[0]       << std::endl
+              << "SSXAB: " << SSXAB[0]     << std::endl
+              << "SSXA0: " << SSXA0[0]     << std::endl
+              << "SSXB0: " << SSXB0[0]     << std::endl
+              << "SSX1r: " << SSX1r[0]     << std::endl;
+ 
+    
     std::vector<std::vector<double>> datashape;
     std::vector<double> SXYAB;
     std::vector<double> SXYA0;
@@ -499,6 +513,14 @@ int main(int argc, char *argv[])
     datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
     SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
 
+    std::cout << "SXYAB:   " << SXYAB[0]       << std::endl
+              << "SXYA0:   " << SXYA0[0]       << std::endl
+              << "SXYB0:   " << SXYB0[0]       << std::endl
+              << "SXY1r:   " << SXY1r[0]       << std::endl
+              << "SXYABA0: " << SXYABA0[0]     << std::endl
+              << "SXYABB0: " << SXYABB0[0]     << std::endl
+              << "SXYAB1r: " << SXYAB1r[0]     << std::endl;
+ 
     std::vector<double> correlAB;
     std::vector<double> correlA0;
     std::vector<double> correlB0;
@@ -514,15 +536,29 @@ int main(int argc, char *argv[])
     correlABA0 = correl_vectors(SXYABA0, SSXAB, SSXA0);
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
+
+    std::cout << "correlAB:   " << correlAB[0]       << std::endl
+              << "correlA0:   " << correlA0[0]       << std::endl
+              << "correlB0:   " << correlB0[0]       << std::endl
+              << "correl1r:   " << correl1r[0]       << std::endl
+              << "correlABA0: " << correlABA0[0]     << std::endl
+              << "correlABB0: " << correlABB0[0]     << std::endl
+              << "correlAB1r: " << correlAB1r[0]     << std::endl;
+ 
     
     std::vector<double> rm2ABA0;
     std::vector<double> rm2ABB0;
     std::vector<double> rm2AB1r;
-
+    
     rm2ABA0 = rm_vectors(correlAB, correlA0);
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
-   
+
+    std::cout << "rm2ABA0: " << rm2ABA0[0]     << std::endl
+              << "rm2ABB0: " << rm2ABB0[0]     << std::endl
+              << "rm2AB1r: " << rm2AB1r[0]     << std::endl;
+ 
+
     std::vector<double> fABA0;
     std::vector<double> fABB0;
     std::vector<double> fAB1r;
@@ -531,6 +567,10 @@ int main(int argc, char *argv[])
     fABB0 = f_vectors(correlABB0, rm2ABB0);
     fAB1r = f_vectors(correlAB1r, rm2AB1r);
 
+    std::cout << "fABA0: " << fABA0[0]     << std::endl
+              << "fABB0: " << fABB0[0]     << std::endl
+              << "fAB1r: " << fAB1r[0]     << std::endl;
+ 
     std::vector<double> hABA0;
     std::vector<double> hABB0;
     std::vector<double> hAB1r;
@@ -539,6 +579,11 @@ int main(int argc, char *argv[])
     hABB0 = h_vectors(fABB0, rm2ABB0);
     hAB1r = h_vectors(fAB1r, rm2AB1r);
 
+    std::cout << "hABA0: " << hABA0[0]     << std::endl
+              << "hABB0: " << hABB0[0]     << std::endl
+              << "hAB1r: " << hAB1r[0]     << std::endl;
+ 
+   
     std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
     std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
                                                  (double(*)(double)) sqrt);
@@ -551,18 +596,35 @@ int main(int argc, char *argv[])
     zABA0 = z_vectors(correlAB, correlA0, nAB, correlABA0, hABA0);
     zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
     zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
-    
+
+    std::cout << "zABA0: " << zABA0[0]     << std::endl
+              << "zABB0: " << zABB0[0]     << std::endl
+              << "zAB1r: " << zAB1r[0]     << std::endl;
+     
     std::vector<double> min_score;
 
     for (size_t idx = 0; idx < zABA0.size(); ++idx) {
         double zA0 = zABA0[idx];
         double zB0 = zABB0[idx];
         double z1r = zAB1r[idx];
-        min_score.push_back(std::min({zA0, zB0, z1r, 0.0}));
+        double min  = std::min({zA0, zB0, z1r});
+        min_score.push_back(std::max({0.0, min}));
     }
+
+    std::cout << "Min Score[0]:   " << min_score[0]   << std::endl         
+              << "Min Score[10]:  " << min_score[10]  << std::endl
+              << "Min Score[100]: " << min_score[100] << std::endl
+              << "Min Score[470]: " << min_score[470] << std::endl;
 
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
+
+    std::cout << "470 Values " << std::endl
+              << "Min Score: " << min_score[470] << std::endl
+              << "correlAB:  " << correlAB[470]  << std::endl
+              << "correlA0:  " << correlA0[470]  << std::endl
+              << "correlB0:  " << correlB0[470]  << std::endl
+              << "correl1r:  " << correl1r[470]  << std::endl;
 
     pwiz::msdata::SpectrumInfo spectrum_info;
     spectrum_info.update(*mz_mu_vect, getBinaryData);
@@ -570,6 +632,7 @@ int main(int argc, char *argv[])
 
     std::ofstream outfile;
     outfile.open("output.txt");
+    outfile.precision(12);
 
     for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
         double mz  = mz_mu_pairs[idx].mz;
@@ -580,12 +643,15 @@ int main(int argc, char *argv[])
         double B0  = correlB0[idx];
         double r1  = correl1r[idx];
 
-        outfile << rt << ", " << mz << ", " << amp << ", " << ms << ", "  
-                << AB << ", " << A0 << ", " << B0  << ", " << r1 << "\n"; 
+        if (ms > 0.0) {        
+            outfile << rt << ", " << mz << ", " << amp << ", " 
+                    << ms << ", " << AB << ", " << A0 << ", " 
+                    << B0 << ", " << r1 << "\n"; 
+        }
     }
 
     outfile.close();
-*/
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
