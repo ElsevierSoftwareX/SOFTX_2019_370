@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
               << "Len Lo:      " << len_lo[0]          << std::endl
               << "Len Hi:      " << len_hi[0]          << std::endl;   
     
-/*
+
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
             data_lo[leni]  = {0.0};
@@ -306,11 +306,27 @@ int main(int argc, char *argv[])
 
     for (size_t leni = 0; leni < len_hi.size(); ++leni) {
         if (len_hi[leni] < opts.min_sample) {
-            data_lo[leni]  = {0.0};
-            shape_lo[leni] = {0.0};
+            data_hi[leni]  = {0.0};
+            shape_hi[leni] = {0.0};
         }
     }
+    
+    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
+              << "Data Hi:     " << data_hi.size()     << std::endl
+              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
+              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
+              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
+              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
+              << "Shape Lo:    " << shape_lo.size()    << std::endl
+              << "Shape Hi:    " << shape_hi.size()    << std::endl
+              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
+              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
+              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
+              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl;
 
+
+
+/*
     std::vector<std::vector<double>> dataAB;
     std::vector<double> nAB;
 
