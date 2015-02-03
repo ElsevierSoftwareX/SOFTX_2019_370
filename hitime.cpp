@@ -141,6 +141,13 @@ int main(int argc, char *argv[])
     double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
     double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
+    std::cout << "RT Sigma: " << rt_sigma     << std::endl
+              << "MZ PPM:   " << mz_ppm_sigma << std::endl
+              << "RT Len:   " << rt_len       << std::endl
+              << "Mid Win:  " << mid_win      << std::endl
+              << "Lo Tol:   " << lo_tol       << std::endl
+              << "Hi Tol:   " << hi_tol       << std::endl;
+    
     std::vector<double> points_lo_lo;
     std::vector<double> points_lo_hi;
     std::vector<double> points_hi_lo;
@@ -169,6 +176,17 @@ int main(int argc, char *argv[])
         len_hi.push_back(0);
     }
 
+    std::cout << "Points LoLo: " << points_lo_lo[0]    << std::endl
+              << "Points LoHi: " << points_lo_hi[0]    << std::endl
+              << "Points HiLo: " << points_hi_lo[0]    << std::endl
+              << "Points HiHI: " << points_hi_hi[0]    << std::endl
+              << "Data Lo:     " << data_lo[0].size()  << std::endl
+              << "Data Hi:     " << data_hi[0].size()  << std::endl
+              << "Shape Lo:    " << shape_lo[0].size() << std::endl
+              << "Shape Hi:    " << shape_hi[0].size() << std::endl
+              << "Len Lo:      " << len_lo[0]          << std::endl
+              << "Len Hi:      " << len_hi[0]          << std::endl;   
+    
     std::vector<float> rt_shape;
 
     for (int i = 0; i < rt_len; ++i) {
@@ -179,7 +197,11 @@ int main(int argc, char *argv[])
     
         rt_shape.push_back(pt);
     }
-    
+
+    std::cout << "RT Shape: " << rt_shape.size() << std::endl
+              << "RT Shape: " << rt_shape[0]     << std::endl;
+
+
     for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
     
         double lo_tol_lo = points_lo_lo[mzi];
@@ -216,11 +238,20 @@ int main(int argc, char *argv[])
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
+                    //std::cout.precision(10);
+                    //std::cout << "Centre: " << centre << std::endl;
+                    //std::cout << "Sigma: " << sigma << std::endl;
+                    //std::cout << "RT Lo: " << rt_lo << std::endl;
+                    //std::cout << "MZ: " << pair.mz << std::endl;
                     float mz = (pair.mz - centre) / sigma;
+                    //std::cout << "MZ: " << mz << std::endl;
                     mz = -0.5 * mz * mz;
-                    mz = exp(mz) / (sigma * root2pi);
+                    //std::cout << "MZ: " << mz << std::endl;
+                    mz = rt_lo * exp(mz) / (sigma * root2pi);
+                    //std::cout << "MZ: " << mz << std::endl;
                     shape_lo[mzi].push_back(mz);
                     data_lo[mzi].push_back(pair.intensity);
+                    //exit(1); 
                 }
                 len_lo[mzi] += lo_pairs.size();
 
@@ -237,7 +268,7 @@ int main(int argc, char *argv[])
                 for (auto pair : hi_pairs) {
                     float mz = (pair.mz - centre) / sigma;
                     mz = -0.5 * mz * mz;
-                    mz = exp(mz) / (sigma * root2pi);
+                    mz = rt_hi * exp(mz) / (sigma * root2pi);
                     shape_hi[mzi].push_back(mz);
                     data_hi[mzi].push_back(pair.intensity);
                 }
@@ -250,6 +281,22 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
+              << "Data Hi:     " << data_hi.size()     << std::endl
+              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
+              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
+              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
+              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
+              << "Shape Lo:    " << shape_lo.size()    << std::endl
+              << "Shape Hi:    " << shape_hi.size()    << std::endl
+              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
+              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
+              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
+              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl
+              << "Len Lo:      " << len_lo[0]          << std::endl
+              << "Len Hi:      " << len_hi[0]          << std::endl;   
+    
+/*
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
             data_lo[leni]  = {0.0};
@@ -457,7 +504,7 @@ int main(int argc, char *argv[])
     }
 
     outfile.close();
-    
+*/
     std::cout << "Done!" << std::endl;
     return 0;
 }
