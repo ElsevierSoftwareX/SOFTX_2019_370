@@ -141,6 +141,13 @@ int main(int argc, char *argv[])
     double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
     double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
+    std::cout << "RT Sigma: " << rt_sigma     << std::endl
+              << "MZ PPM:   " << mz_ppm_sigma << std::endl
+              << "RT Len:   " << rt_len       << std::endl
+              << "Mid Win:  " << mid_win      << std::endl
+              << "Lo Tol:   " << lo_tol       << std::endl
+              << "Hi Tol:   " << hi_tol       << std::endl;
+    
     std::vector<double> points_lo_lo;
     std::vector<double> points_lo_hi;
     std::vector<double> points_hi_lo;
@@ -169,6 +176,18 @@ int main(int argc, char *argv[])
         len_hi.push_back(0);
     }
 
+    std::cout.precision(10);
+    std::cout << "Points LoLo: " << points_lo_lo[0]    << std::endl
+              << "Points LoHi: " << points_lo_hi[0]    << std::endl
+              << "Points HiLo: " << points_hi_lo[0]    << std::endl
+              << "Points HiHI: " << points_hi_hi[0]    << std::endl
+              << "Data Lo:     " << data_lo[0].size()  << std::endl
+              << "Data Hi:     " << data_hi[0].size()  << std::endl
+              << "Shape Lo:    " << shape_lo[0].size() << std::endl
+              << "Shape Hi:    " << shape_hi[0].size() << std::endl
+              << "Len Lo:      " << len_lo[0]          << std::endl
+              << "Len Hi:      " << len_hi[0]          << std::endl;   
+    
     std::vector<float> rt_shape;
 
     for (int i = 0; i < rt_len; ++i) {
@@ -179,7 +198,10 @@ int main(int argc, char *argv[])
     
         rt_shape.push_back(pt);
     }
-    
+
+    std::cout << "RT Shape: " << rt_shape.size() << std::endl
+              << "RT Shape: " << rt_shape[0]     << std::endl;
+
     for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
     
         double lo_tol_lo = points_lo_lo[mzi];
@@ -189,6 +211,8 @@ int main(int argc, char *argv[])
         double centre    = mz_mu_pairs[mzi].mz;
         double sigma     = centre * mz_ppm_sigma;
 
+        //std::cout << "CENTRE: " << centre << std::endl;
+
         pwiz::analysis::SpectrumList_MZWindow lo_window(
                                                     msd.run.spectrumListPtr,
                                                     lo_tol_lo, lo_tol_hi);
@@ -196,9 +220,14 @@ int main(int argc, char *argv[])
                                                     msd.run.spectrumListPtr,
                                                     hi_tol_lo, hi_tol_hi);
             
+        //std::cout << "CENTRE2: " << centre << std::endl;
     
         for (int rowi = 0; rowi < rt_len; ++rowi) {
         
+            //std::cout << "CENTRE3: " << centre << std::endl;
+           
+            centre = mz_mu_pairs[mzi].mz;
+            
             pwiz::msdata::SpectrumPtr lo_spectrum;
             pwiz::msdata::SpectrumPtr hi_spectrum;
             std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
@@ -213,14 +242,47 @@ int main(int argc, char *argv[])
             float rt_lo = rt_shape[rowi];
             float rt_hi = rt_lo;
 
+            //std::cout << "CENTRE4: " << centre << std::endl;
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
+                    //std::cout.precision(10);
+                    //std::cout << "Centre: " << centre << std::endl;
+                    //std::cout << "Sigma: " << sigma << std::endl;
+                    //std::cout << "RT Lo: " << rt_lo << std::endl;
+                    //std::cout << "MZ: " << pair.mz << std::endl;
                     float mz = (pair.mz - centre) / sigma;
+                    //std::cout << "MZ: " << mz << std::endl;
+                    //if ((-0.5 * mz * mz) < -183506) { 
+                    //    std::cout << "MZ i: " << mzi << std::endl;
+                    //    std::cout << "Lo Tol: " << lo_tol_lo << std::endl;
+                    //    std::cout << "Hi Tol: " << lo_tol_hi << std::endl;
+                    //    std::cout << "Row i: " << rowi << std::endl;
+                    //    std::cout << "Centre: " << centre << std::endl;
+                    //    std::cout << "Sigma:  " << sigma << std::endl;
+                    //    std::cout << "Pair mz: " << pair.mz << std::endl;
+                    //    std::cout << "MZ: " << mz << std::endl;
+                    //}
+                    
                     mz = -0.5 * mz * mz;
-                    mz = exp(mz) / (sigma * root2pi);
+                    //std::cout << "MZ: " << mz << std::endl;
+                    //if (exp(mz) == 0) {
+                    //    std::cout << "ZERO EXP" << std::endl;
+                    //    std::cout << mz << std::endl;
+                    //    exit(1);
+                    //}
+                    mz = rt_lo * exp(mz) / (sigma * root2pi);
+                    //if (mz == 0) {
+                    //    std::cout << "ZERO POINT" << std::endl;
+                    //    std::cout << rt_lo << std::endl;
+                    //    std::cout << sigma << std::endl;
+                    //    std::cout << root2pi << std::endl;
+                    //    exit(1);
+                    //}
+                    //std::cout << "MZ: " << mz << std::endl;
                     shape_lo[mzi].push_back(mz);
                     data_lo[mzi].push_back(pair.intensity);
+                    
                 }
                 len_lo[mzi] += lo_pairs.size();
 
@@ -237,7 +299,7 @@ int main(int argc, char *argv[])
                 for (auto pair : hi_pairs) {
                     float mz = (pair.mz - centre) / sigma;
                     mz = -0.5 * mz * mz;
-                    mz = exp(mz) / (sigma * root2pi);
+                    mz = rt_hi * exp(mz) / (sigma * root2pi);
                     shape_hi[mzi].push_back(mz);
                     data_hi[mzi].push_back(pair.intensity);
                 }
@@ -250,6 +312,25 @@ int main(int argc, char *argv[])
         }
     }
 
+    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
+              << "Data Hi:     " << data_hi.size()     << std::endl
+              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
+              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
+              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
+              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
+              << "Shape Lo:    " << shape_lo.size()    << std::endl
+              << "Shape Hi:    " << shape_hi.size()    << std::endl
+              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
+              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
+              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
+              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl
+              << "Len Lo:      " << len_lo[0]          << std::endl
+              << "Len Hi:      " << len_hi[0]          << std::endl;   
+    
+    //for (auto v : shape_lo[0]) {
+    //    std::cout << v << std::endl;
+    //}
+
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
             data_lo[leni]  = {0.0};
@@ -259,10 +340,28 @@ int main(int argc, char *argv[])
 
     for (size_t leni = 0; leni < len_hi.size(); ++leni) {
         if (len_hi[leni] < opts.min_sample) {
-            data_lo[leni]  = {0.0};
-            shape_lo[leni] = {0.0};
+            data_hi[leni]  = {0.0};
+            shape_hi[leni] = {0.0};
+        } else {
+            for (auto& s : shape_hi[leni]) {
+                s *= opts.intensity_ratio;
+            }
         }
     }
+    
+    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
+              << "Data Hi:     " << data_hi.size()     << std::endl
+              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
+              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
+              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
+              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
+              << "Shape Lo:    " << shape_lo.size()    << std::endl
+              << "Shape Hi:    " << shape_hi.size()    << std::endl
+              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
+              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
+              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
+              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl;
+
 
     std::vector<std::vector<double>> dataAB;
     std::vector<double> nAB;
@@ -284,6 +383,12 @@ int main(int argc, char *argv[])
         nAB.push_back(length_lo + length_hi);
     }
 
+    std::cout << "Data AB:   " << dataAB.size()    << std::endl
+              << "Data AB 0: " << dataAB[0].size() << std::endl
+              << "Data AB 0: " << dataAB[0][0]     << std::endl
+              << "nAB:       " << nAB.size()       << std::endl
+              << "nAB:       " << nAB[0]           << std::endl;
+     
     std::vector<std::vector<double>> shapeAB;
     std::vector<std::vector<double>> shapeA0;
     std::vector<std::vector<double>> shapeB0;
@@ -317,12 +422,35 @@ int main(int argc, char *argv[])
         shape1r.push_back(shape1r_row);
     } 
 
+    std::cout << "Shape AB:   " << shapeAB.size()    << std::endl
+              << "Shape AB 0: " << shapeAB[0].size() << std::endl
+              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
+              << "Shape A0:   " << shapeA0.size()    << std::endl
+              << "Shape A0 0: " << shapeA0[0].size() << std::endl
+              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
+              << "Shape B0:   " << shapeB0.size()    << std::endl
+              << "Shape B0 0: " << shapeB0[0].size() << std::endl
+              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
+              << "Shape 1r:   " << shape1r.size()    << std::endl
+              << "Shape 1r 0: " << shape1r[0].size() << std::endl
+              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
+
+    //for (auto s : shapeAB[0]) {
+    //    std::cout << s << std::endl;
+    //}
+
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
-   
+
+    std::cout << "Data AB 0:  " << dataAB[0][0]      << std::endl
+              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
+              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
+              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
+              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
+               
     std::vector<std::vector<double>> data2AB;
     std::vector<std::vector<double>> shape2AB;
     std::vector<std::vector<double>> shape2A0;
@@ -334,6 +462,13 @@ int main(int argc, char *argv[])
     shape2A0 = apply_vect_func(shapeA0, square_vector);
     shape2B0 = apply_vect_func(shapeB0, square_vector);
     shape21r = apply_vect_func(shape1r, square_vector);
+
+    std::cout << "Data 2AB 0:  " << data2AB[0][0]      << std::endl
+              << "Shape 2AB 0: " << shape2AB[0][0]     << std::endl
+              << "Shape 2A0 0: " << shape2A0[0][0]     << std::endl
+              << "Shape 2B0 0: " << shape2B0[0][0]     << std::endl
+              << "Shape 21r 0: " << shape21r[0][0]     << std::endl;
+ 
 
     std::vector<double> SSY;
     std::vector<double> SSXAB;
@@ -347,6 +482,13 @@ int main(int argc, char *argv[])
     SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
     SSX1r = reduce_2D_vect(shape21r, sum_vector);
 
+    std::cout << "SSY:   " << SSY[0]       << std::endl
+              << "SSXAB: " << SSXAB[0]     << std::endl
+              << "SSXA0: " << SSXA0[0]     << std::endl
+              << "SSXB0: " << SSXB0[0]     << std::endl
+              << "SSX1r: " << SSX1r[0]     << std::endl;
+ 
+    
     std::vector<std::vector<double>> datashape;
     std::vector<double> SXYAB;
     std::vector<double> SXYA0;
@@ -371,6 +513,14 @@ int main(int argc, char *argv[])
     datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
     SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
 
+    std::cout << "SXYAB:   " << SXYAB[0]       << std::endl
+              << "SXYA0:   " << SXYA0[0]       << std::endl
+              << "SXYB0:   " << SXYB0[0]       << std::endl
+              << "SXY1r:   " << SXY1r[0]       << std::endl
+              << "SXYABA0: " << SXYABA0[0]     << std::endl
+              << "SXYABB0: " << SXYABB0[0]     << std::endl
+              << "SXYAB1r: " << SXYAB1r[0]     << std::endl;
+ 
     std::vector<double> correlAB;
     std::vector<double> correlA0;
     std::vector<double> correlB0;
@@ -386,15 +536,29 @@ int main(int argc, char *argv[])
     correlABA0 = correl_vectors(SXYABA0, SSXAB, SSXA0);
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
+
+    std::cout << "correlAB:   " << correlAB[0]       << std::endl
+              << "correlA0:   " << correlA0[0]       << std::endl
+              << "correlB0:   " << correlB0[0]       << std::endl
+              << "correl1r:   " << correl1r[0]       << std::endl
+              << "correlABA0: " << correlABA0[0]     << std::endl
+              << "correlABB0: " << correlABB0[0]     << std::endl
+              << "correlAB1r: " << correlAB1r[0]     << std::endl;
+ 
     
     std::vector<double> rm2ABA0;
     std::vector<double> rm2ABB0;
     std::vector<double> rm2AB1r;
-
+    
     rm2ABA0 = rm_vectors(correlAB, correlA0);
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
-   
+
+    std::cout << "rm2ABA0: " << rm2ABA0[0]     << std::endl
+              << "rm2ABB0: " << rm2ABB0[0]     << std::endl
+              << "rm2AB1r: " << rm2AB1r[0]     << std::endl;
+ 
+
     std::vector<double> fABA0;
     std::vector<double> fABB0;
     std::vector<double> fAB1r;
@@ -403,6 +567,10 @@ int main(int argc, char *argv[])
     fABB0 = f_vectors(correlABB0, rm2ABB0);
     fAB1r = f_vectors(correlAB1r, rm2AB1r);
 
+    std::cout << "fABA0: " << fABA0[0]     << std::endl
+              << "fABB0: " << fABB0[0]     << std::endl
+              << "fAB1r: " << fAB1r[0]     << std::endl;
+ 
     std::vector<double> hABA0;
     std::vector<double> hABB0;
     std::vector<double> hAB1r;
@@ -411,6 +579,11 @@ int main(int argc, char *argv[])
     hABB0 = h_vectors(fABB0, rm2ABB0);
     hAB1r = h_vectors(fAB1r, rm2AB1r);
 
+    std::cout << "hABA0: " << hABA0[0]     << std::endl
+              << "hABB0: " << hABB0[0]     << std::endl
+              << "hAB1r: " << hAB1r[0]     << std::endl;
+ 
+   
     std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
     std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
                                                  (double(*)(double)) sqrt);
@@ -423,18 +596,35 @@ int main(int argc, char *argv[])
     zABA0 = z_vectors(correlAB, correlA0, nAB, correlABA0, hABA0);
     zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
     zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
-    
+
+    std::cout << "zABA0: " << zABA0[0]     << std::endl
+              << "zABB0: " << zABB0[0]     << std::endl
+              << "zAB1r: " << zAB1r[0]     << std::endl;
+     
     std::vector<double> min_score;
 
     for (size_t idx = 0; idx < zABA0.size(); ++idx) {
         double zA0 = zABA0[idx];
         double zB0 = zABB0[idx];
         double z1r = zAB1r[idx];
-        min_score.push_back(std::min({zA0, zB0, z1r, 0.0}));
+        double min  = std::min({zA0, zB0, z1r});
+        min_score.push_back(std::max({0.0, min}));
     }
+
+    std::cout << "Min Score[0]:   " << min_score[0]   << std::endl         
+              << "Min Score[10]:  " << min_score[10]  << std::endl
+              << "Min Score[100]: " << min_score[100] << std::endl
+              << "Min Score[470]: " << min_score[470] << std::endl;
 
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
+
+    std::cout << "470 Values " << std::endl
+              << "Min Score: " << min_score[470] << std::endl
+              << "correlAB:  " << correlAB[470]  << std::endl
+              << "correlA0:  " << correlA0[470]  << std::endl
+              << "correlB0:  " << correlB0[470]  << std::endl
+              << "correl1r:  " << correl1r[470]  << std::endl;
 
     pwiz::msdata::SpectrumInfo spectrum_info;
     spectrum_info.update(*mz_mu_vect, getBinaryData);
@@ -442,6 +632,7 @@ int main(int argc, char *argv[])
 
     std::ofstream outfile;
     outfile.open("output.txt");
+    outfile.precision(12);
 
     for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
         double mz  = mz_mu_pairs[idx].mz;
@@ -452,12 +643,15 @@ int main(int argc, char *argv[])
         double B0  = correlB0[idx];
         double r1  = correl1r[idx];
 
-        outfile << rt << ", " << mz << ", " << amp << ", " << ms << ", "  
-                << AB << ", " << A0 << ", " << B0  << ", " << r1 << "\n"; 
+        if (ms > 0.0) {        
+            outfile << rt << ", " << mz << ", " << amp << ", " 
+                    << ms << ", " << AB << ", " << A0 << ", " 
+                    << B0 << ", " << r1 << "\n"; 
+        }
     }
 
     outfile.close();
-    
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
@@ -501,6 +695,9 @@ std::vector<double> centre_vector(std::vector<double> vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
     double mean = sum / vect.size();
+    //std::cout << "Sum: " << sum << std::endl;
+    //std::cout << "Mean: " << mean << std::endl;
+    //exit(1);
     std::vector<double> centered;
 
     for (auto v : vect) {
