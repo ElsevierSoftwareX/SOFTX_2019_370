@@ -129,22 +129,27 @@ int main(int argc, char *argv[])
 {
 
     Options opts(argc, argv);
- 
+
+    int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
+
+    std:: cout << "Half Window: " << half_window << std::endl;
+
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-    std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
-    pwiz::msdata::MZIntensityPair pair;
     
+
+
     float  rt_sigma     = opts.rt_width / 2.355;
     double mz_ppm_sigma = opts.mz_width / 2.355e6;
     int    rt_len       = spectrumList.size();
     int    mid_win      = rt_len / 2;
+    double lo_tol       = 1.0 - opts.mz_sigma * mz_ppm_sigma;
+    double hi_tol       = 1.0 + opts.mz_sigma * mz_ppm_sigma;
+
+    std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::SpectrumPtr mz_mu_vect = spectrumList.spectrum(mid_win, 
                                                         opts.getBinaryData);
-    double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
-    double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
-
     std::cout << "RT Sigma: " << rt_sigma     << std::endl
               << "MZ PPM:   " << mz_ppm_sigma << std::endl
               << "RT Len:   " << rt_len       << std::endl
