@@ -47,6 +47,10 @@ const double root2pi = sqrt(2.0 * pi());
 
 void show_usage(char *cmd);
 
+void write_scores(std::vector<std::vector<double>> scores, 
+                  pwiz::msdata::SpectrumPtr raw_data,
+                  std::string out_path); 
+
 std::vector<double> centre_vector(std::vector<double> vect);
 
 std::vector<double> square_vector(std::vector<double> vect);
@@ -100,6 +104,7 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 class Options {
 
     public:
+        const bool getBinaryData = true;
         float intensity_ratio;
         float rt_width;
         float rt_sigma;
@@ -125,7 +130,6 @@ int main(int argc, char *argv[])
 
     Options opts(argc, argv);
  
-    const bool getBinaryData = true;
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
@@ -137,7 +141,7 @@ int main(int argc, char *argv[])
     int    rt_len       = spectrumList.size();
     int    mid_win      = rt_len / 2;
     pwiz::msdata::SpectrumPtr mz_mu_vect = spectrumList.spectrum(mid_win, 
-                                                            getBinaryData);
+                                                        opts.getBinaryData);
     double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
     double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
@@ -227,8 +231,8 @@ int main(int argc, char *argv[])
             std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
             std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
             
-            lo_spectrum = lo_window.spectrum(rowi, getBinaryData);
-            hi_spectrum = hi_window.spectrum(rowi, getBinaryData);
+            lo_spectrum = lo_window.spectrum(rowi, opts.getBinaryData);
+            hi_spectrum = hi_window.spectrum(rowi, opts.getBinaryData);
         
             lo_spectrum->getMZIntensityPairs(lo_pairs);
             hi_spectrum->getMZIntensityPairs(hi_pairs);
@@ -577,31 +581,7 @@ int main(int argc, char *argv[])
               << "correlB0:  " << correlB0[470]  << std::endl
               << "correl1r:  " << correl1r[470]  << std::endl;
 
-    pwiz::msdata::SpectrumInfo spectrum_info;
-    spectrum_info.update(*mz_mu_vect, getBinaryData);
-    double rt = spectrum_info.retentionTime;
-
-    std::ofstream outfile;
-    outfile.open(opts.out_file);
-    outfile.precision(12);
-
-    for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
-        double mz  = mz_mu_pairs[idx].mz;
-        double amp = mz_mu_pairs[idx].intensity;
-        double ms  = min_score[idx];
-        double AB  = correlAB[idx];
-        double A0  = correlA0[idx];
-        double B0  = correlB0[idx];
-        double r1  = correl1r[idx];
-
-        if (ms > 0.0) {        
-            outfile << rt << ", " << mz << ", " << amp << ", " 
-                    << ms << ", " << AB << ", " << A0 << ", " 
-                    << B0 << ", " << r1 << "\n"; 
-        }
-    }
-
-    outfile.close();
+    write_scores(score, mz_mu_vect, opts.out_file);    
 
     std::cout << "Done!" << std::endl;
     return 0;
@@ -641,6 +621,41 @@ void show_usage(char *cmd)
     cout                                                            << endl;
     cout << "example:   " << cmd << " example.mzML output.txt"      << endl;
     cout                                                            << endl;
+}
+
+void write_scores(std::vector<std::vector<double>> scores, 
+                  pwiz::msdata::SpectrumPtr raw_data,
+                  std::string out_path)
+{
+    const bool getBinaryData = true;
+    pwiz::msdata::SpectrumInfo spectrum_info;
+    spectrum_info.update(*raw_data, getBinaryData);
+    double rt = spectrum_info.retentionTime;
+    
+    std::vector<pwiz::msdata::MZIntensityPair> raw_pairs;
+    raw_data->getMZIntensityPairs(raw_pairs);
+    
+    std::ofstream outfile;
+    outfile.open(out_path);
+    outfile.precision(12);
+
+    for (size_t idx = 0; idx < raw_pairs.size(); ++idx) {
+        double mz  = raw_pairs[idx].mz;
+        double amp = raw_pairs[idx].intensity;
+        double ms  = scores[0][idx]; 
+        double AB  = scores[1][idx];
+        double A0  = scores[2][idx];
+        double B0  = scores[3][idx];
+        double r1  = scores[4][idx];
+
+        if (ms > 0.0) {        
+            outfile << rt << ", " << mz << ", " << amp << ", " 
+                    << ms << ", " << AB << ", " << A0 << ", " 
+                    << B0 << ", " << r1 << "\n"; 
+        }
+    }
+
+    outfile.close();
 }
 
 std::vector<double> centre_vector(std::vector<double> vect)
