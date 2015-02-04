@@ -109,6 +109,7 @@ class Options {
         float mz_delta;
         float min_sample;
         std::string mzML_file;
+        std::string out_file;
 
         Options(int argc, char *argv[]);        
 };
@@ -128,7 +129,6 @@ int main(int argc, char *argv[])
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-    pwiz::msdata::SpectrumPtr spectrum;
     std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::MZIntensityPair pair;
     
@@ -211,8 +211,6 @@ int main(int argc, char *argv[])
         double centre    = mz_mu_pairs[mzi].mz;
         double sigma     = centre * mz_ppm_sigma;
 
-        //std::cout << "CENTRE: " << centre << std::endl;
-
         pwiz::analysis::SpectrumList_MZWindow lo_window(
                                                     msd.run.spectrumListPtr,
                                                     lo_tol_lo, lo_tol_hi);
@@ -220,12 +218,8 @@ int main(int argc, char *argv[])
                                                     msd.run.spectrumListPtr,
                                                     hi_tol_lo, hi_tol_hi);
             
-        //std::cout << "CENTRE2: " << centre << std::endl;
-    
         for (int rowi = 0; rowi < rt_len; ++rowi) {
         
-            //std::cout << "CENTRE3: " << centre << std::endl;
-           
             centre = mz_mu_pairs[mzi].mz;
             
             pwiz::msdata::SpectrumPtr lo_spectrum;
@@ -242,47 +236,14 @@ int main(int argc, char *argv[])
             float rt_lo = rt_shape[rowi];
             float rt_hi = rt_lo;
 
-            //std::cout << "CENTRE4: " << centre << std::endl;
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
-                    //std::cout.precision(10);
-                    //std::cout << "Centre: " << centre << std::endl;
-                    //std::cout << "Sigma: " << sigma << std::endl;
-                    //std::cout << "RT Lo: " << rt_lo << std::endl;
-                    //std::cout << "MZ: " << pair.mz << std::endl;
                     float mz = (pair.mz - centre) / sigma;
-                    //std::cout << "MZ: " << mz << std::endl;
-                    //if ((-0.5 * mz * mz) < -183506) { 
-                    //    std::cout << "MZ i: " << mzi << std::endl;
-                    //    std::cout << "Lo Tol: " << lo_tol_lo << std::endl;
-                    //    std::cout << "Hi Tol: " << lo_tol_hi << std::endl;
-                    //    std::cout << "Row i: " << rowi << std::endl;
-                    //    std::cout << "Centre: " << centre << std::endl;
-                    //    std::cout << "Sigma:  " << sigma << std::endl;
-                    //    std::cout << "Pair mz: " << pair.mz << std::endl;
-                    //    std::cout << "MZ: " << mz << std::endl;
-                    //}
-                    
                     mz = -0.5 * mz * mz;
-                    //std::cout << "MZ: " << mz << std::endl;
-                    //if (exp(mz) == 0) {
-                    //    std::cout << "ZERO EXP" << std::endl;
-                    //    std::cout << mz << std::endl;
-                    //    exit(1);
-                    //}
                     mz = rt_lo * exp(mz) / (sigma * root2pi);
-                    //if (mz == 0) {
-                    //    std::cout << "ZERO POINT" << std::endl;
-                    //    std::cout << rt_lo << std::endl;
-                    //    std::cout << sigma << std::endl;
-                    //    std::cout << root2pi << std::endl;
-                    //    exit(1);
-                    //}
-                    //std::cout << "MZ: " << mz << std::endl;
                     shape_lo[mzi].push_back(mz);
                     data_lo[mzi].push_back(pair.intensity);
-                    
                 }
                 len_lo[mzi] += lo_pairs.size();
 
@@ -327,10 +288,6 @@ int main(int argc, char *argv[])
               << "Len Lo:      " << len_lo[0]          << std::endl
               << "Len Hi:      " << len_hi[0]          << std::endl;   
     
-    //for (auto v : shape_lo[0]) {
-    //    std::cout << v << std::endl;
-    //}
-
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
             data_lo[leni]  = {0.0};
@@ -435,10 +392,6 @@ int main(int argc, char *argv[])
               << "Shape 1r 0: " << shape1r[0].size() << std::endl
               << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
 
-    //for (auto s : shapeAB[0]) {
-    //    std::cout << s << std::endl;
-    //}
-
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
@@ -469,7 +422,6 @@ int main(int argc, char *argv[])
               << "Shape 2B0 0: " << shape2B0[0][0]     << std::endl
               << "Shape 21r 0: " << shape21r[0][0]     << std::endl;
  
-
     std::vector<double> SSY;
     std::vector<double> SSXAB;
     std::vector<double> SSXA0;
@@ -487,7 +439,6 @@ int main(int argc, char *argv[])
               << "SSXA0: " << SSXA0[0]     << std::endl
               << "SSXB0: " << SSXB0[0]     << std::endl
               << "SSX1r: " << SSX1r[0]     << std::endl;
- 
     
     std::vector<std::vector<double>> datashape;
     std::vector<double> SXYAB;
@@ -631,7 +582,7 @@ int main(int argc, char *argv[])
     double rt = spectrum_info.retentionTime;
 
     std::ofstream outfile;
-    outfile.open("output.txt");
+    outfile.open(opts.out_file);
     outfile.precision(12);
 
     for (size_t idx = 0; idx < mz_mu_pairs.size(); ++idx) {
@@ -686,8 +637,9 @@ void show_usage(char *cmd)
     cout << "           " << "    required in each sample region"   << endl;
     cout                                                            << endl;
     cout << "arguments: " << "mzML_file     path to mzML file"      << endl;
+    cout << "           " << "out_file      path to output file"    << endl;
     cout                                                            << endl;
-    cout << "example:   " << cmd << " example.mzML"                 << endl;
+    cout << "example:   " << cmd << " example.mzML output.txt"      << endl;
     cout                                                            << endl;
 }
 
@@ -922,6 +874,7 @@ Options::Options(int argc, char *argv[])
     mz_delta        = default_mz_delta;
     min_sample      = default_min_sample;
     mzML_file       = "";
+    out_file        = "";
 
     // Show usage and exit if no options are given
     if (argc == 1) {
@@ -967,6 +920,8 @@ Options::Options(int argc, char *argv[])
 
         if (mzML_file == "") { 
             mzML_file = argv[opt_idx];
+        } else if (out_file == "") {
+            out_file = argv[opt_idx];
         } else {
             std::cout << "Too many arguments supplied. See usage.";
             std::cout << std::endl;
@@ -974,7 +929,7 @@ Options::Options(int argc, char *argv[])
         }
     }
 
-    if (mzML_file == "") {
+    if (out_file == "") {
         std::cout << "Insufficient arguments supplies. See usage.";
         std::cout << std::endl;
         exit(1);
