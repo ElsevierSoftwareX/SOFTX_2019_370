@@ -41,11 +41,40 @@ constexpr double pi() { return std::atan(1) * 4; }
 // sqrt 2pi
 const double root2pi = sqrt(2.0 * pi());
 
+ 
+/*-----------------------------------------------------------------------*/
+/******************************** CLASSES ********************************/
+/*-----------------------------------------------------------------------*/
+
+
+class Options {
+
+    public:
+        const bool getBinaryData = true;
+        float intensity_ratio;
+        float rt_width;
+        float rt_sigma;
+        float ppm;
+        float mz_width;
+        float mz_sigma;
+        float mz_delta;
+        float min_sample;
+        std::string mzML_file;
+        std::string out_file;
+
+        Options(int argc, char *argv[]);        
+};
+
+
 /*-----------------------------------------------------------------------*/ 
 /************************* FUNCTION DECLARATIONS *************************/
 /*-----------------------------------------------------------------------*/
 
 void show_usage(char *cmd);
+
+std::vector<std::vector<double>> 
+score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
+              int half_window, Options opts);
 
 void write_scores(std::vector<std::vector<double>> scores, 
                   pwiz::msdata::SpectrumPtr raw_data,
@@ -95,31 +124,7 @@ std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
 template <typename T, typename F>
 std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 
-  
-/*-----------------------------------------------------------------------*/
-/******************************** CLASSES ********************************/
-/*-----------------------------------------------------------------------*/
-
-
-class Options {
-
-    public:
-        const bool getBinaryData = true;
-        float intensity_ratio;
-        float rt_width;
-        float rt_sigma;
-        float ppm;
-        float mz_width;
-        float mz_sigma;
-        float mz_delta;
-        float min_sample;
-        std::string mzML_file;
-        std::string out_file;
-
-        Options(int argc, char *argv[]);        
-};
-
-
+ 
 /*-----------------------------------------------------------------------*/
 /********************************* MAIN **********************************/
 /*-----------------------------------------------------------------------*/
@@ -137,8 +142,23 @@ int main(int argc, char *argv[])
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
+    int rt_len = spectrumList.size();
+    std::vector<std::vector<double>> score;
     
+    for (int centre_rt = 0; centre_rt < rt_len; ++centre_rt) {
+        score = score_spectra(msd, centre_rt, half_window, opts);
+        //write_scores(score, mz_mu_vect, opts.out_file);    
+    }
 
+    std::cout << "Done!" << std::endl;
+    return 0;
+}
+
+std::vector<std::vector<double>> 
+score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
+              int half_window, Options opts)
+{
+    pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
 
     float  rt_sigma     = opts.rt_width / 2.355;
     double mz_ppm_sigma = opts.mz_width / 2.355e6;
@@ -586,10 +606,7 @@ int main(int argc, char *argv[])
               << "correlB0:  " << correlB0[470]  << std::endl
               << "correl1r:  " << correl1r[470]  << std::endl;
 
-    write_scores(score, mz_mu_vect, opts.out_file);    
-
-    std::cout << "Done!" << std::endl;
-    return 0;
+    return score;
 }
 
 
