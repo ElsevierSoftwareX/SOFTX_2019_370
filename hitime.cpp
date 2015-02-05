@@ -14,6 +14,7 @@
 #include "pwiz/data/msdata/MSDataFile.hpp"
 #include "pwiz/analysis/spectrum_processing/SpectrumList_MZWindow.hpp"
 #include "pwiz/data/msdata/SpectrumInfo.hpp"
+#include "pwiz/data/common/cv.hpp"
 
 
 /*-----------------------------------------------------------------------*/
@@ -177,8 +178,9 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     double hi_tol       = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
     std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
-    pwiz::msdata::SpectrumPtr mz_mu_vect = spectrumList.spectrum(mid_win, 
-                                                        opts.getBinaryData);
+    pwiz::msdata::SpectrumPtr mz_mu_vect;
+    mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
+    
     std::cout << "RT Sigma: " << rt_sigma     << std::endl
               << "MZ PPM:   " << mz_ppm_sigma << std::endl
               << "RT Len:   " << rt_len       << std::endl
@@ -240,6 +242,15 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     std::cout << "RT Shape: " << rt_shape.size() << std::endl
               << "RT Shape: " << rt_shape[0]     << std::endl;
 
+    pwiz::msdata::MZIntensityPair dummy_pair(0.0, 0.0);
+    std::vector<pwiz::msdata::MZIntensityPair> dummy_pairs;
+    dummy_pairs.push_back(dummy_pair);
+    pwiz::msdata::Spectrum dummy_spectrum;
+    
+    pwiz::cv::CVID intensityUnits = pwiz::cv::MS_intensity_unit;
+
+    dummy_spectrum.setMZIntensityPairs(dummy_pairs, intensityUnits);
+
     for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
     
         double lo_tol_lo = points_lo_lo[mzi];
@@ -250,11 +261,11 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         double sigma     = centre * mz_ppm_sigma;
 
         pwiz::analysis::SpectrumList_MZWindow lo_window(
-                                                    msd.run.spectrumListPtr,
-                                                    lo_tol_lo, lo_tol_hi);
+                                                msd.run.spectrumListPtr,
+                                                lo_tol_lo, lo_tol_hi);
         pwiz::analysis::SpectrumList_MZWindow hi_window(
-                                                    msd.run.spectrumListPtr,
-                                                    hi_tol_lo, hi_tol_hi);
+                                                msd.run.spectrumListPtr,
+                                                hi_tol_lo, hi_tol_hi);
             
         for (int rowi = 0; rowi < rt_len; ++rowi) {
         
