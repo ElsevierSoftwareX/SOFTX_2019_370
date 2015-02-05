@@ -78,7 +78,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
 void write_scores(std::vector<std::vector<double>> scores, 
                   pwiz::msdata::SpectrumPtr raw_data,
-                  std::string out_path); 
+                  std::ofstream& out_stream); 
 
 std::vector<double> centre_vector(std::vector<double> vect);
 
@@ -144,11 +144,20 @@ int main(int argc, char *argv[])
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
     int rt_len = spectrumList.size();
     std::vector<std::vector<double>> score;
+    pwiz::msdata::SpectrumPtr centre_vect;
     
+    std::ofstream outfile;
+    outfile.open(opts.out_file);
+    outfile.precision(12);
+
     for (int centre_rt = 0; centre_rt < rt_len; ++centre_rt) {
         score = score_spectra(msd, centre_rt, half_window, opts);
-        //write_scores(score, mz_mu_vect, opts.out_file);    
+        centre_vect = spectrumList.spectrum(centre_rt, opts.getBinaryData);
+        write_scores(score, centre_vect, outfile);
+        exit(1);
     }
+
+    outfile.close();
 
     std::cout << "Done!" << std::endl;
     return 0;
@@ -600,11 +609,13 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                                               correlB0, correl1r};
 
     std::cout << "470 Values " << std::endl
-              << "Min Score: " << min_score[470] << std::endl
-              << "correlAB:  " << correlAB[470]  << std::endl
-              << "correlA0:  " << correlA0[470]  << std::endl
-              << "correlB0:  " << correlB0[470]  << std::endl
-              << "correl1r:  " << correl1r[470]  << std::endl;
+              << "Min Score: " << min_score[470]  << std::endl
+              << "correlAB:  " << correlAB[470]   << std::endl
+              << "correlA0:  " << correlA0[470]   << std::endl
+              << "correlB0:  " << correlB0[470]   << std::endl
+              << "correl1r:  " << correl1r[470]   << std::endl
+              << "Score:     " << score.size()    << std::endl
+              << "Score[min] " << score[0].size() << std::endl;
 
     return score;
 }
@@ -647,7 +658,7 @@ void show_usage(char *cmd)
 
 void write_scores(std::vector<std::vector<double>> scores, 
                   pwiz::msdata::SpectrumPtr raw_data,
-                  std::string out_path)
+                  std::ofstream& out_stream)
 {
     const bool getBinaryData = true;
     pwiz::msdata::SpectrumInfo spectrum_info;
@@ -657,9 +668,7 @@ void write_scores(std::vector<std::vector<double>> scores,
     std::vector<pwiz::msdata::MZIntensityPair> raw_pairs;
     raw_data->getMZIntensityPairs(raw_pairs);
     
-    std::ofstream outfile;
-    outfile.open(out_path);
-    outfile.precision(12);
+    int count = 0;
 
     for (size_t idx = 0; idx < raw_pairs.size(); ++idx) {
         double mz  = raw_pairs[idx].mz;
@@ -670,14 +679,15 @@ void write_scores(std::vector<std::vector<double>> scores,
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
-        if (ms > 0.0) {        
-            outfile << rt << ", " << mz << ", " << amp << ", " 
-                    << ms << ", " << AB << ", " << A0 << ", " 
-                    << B0 << ", " << r1 << "\n"; 
+        if (ms > 0.0) {
+            count++;
+            out_stream << rt << ", " << mz << ", " << amp << ", " 
+                       << ms << ", " << AB << ", " << A0 << ", " 
+                       << B0 << ", " << r1 << std::endl; 
         }
     }
 
-    outfile.close();
+    std::cout << "Output count: " << count << std::endl;
 }
 
 std::vector<double> centre_vector(std::vector<double> vect)
