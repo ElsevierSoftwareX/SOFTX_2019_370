@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
         score = score_spectra(msd, centre_rt, half_window, opts);
         centre_vect = spectrumList.spectrum(centre_rt, opts.getBinaryData);
         write_scores(score, centre_vect, outfile);
+        exit(1);
     }
 
     outfile.close();
@@ -176,18 +177,23 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     double lo_tol       = 1.0 - opts.mz_sigma * mz_ppm_sigma;
     double hi_tol       = 1.0 + opts.mz_sigma * mz_ppm_sigma;
 
+    int rt_offset = mid_win - half_window;
+
     std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::SpectrumPtr mz_mu_vect;
     mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
     
-    std::cout << "RT Sigma: " << rt_sigma              << std::endl
-              << "MZ PPM:   " << mz_ppm_sigma          << std::endl
-              << "RT Len:   " << rt_len                << std::endl
-              << "Mid Win:  " << mid_win               << std::endl
-              << "Lo Tol:   " << lo_tol                << std::endl
-              << "Hi Tol:   " << hi_tol                << std::endl
-              << "Lower:    " << mid_win - half_window << std::endl
-              << "Upper:    " << mid_win + half_window << std::endl;
+    std::cout << "RT Sigma:   " << rt_sigma              << std::endl
+              << "MZ PPM:     " << mz_ppm_sigma          << std::endl
+              << "MZ Delta:   " << opts.mz_delta         << std::endl
+              << "Iso Ratio:  " << opts.intensity_ratio  << std::endl
+              << "Min Sample: " << opts.min_sample       << std::endl
+              << "RT Len:     " << rt_len                << std::endl
+              << "Mid Win:    " << mid_win               << std::endl
+              << "Lo Tol:     " << lo_tol                << std::endl
+              << "Hi Tol:     " << hi_tol                << std::endl
+              << "Lower:      " << mid_win - half_window << std::endl
+              << "Upper:      " << mid_win + half_window << std::endl;
     
     std::vector<double> points_lo_lo;
     std::vector<double> points_lo_hi;
@@ -218,22 +224,23 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     }
 
     std::cout.precision(10);
-    std::cout << "Points LoLo: " << points_lo_lo[0]    << std::endl
-              << "Points LoHi: " << points_lo_hi[0]    << std::endl
-              << "Points HiLo: " << points_hi_lo[0]    << std::endl
-              << "Points HiHI: " << points_hi_hi[0]    << std::endl
-              << "Data Lo:     " << data_lo[0].size()  << std::endl
-              << "Data Hi:     " << data_hi[0].size()  << std::endl
-              << "Shape Lo:    " << shape_lo[0].size() << std::endl
-              << "Shape Hi:    " << shape_hi[0].size() << std::endl
-              << "Len Lo:      " << len_lo[0]          << std::endl
-              << "Len Hi:      " << len_hi[0]          << std::endl;   
+    std::cout << "mz_mu_pairs:    " << mz_mu_pairs.size()  << std::endl
+              << "Points LoLo[0]: " << points_lo_lo[0]    << std::endl
+              << "Points LoHi[0]: " << points_lo_hi[0]    << std::endl
+              << "Points HiLo[0]: " << points_hi_lo[0]    << std::endl
+              << "Points HiHi[0]: " << points_hi_hi[0]    << std::endl
+              << "Data Lo[0]:     " << data_lo[0].size()  << std::endl
+              << "Data Hi[0]:     " << data_hi[0].size()  << std::endl
+              << "Shape Lo[0]:    " << shape_lo[0].size() << std::endl
+              << "Shape Hi[0]:    " << shape_hi[0].size() << std::endl
+              << "Len Lo[0]:      " << len_lo[0]          << std::endl
+              << "Len Hi[0]:      " << len_hi[0]          << std::endl;   
     
     std::vector<float> rt_shape;
 
     for (int i = 0; i < (2 * half_window) + 1; ++i) {
 
-        float pt = (i - mid_win) / rt_sigma;
+        float pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
         pt = exp(pt) / (rt_sigma * root2pi); 
     
@@ -256,27 +263,29 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
     dummy_spec_ptr->setMZIntensityPairs(dummy_pairs, intensityUnits);
     
-    for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
-    
-        double lo_tol_lo = points_lo_lo[mzi];
-        double lo_tol_hi = points_lo_hi[mzi];
-        double hi_tol_lo = points_hi_lo[mzi];
-        double hi_tol_hi = points_hi_hi[mzi];
-        double centre    = mz_mu_pairs[mzi].mz;
-        double sigma     = centre * mz_ppm_sigma;
-
-        pwiz::analysis::SpectrumList_MZWindow lo_window(
-                                                msd.run.spectrumListPtr,
-                                                lo_tol_lo, lo_tol_hi);
-        pwiz::analysis::SpectrumList_MZWindow hi_window(
-                                                msd.run.spectrumListPtr,
-                                                hi_tol_lo, hi_tol_hi);
-            
-        for (int rowi = mid_win - half_window; 
+  
+    for (int rowi = mid_win - half_window; 
                  rowi < mid_win + half_window; ++rowi) {
         
-            centre = mz_mu_pairs[mzi].mz;
-            
+                
+        float rt_lo = rt_shape[rowi - rt_offset];
+        float rt_hi = rt_lo;
+
+        for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
+    
+            double lo_tol_lo = points_lo_lo[mzi];
+            double lo_tol_hi = points_lo_hi[mzi];
+            double hi_tol_lo = points_hi_lo[mzi];
+            double hi_tol_hi = points_hi_hi[mzi];
+            double centre    = mz_mu_pairs[mzi].mz;
+            double sigma     = centre * mz_ppm_sigma;
+
+            pwiz::analysis::SpectrumList_MZWindow lo_window(
+                                                msd.run.spectrumListPtr,
+                                                lo_tol_lo, lo_tol_hi);
+            pwiz::analysis::SpectrumList_MZWindow hi_window(
+                                                msd.run.spectrumListPtr,
+                                                hi_tol_lo, hi_tol_hi);
             pwiz::msdata::SpectrumPtr lo_spectrum;
             pwiz::msdata::SpectrumPtr hi_spectrum;
             std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
@@ -292,10 +301,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
             lo_spectrum->getMZIntensityPairs(lo_pairs);
             hi_spectrum->getMZIntensityPairs(hi_pairs);
-        
-            float rt_lo = rt_shape[rowi];
-            float rt_hi = rt_lo;
-
+  
             if (lo_pairs.size() > 0) {
             
                 for (auto pair : lo_pairs) {
