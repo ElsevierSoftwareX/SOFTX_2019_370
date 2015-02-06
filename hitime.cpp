@@ -265,9 +265,8 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     
   
     for (int rowi = mid_win - half_window; 
-                 rowi < mid_win + half_window; ++rowi) {
+                 rowi <= mid_win + half_window; ++rowi) {
         
-                
         float rt_lo = rt_shape[rowi - rt_offset];
         float rt_hi = rt_lo;
 
