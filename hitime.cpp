@@ -250,20 +250,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     std::cout << "RT Shape: " << rt_shape.size() << std::endl
               << "RT Shape: " << rt_shape[0]     << std::endl;
 
-    pwiz::msdata::MZIntensityPair dummy_pair(0.0, 0.0);
-    std::vector<pwiz::msdata::MZIntensityPair> dummy_pairs;
-    dummy_pairs.push_back(dummy_pair);
-    //pwiz::msdata::Spectrum dummy_spectrum;
-    
-    pwiz::cv::CVID intensityUnits = pwiz::cv::MS_intensity_unit;
-
-    //dummy_spectrum.setMZIntensityPairs(dummy_pairs, intensityUnits);
-
-    pwiz::msdata::SpectrumPtr dummy_spec_ptr(new pwiz::msdata::Spectrum);
-
-    dummy_spec_ptr->setMZIntensityPairs(dummy_pairs, intensityUnits);
-    
-  
     for (int rowi = mid_win - half_window; 
                  rowi <= mid_win + half_window; ++rowi) {
         
@@ -291,32 +277,36 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
             
             if (rowi >= 0 && rowi < rt_len) {
+                
                 lo_spectrum = lo_window.spectrum(rowi, opts.getBinaryData);
                 hi_spectrum = hi_window.spectrum(rowi, opts.getBinaryData);
-            } else {
-                lo_spectrum = dummy_spec_ptr;
-                hi_spectrum = dummy_spec_ptr;
-            }
-
-            lo_spectrum->getMZIntensityPairs(lo_pairs);
-            hi_spectrum->getMZIntensityPairs(hi_pairs);
-  
-            if (lo_pairs.size() > 0) {
+                lo_spectrum->getMZIntensityPairs(lo_pairs);
+                hi_spectrum->getMZIntensityPairs(hi_pairs);
+                
+                if (lo_pairs.size() > 0) {
             
-                for (auto pair : lo_pairs) {
-                    float mz = (pair.mz - centre) / sigma;
-                    mz = -0.5 * mz * mz;
-                    mz = rt_lo * exp(mz) / (sigma * root2pi);
-                    shape_lo[mzi].push_back(mz);
-                    data_lo[mzi].push_back(pair.intensity);
+                    for (auto pair : lo_pairs) {
+                        float mz = (pair.mz - centre) / sigma;
+                        mz = -0.5 * mz * mz;
+                        mz = rt_lo * exp(mz) / (sigma * root2pi);
+                        shape_lo[mzi].push_back(mz);
+                        data_lo[mzi].push_back(pair.intensity);
+                    }
+                    
+                    len_lo[mzi] += lo_pairs.size();
+
+                } else {
+                    data_lo[mzi].push_back(0);
+                    shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
                 }
-                len_lo[mzi] += lo_pairs.size();
 
             } else {
+
                 data_lo[mzi].push_back(0);
                 shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
-            }
             
+            }           
+    
             centre += opts.mz_delta;
             sigma = centre * mz_ppm_sigma;
             
