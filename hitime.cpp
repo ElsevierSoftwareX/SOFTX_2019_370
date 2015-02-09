@@ -138,13 +138,9 @@ int main(int argc, char *argv[])
 
     int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
 
-    std:: cout << "Half Window: " << half_window << std::endl;
-
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-
-    std::cout << spectrumList.size() << " Spectra Loaded" << std::endl;
 
     int rt_len = spectrumList.size();
     std::vector<std::vector<double>> score;
@@ -156,34 +152,11 @@ int main(int argc, char *argv[])
 
     for (int centre_rt = 0; centre_rt < rt_len; ++centre_rt) {
 
-
         centre_vect = spectrumList.spectrum(centre_rt, opts.getBinaryData);
-       
         
+        score = score_spectra(msd, centre_rt, half_window, opts);
         
-        
-        pwiz::msdata::SpectrumInfo spectrum_info;
-        spectrum_info.update(*centre_vect, opts.getBinaryData);
-        double rt = spectrum_info.retentionTime;
-    
-        std::cout.precision(12);
-        std::cout << "FOUND RT: " << rt << std::endl;
-        std::cout << "Zero: " << rt - 783.254 << std::endl;
-
-        if (fabs(rt - 783.254) < 3e-11) {
-            std::cout << "FOUND IT!" << std::endl;
-                
-
-
-
-
-            score = score_spectra(msd, centre_rt, half_window, opts);
-        
-            std::cout << centre_rt << ": " << score[0].size() << std::endl;
-        
-            write_scores(score, centre_vect, outfile);
-            exit(1);
-        }
+        write_scores(score, centre_vect, outfile);
     }
 
     outfile.close();
@@ -211,20 +184,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     pwiz::msdata::SpectrumPtr mz_mu_vect;
     mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
    
-/*    
-    std::cout << "RT Sigma:   " << rt_sigma              << std::endl
-              << "MZ PPM:     " << mz_ppm_sigma          << std::endl
-              << "MZ Delta:   " << opts.mz_delta         << std::endl
-              << "Iso Ratio:  " << opts.intensity_ratio  << std::endl
-              << "Min Sample: " << opts.min_sample       << std::endl
-              << "RT Len:     " << rt_len                << std::endl
-              << "Mid Win:    " << mid_win               << std::endl
-              << "Lo Tol:     " << lo_tol                << std::endl
-              << "Hi Tol:     " << hi_tol                << std::endl
-              << "Lower:      " << mid_win - half_window << std::endl
-              << "Upper:      " << mid_win + half_window << std::endl;
-*/   
-
     std::vector<double> points_lo_lo;
     std::vector<double> points_lo_hi;
     std::vector<double> points_hi_lo;
@@ -238,9 +197,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     std::vector<int> len_hi;
 
     mz_mu_vect->getMZIntensityPairs(mz_mu_pairs);
-    
-    int TGT = 276;
-    std::cout << mz_mu_pairs[TGT].mz << " " << mz_mu_pairs[TGT].intensity << std::endl;
     
     for (auto pair : mz_mu_pairs) {
         points_lo_lo.push_back(pair.mz * lo_tol);
@@ -257,21 +213,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         len_hi.push_back(0);
     }
 
-    std::cout.precision(10);
-    /*
-    std::cout << "mz_mu_pairs:    " << mz_mu_pairs.size()  << std::endl
-              << "Points LoLo[0]: " << points_lo_lo[0]    << std::endl
-              << "Points LoHi[0]: " << points_lo_hi[0]    << std::endl
-              << "Points HiLo[0]: " << points_hi_lo[0]    << std::endl
-              << "Points HiHi[0]: " << points_hi_hi[0]    << std::endl
-              << "Data Lo[0]:     " << data_lo[0].size()  << std::endl
-              << "Data Hi[0]:     " << data_hi[0].size()  << std::endl
-              << "Shape Lo[0]:    " << shape_lo[0].size() << std::endl
-              << "Shape Hi[0]:    " << shape_hi[0].size() << std::endl
-              << "Len Lo[0]:      " << len_lo[0]          << std::endl
-              << "Len Hi[0]:      " << len_hi[0]          << std::endl;   
-    
-   */
     std::vector<float> rt_shape;
 
     for (int i = 0; i < (2 * half_window) + 1; ++i) {
@@ -282,15 +223,9 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     
         rt_shape.push_back(pt);
     }
-/*
-    std::cout << "RT Shape: " << rt_shape.size() << std::endl
-              << "RT Shape: " << rt_shape[0]     << std::endl;
-*/
-    int lo_count = 0;
-    int hi_count = 0;
-    
+
     for (int rowi = mid_win - half_window; 
-                 rowi <= mid_win + half_window; ++rowi) {
+         rowi <= mid_win + half_window; ++rowi) {
         
         float rt_lo = rt_shape[rowi - rt_offset];
         float rt_hi = rt_lo;
@@ -320,12 +255,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                 lo_spectrum = lo_window.spectrum(rowi, opts.getBinaryData);
                 lo_spectrum->getMZIntensityPairs(lo_pairs);
            
-                if (mzi == TGT) {
-                    lo_count += lo_pairs.size();
-                    std::cout << rowi << " LoPairs: " << lo_pairs.size() 
-                              << "Count: " << lo_count << std::endl;
-                }
-
                 if (lo_pairs.size() > 0) {
             
                     for (auto pair : lo_pairs) {
@@ -358,19 +287,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                 hi_spectrum = hi_window.spectrum(rowi, opts.getBinaryData);
                 hi_spectrum->getMZIntensityPairs(hi_pairs);
             
-                if (mzi == TGT) {
-                    hi_count += hi_pairs.size();
-                    std::cout << rowi << " HiPairs: " << hi_pairs.size() 
-                              << "Count: " << hi_count << std::endl;
-                    if (rowi == 12) {
-                        std::cout << "LoBound: " << hi_tol_lo << std::endl
-                                  << "HiBound: " << hi_tol_hi << std::endl;
-                        for (auto p : hi_pairs) {
-                            std::cout << "\t" << p.mz << std::endl;
-                        }
-                    }
-                }
-                
                 if (hi_pairs.size() > 0) {
             
                     for (auto pair : hi_pairs) {
@@ -394,22 +310,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             }
         }
     }
-/*
-    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
-              << "Data Hi:     " << data_hi.size()     << std::endl
-              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
-              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
-              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
-              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
-              << "Shape Lo:    " << shape_lo.size()    << std::endl
-              << "Shape Hi:    " << shape_hi.size()    << std::endl
-              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
-              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
-              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
-              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl
-              << "Len Lo:      " << len_lo[0]          << std::endl
-              << "Len Hi:      " << len_hi[0]          << std::endl;   
-  */
 
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < opts.min_sample) {
@@ -428,27 +328,10 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             }
         }
     }
-    /*
-    std::cout << "Data Lo:     " << data_lo.size()     << std::endl
-              << "Data Hi:     " << data_hi.size()     << std::endl
-              << "Data Lo 0:   " << data_lo[0].size()  << std::endl
-              << "Data Hi 0:   " << data_hi[0].size()  << std::endl
-              << "Data Lo 0:   " << data_lo[0][0]      << std::endl
-              << "Data Hi 0:   " << data_hi[0][0]      << std::endl
-              << "Shape Lo:    " << shape_lo.size()    << std::endl
-              << "Shape Hi:    " << shape_hi.size()    << std::endl
-              << "Shape Lo 0:  " << shape_lo[0].size() << std::endl
-              << "Shape Hi 0:  " << shape_hi[0].size() << std::endl
-              << "Shape Lo 0:  " << shape_lo[0][0]     << std::endl
-              << "Shape Hi 0:  " << shape_hi[0][0]     << std::endl;
-*/
 
     std::vector<std::vector<double>> dataAB;
     std::vector<double> nAB;
 
-    std::cout << "DataLo Len: " << data_lo[TGT].size() << std::endl
-              << "DataHi Len: " << data_hi[TGT].size() << std::endl;
-    
     for (size_t i = 0; i < data_lo.size(); ++i) {
         
         std::vector<double> dataAB_row;
@@ -465,13 +348,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
         nAB.push_back(length_lo + length_hi);
     }
-/*
-    std::cout << "Data AB:   " << dataAB.size()    << std::endl
-              << "Data AB 0: " << dataAB[0].size() << std::endl
-              << "Data AB 0: " << dataAB[0][0]     << std::endl
-              << "nAB:       " << nAB.size()       << std::endl
-              << "nAB:       " << nAB[0]           << std::endl;
- */    
+   
     std::vector<std::vector<double>> shapeAB;
     std::vector<std::vector<double>> shapeA0;
     std::vector<std::vector<double>> shapeB0;
@@ -504,21 +381,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         shapeB0.push_back(shapeB0_row);
         shape1r.push_back(shape1r_row);
     } 
-/*
-    std::cout << "Shape AB:   " << shapeAB.size()    << std::endl
-              << "Shape AB 0: " << shapeAB[0].size() << std::endl
-              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
-              << "Shape A0:   " << shapeA0.size()    << std::endl
-              << "Shape A0 0: " << shapeA0[0].size() << std::endl
-              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
-              << "Shape B0:   " << shapeB0.size()    << std::endl
-              << "Shape B0 0: " << shapeB0[0].size() << std::endl
-              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
-              << "Shape 1r:   " << shape1r.size()    << std::endl
-              << "Shape 1r 0: " << shape1r[0].size() << std::endl
-              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
-*/
-    std::cout << "DataAB Len: " << dataAB[TGT].size() << std::endl;
     
     std::vector<double> DataABSum   = reduce_2D_vect(dataAB,  sum_vector);
     std::vector<double> ABSum = reduce_2D_vect(shapeAB, sum_vector);
@@ -526,41 +388,12 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     std::vector<double> B0Sum = reduce_2D_vect(shapeB0, sum_vector);
     std::vector<double> Sum1r = reduce_2D_vect(shape1r, sum_vector);
  
-    std::cout << "Data AB Sum:  " << DataABSum[TGT] << std::endl
-              << "Shape AB Sum: " << ABSum[TGT]     << std::endl
-              << "Shape A0 Sum: " << A0Sum[TGT]     << std::endl
-              << "Shape B0 Sum: " << B0Sum[TGT]     << std::endl
-              << "Shape 1r Sum: " << Sum1r[TGT]     << std::endl;
-
-
-    
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
-    
-    DataABSum   = reduce_2D_vect(dataAB,  sum_vector);
-    ABSum = reduce_2D_vect(shapeAB, sum_vector);
-    A0Sum = reduce_2D_vect(shapeA0, sum_vector);
-    B0Sum = reduce_2D_vect(shapeB0, sum_vector);
-    Sum1r = reduce_2D_vect(shape1r, sum_vector);
-
-
-    
-    std::cout << "Data AB Sum:  " << DataABSum[TGT] << std::endl
-              << "Shape AB Sum: " << ABSum[TGT]     << std::endl
-              << "Shape A0 Sum: " << A0Sum[TGT]     << std::endl
-              << "Shape B0 Sum: " << B0Sum[TGT]     << std::endl
-              << "Shape 1r Sum: " << Sum1r[TGT]     << std::endl;
-
-    /*
-    std::cout << "Data AB 0:  " << dataAB[0][0]      << std::endl
-              << "Shape AB 0: " << shapeAB[0][0]     << std::endl
-              << "Shape A0 0: " << shapeA0[0][0]     << std::endl
-              << "Shape B0 0: " << shapeB0[0][0]     << std::endl
-              << "Shape 1r 0: " << shape1r[0][0]     << std::endl;
-*/               
+                
     std::vector<std::vector<double>> data2AB;
     std::vector<std::vector<double>> shape2AB;
     std::vector<std::vector<double>> shape2A0;
@@ -572,13 +405,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     shape2A0 = apply_vect_func(shapeA0, square_vector);
     shape2B0 = apply_vect_func(shapeB0, square_vector);
     shape21r = apply_vect_func(shape1r, square_vector);
-/*
-    std::cout << "Data 2AB 0:  " << data2AB[0][0]      << std::endl
-              << "Shape 2AB 0: " << shape2AB[0][0]     << std::endl
-              << "Shape 2A0 0: " << shape2A0[0][0]     << std::endl
-              << "Shape 2B0 0: " << shape2B0[0][0]     << std::endl
-              << "Shape 21r 0: " << shape21r[0][0]     << std::endl;
- */
+
     std::vector<double> SSY;
     std::vector<double> SSXAB;
     std::vector<double> SSXA0;
@@ -591,18 +418,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
     SSX1r = reduce_2D_vect(shape21r, sum_vector);
 
-    std::cout << "SSY:   " << SSY[TGT]       << std::endl
-              << "SSXAB: " << SSXAB[TGT]     << std::endl
-              << "SSXA0: " << SSXA0[TGT]     << std::endl
-              << "SSXB0: " << SSXB0[TGT]     << std::endl
-              << "SSX1r: " << SSX1r[TGT]     << std::endl;
-/*
-    std::cout << "SSY:   " << SSY[0]       << std::endl
-              << "SSXAB: " << SSXAB[0]     << std::endl
-              << "SSXA0: " << SSXA0[0]     << std::endl
-              << "SSXB0: " << SSXB0[0]     << std::endl
-              << "SSX1r: " << SSX1r[0]     << std::endl;
- */   
     std::vector<std::vector<double>> datashape;
     std::vector<double> SXYAB;
     std::vector<double> SXYA0;
@@ -615,16 +430,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     datashape = apply_vect_func(dataAB, shapeAB, mult_vectors);
     SXYAB     = reduce_2D_vect(datashape, sum_vector);
     datashape = apply_vect_func(dataAB, shapeA0, mult_vectors);
-    
-    std::cout << "DataAB Len: " << dataAB[TGT].size() << std::endl
-              << "Shape A0 Len: " << shapeA0[TGT].size() << std::endl
-              << "Datashape Len: " << datashape[TGT].size() << std::endl;
-
-    for (int d = 0; d < datashape[TGT].size(); ++d) {
-        std::cout << dataAB[TGT][d] << " " << shapeA0[TGT][d] << " "
-                  << datashape[TGT][d] << std::endl;
-    }
-
     SXYA0     = reduce_2D_vect(datashape, sum_vector);
     datashape = apply_vect_func(dataAB, shapeB0, mult_vectors);
     SXYB0     = reduce_2D_vect(datashape, sum_vector);
@@ -637,23 +442,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
     SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
 
-    std::cout << "SXYAB:   " << SXYAB[TGT]       << std::endl
-              << "SXYA0:   " << SXYA0[TGT]       << std::endl
-              << "SXYB0:   " << SXYB0[TGT]       << std::endl
-              << "SXY1r:   " << SXY1r[TGT]       << std::endl
-              << "SXYABA0: " << SXYABA0[TGT]     << std::endl
-              << "SXYABB0: " << SXYABB0[TGT]     << std::endl
-              << "SXYAB1r: " << SXYAB1r[TGT]     << std::endl;
- 
-/*
-    std::cout << "SXYAB:   " << SXYAB[0]       << std::endl
-              << "SXYA0:   " << SXYA0[0]       << std::endl
-              << "SXYB0:   " << SXYB0[0]       << std::endl
-              << "SXY1r:   " << SXY1r[0]       << std::endl
-              << "SXYABA0: " << SXYABA0[0]     << std::endl
-              << "SXYABB0: " << SXYABB0[0]     << std::endl
-              << "SXYAB1r: " << SXYAB1r[0]     << std::endl;
-*/ 
     std::vector<double> correlAB;
     std::vector<double> correlA0;
     std::vector<double> correlB0;
@@ -670,24 +458,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
     
-    std::cout << "correlAB:   " << correlAB[TGT]       << std::endl
-              << "correlA0:   " << correlA0[TGT]       << std::endl
-              << "correlB0:   " << correlB0[TGT]       << std::endl
-              << "correl1r:   " << correl1r[TGT]       << std::endl
-              << "correlABA0: " << correlABA0[TGT]     << std::endl
-              << "correlABB0: " << correlABB0[TGT]     << std::endl
-              << "correlAB1r: " << correlAB1r[TGT]     << std::endl;
-
-/*
-    std::cout << "correlAB:   " << correlAB[0]       << std::endl
-              << "correlA0:   " << correlA0[0]       << std::endl
-              << "correlB0:   " << correlB0[0]       << std::endl
-              << "correl1r:   " << correl1r[0]       << std::endl
-              << "correlABA0: " << correlABA0[0]     << std::endl
-              << "correlABB0: " << correlABB0[0]     << std::endl
-              << "correlAB1r: " << correlAB1r[0]     << std::endl;
- */
-    
     std::vector<double> rm2ABA0;
     std::vector<double> rm2ABB0;
     std::vector<double> rm2AB1r;
@@ -696,17 +466,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
     
-    std::cout << "rm2ABA0: " << rm2ABA0[TGT] << std::endl
-              << "rm2ABB0: " << rm2ABB0[TGT] << std::endl
-              << "rm2AB1r: " << rm2AB1r[TGT] << std::endl; 
- 
-
-/*
-    std::cout << "rm2ABA0: " << rm2ABA0[0]     << std::endl
-              << "rm2ABB0: " << rm2ABB0[0]     << std::endl
-              << "rm2AB1r: " << rm2AB1r[0]     << std::endl;
- 
-*/
     std::vector<double> fABA0;
     std::vector<double> fABB0;
     std::vector<double> fAB1r;
@@ -715,16 +474,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     fABB0 = f_vectors(correlABB0, rm2ABB0);
     fAB1r = f_vectors(correlAB1r, rm2AB1r);
     
-    std::cout << "fABA0: " << fABA0[TGT] << std::endl
-              << "fABB0: " << fABB0[TGT] << std::endl
-              << "fAB1r: " << fAB1r[TGT] << std::endl; 
- 
-
-/*
-    std::cout << "fABA0: " << fABA0[0]     << std::endl
-              << "fABB0: " << fABB0[0]     << std::endl
-              << "fAB1r: " << fAB1r[0]     << std::endl;
- */
     std::vector<double> hABA0;
     std::vector<double> hABB0;
     std::vector<double> hAB1r;
@@ -733,21 +482,10 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     hABB0 = h_vectors(fABB0, rm2ABB0);
     hAB1r = h_vectors(fAB1r, rm2AB1r);
     
-    std::cout << "hABA0: " << hABA0[TGT] << std::endl
-              << "hABB0: " << hABB0[TGT] << std::endl
-              << "hAB1r: " << hAB1r[TGT] << std::endl; 
- 
-/*
-    std::cout << "hABA0: " << hABA0[0]     << std::endl
-              << "hABB0: " << hABB0[0]     << std::endl
-              << "hAB1r: " << hAB1r[0]     << std::endl;
- 
-*/   
     std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
     std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
                                                  (double(*)(double)) sqrt);
    
-
     std::vector<double> zABA0;
     std::vector<double> zABB0;
     std::vector<double> zAB1r;
@@ -756,15 +494,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
     zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
 
-    std::cout << "zABA0: " << zABA0[TGT] << std::endl
-              << "zABB0: " << zABB0[TGT] << std::endl
-              << "zAB1r: " << zAB1r[TGT] << std::endl; 
-    
-/*
-    std::cout << "zABA0: " << zABA0[0]     << std::endl
-              << "zABB0: " << zABB0[0]     << std::endl
-              << "zAB1r: " << zAB1r[0]     << std::endl;
-*/     
     std::vector<double> min_score;
 
     for (size_t idx = 0; idx < zABA0.size(); ++idx) {
@@ -774,31 +503,10 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         double min  = std::min({zA0, zB0, z1r});
         min_score.push_back(std::max({0.0, min}));
     }
-/*
-    std::cout << "Min Score[0]:   " << min_score[0]   << std::endl         
-              << "Min Score[10]:  " << min_score[10]  << std::endl
-              << "Min Score[100]: " << min_score[100] << std::endl
-              << "Min Score[470]: " << min_score[470] << std::endl;
-*/
+
     std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
 
-    std::cout << "Min Score: " << score[0][TGT] << std::endl
-              << "CorrelAB:  " << score[1][TGT] << std::endl
-              << "CorrelA0:  " << score[2][TGT] << std::endl
-              << "CorrelB0:  " << score[3][TGT] << std::endl
-              << "Correl1r:  " << score[4][TGT] << std::endl;
-
-/*
-    std::cout << "470 Values " << std::endl
-              << "Min Score: " << min_score[470]  << std::endl
-              << "correlAB:  " << correlAB[470]   << std::endl
-              << "correlA0:  " << correlA0[470]   << std::endl
-              << "correlB0:  " << correlB0[470]   << std::endl
-              << "correl1r:  " << correl1r[470]   << std::endl
-              << "Score:     " << score.size()    << std::endl
-              << "Score[min] " << score[0].size() << std::endl;
-*/
     return score;
 }
 
@@ -850,8 +558,6 @@ void write_scores(std::vector<std::vector<double>> scores,
     std::vector<pwiz::msdata::MZIntensityPair> raw_pairs;
     raw_data->getMZIntensityPairs(raw_pairs);
     
-    int count = 0;
-
     for (size_t idx = 0; idx < raw_pairs.size(); ++idx) {
         double mz  = raw_pairs[idx].mz;
         double amp = raw_pairs[idx].intensity;
@@ -861,18 +567,11 @@ void write_scores(std::vector<std::vector<double>> scores,
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
-       // if (ms > 0.0) {
-       //     count++;
+       if (ms > 0.0) {
             out_stream << rt << ", " << mz << ", " << amp << ", " 
                        << ms << ", " << AB << ", " << A0 << ", " 
                        << B0 << ", " << r1 << std::endl; 
-       // }
-    }
-
-    std::cout << "Output count: " << count << std::endl;
-
-    if (count > 0) {
-        exit(1);
+       }
     }
 }
 
@@ -880,9 +579,6 @@ std::vector<double> centre_vector(std::vector<double> vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
     double mean = sum / vect.size();
-    //std::cout << "Sum: " << sum << std::endl;
-    //std::cout << "Mean: " << mean << std::endl;
-    //exit(1);
     std::vector<double> centered;
 
     for (auto v : vect) {
