@@ -68,6 +68,7 @@ class Options {
         float mz_sigma;
         float mz_delta;
         float min_sample;
+        bool full_out;
         std::string mzML_file;
         std::string out_file;
 
@@ -85,7 +86,7 @@ double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                         int half_window, Options opts);
 
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
-                  std::ofstream& out_stream); 
+                  std::ofstream& out_stream, Options opts); 
 
 double_vect centre_vector(double_vect vect);
 
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
         
         score = score_spectra(msd, centre_rt, half_window, opts);
         
-        write_scores(score, centre_vect, outfile);
+        write_scores(score, centre_vect, outfile, opts);
     }
 
     outfile.close();
@@ -535,11 +536,10 @@ void show_usage(char *cmd)
 }
 
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
-                  std::ofstream& out_stream)
+                  std::ofstream& out_stream, Options opts)
 {
-    const bool getBinaryData = true;
     pwiz::msdata::SpectrumInfo spectrum_info;
-    spectrum_info.update(*raw_data, getBinaryData);
+    spectrum_info.update(*raw_data, opts.getBinaryData);
     double rt = spectrum_info.retentionTime;
     
     std::vector<pwiz::msdata::MZIntensityPair> raw_pairs;
@@ -554,11 +554,17 @@ void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
-       if (ms > 0.0) {
+        if (opts.full_out) {
             out_stream << rt << ", " << mz << ", " << amp << ", " 
                        << ms << ", " << AB << ", " << A0 << ", " 
                        << B0 << ", " << r1 << std::endl; 
-       }
+        } else {
+            if (ms > 0.0) {
+                out_stream << rt << ", " << mz << ", " << amp << ", " 
+                           << ms << ", " << AB << ", " << A0 << ", " 
+                           << B0 << ", " << r1 << std::endl;
+            }
+        }
     }
 }
 
@@ -793,7 +799,7 @@ Options::Options(int argc, char *argv[])
         exit(1);
     }
 
-    while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:")) != -1){
+    while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:o")) != -1){
         
         switch (opt) {
             case 'h':
@@ -823,6 +829,9 @@ Options::Options(int argc, char *argv[])
                 break;
             case 's':
                 min_sample = std::stof(std::string(optarg));
+                break;
+            case 'o':
+                full_out = true;
                 break;
         }
     }
