@@ -42,7 +42,15 @@ constexpr double pi() { return std::atan(1) * 4; }
 // sqrt 2pi
 const double root2pi = sqrt(2.0 * pi());
 
- 
+
+/*-----------------------------------------------------------------------*/
+/******************************* TYPEDEFS ********************************/
+/*-----------------------------------------------------------------------*/
+
+typedef std::vector<double> double_vect;
+
+typedef std::vector<double_vect> double_2d;
+
 /*-----------------------------------------------------------------------*/
 /******************************** CLASSES ********************************/
 /*-----------------------------------------------------------------------*/
@@ -73,43 +81,33 @@ class Options {
 
 void show_usage(char *cmd);
 
-std::vector<std::vector<double>> 
-score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
-              int half_window, Options opts);
+double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
+                        int half_window, Options opts);
 
-void write_scores(std::vector<std::vector<double>> scores, 
-                  pwiz::msdata::SpectrumPtr raw_data,
+void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
                   std::ofstream& out_stream); 
 
-std::vector<double> centre_vector(std::vector<double> vect);
+double_vect centre_vector(double_vect vect);
 
-std::vector<double> square_vector(std::vector<double> vect);
+double_vect square_vector(double_vect vect);
 
-double sum_vector(std::vector<double> vect);
+double sum_vector(double_vect vect);
 
-std::vector<double> mult_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2);
+double_vect mult_vectors(double_vect vect1, double_vect vect2);
 
-std::vector<double> div_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2);
+double_vect div_vectors(double_vect vect1, double_vect vect2);
   
-std::vector<double> correl_vectors(std::vector<double> vect1,
-                     std::vector<double> vect2, std::vector<double> vect3);
+double_vect correl_vectors(double_vect vect1, double_vect vect2, 
+                           double_vect vect3);
 
-std::vector<double> rm_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2);
+double_vect rm_vectors(double_vect vect1, double_vect vect2);
 
-std::vector<double> f_vectors(std::vector<double> correl_vect,
-                                              std::vector<double> rm_vect);
+double_vect f_vectors(double_vect correl_vect, double_vect rm_vect);
 
-std::vector<double> h_vectors(std::vector<double> f_vect,
-                                              std::vector<double> rm_vect);
+double_vect h_vectors(double_vect f_vect, double_vect rm_vect);
 
-std::vector<double> z_vectors(std::vector<double> cor1,
-                              std::vector<double> cor2,
-                              std::vector<double> sqrtn,
-                              std::vector<double> cross_cor,
-                              std::vector<double> h_vect);
+double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
+                      double_vect cross_cor, double_vect h_vect);
 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
@@ -117,10 +115,6 @@ std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
                                                                     F func);
-
-//template <typename T, typename F>
-//std::vector<std::vector<T>> apply_vect_func(
-//                                  std::vector<std::vector<T>> vect, F func);
 
 template <typename T, typename F>
 std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
@@ -143,7 +137,7 @@ int main(int argc, char *argv[])
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
 
     int rt_len = spectrumList.size();
-    std::vector<std::vector<double>> score;
+    double_2d score;
     pwiz::msdata::SpectrumPtr centre_vect;
     
     std::ofstream outfile;
@@ -165,7 +159,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-std::vector<std::vector<double>> 
+double_2d 
 score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
               int half_window, Options opts)
 {
@@ -184,15 +178,15 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     pwiz::msdata::SpectrumPtr mz_mu_vect;
     mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
    
-    std::vector<double> points_lo_lo;
-    std::vector<double> points_lo_hi;
-    std::vector<double> points_hi_lo;
-    std::vector<double> points_hi_hi;
+    double_vect points_lo_lo;
+    double_vect points_lo_hi;
+    double_vect points_hi_lo;
+    double_vect points_hi_hi;
 
-    std::vector<std::vector<double>> data_lo;
-    std::vector<std::vector<double>> data_hi;
-    std::vector<std::vector<double>> shape_lo;
-    std::vector<std::vector<double>> shape_hi;
+    double_2d data_lo;
+    double_2d data_hi;
+    double_2d shape_lo;
+    double_2d shape_hi;
     std::vector<int> len_lo;
     std::vector<int> len_hi;
 
@@ -204,7 +198,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         points_hi_lo.push_back((pair.mz + opts.mz_delta) * lo_tol);
         points_hi_hi.push_back((pair.mz + opts.mz_delta) * hi_tol);
 
-        std::vector<double> data;
+        double_vect data;
         data_lo.push_back(data);
         data_hi.push_back(data);
         shape_lo.push_back(data);
@@ -329,12 +323,12 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         }
     }
 
-    std::vector<std::vector<double>> dataAB;
-    std::vector<double> nAB;
+    double_2d dataAB;
+    double_vect nAB;
 
     for (size_t i = 0; i < data_lo.size(); ++i) {
         
-        std::vector<double> dataAB_row;
+        double_vect dataAB_row;
         size_t length_lo = data_lo[i].size();
         size_t length_hi = data_hi[i].size();
         
@@ -349,17 +343,17 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         nAB.push_back(length_lo + length_hi);
     }
    
-    std::vector<std::vector<double>> shapeAB;
-    std::vector<std::vector<double>> shapeA0;
-    std::vector<std::vector<double>> shapeB0;
-    std::vector<std::vector<double>> shape1r;
+    double_2d shapeAB;
+    double_2d shapeA0;
+    double_2d shapeB0;
+    double_2d shape1r;
 
     for (size_t i = 0; i < shape_lo.size(); ++i) {
         
-        std::vector<double> shapeAB_row;
-        std::vector<double> shapeA0_row;
-        std::vector<double> shapeB0_row;
-        std::vector<double> shape1r_row;
+        double_vect shapeAB_row;
+        double_vect shapeA0_row;
+        double_vect shapeB0_row;
+        double_vect shape1r_row;
         size_t length_lo = shape_lo[i].size();
         size_t length_hi = shape_hi[i].size();
         
@@ -382,23 +376,17 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         shape1r.push_back(shape1r_row);
     } 
     
-    std::vector<double> DataABSum   = reduce_2D_vect(dataAB,  sum_vector);
-    std::vector<double> ABSum = reduce_2D_vect(shapeAB, sum_vector);
-    std::vector<double> A0Sum = reduce_2D_vect(shapeA0, sum_vector);
-    std::vector<double> B0Sum = reduce_2D_vect(shapeB0, sum_vector);
-    std::vector<double> Sum1r = reduce_2D_vect(shape1r, sum_vector);
- 
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
                 
-    std::vector<std::vector<double>> data2AB;
-    std::vector<std::vector<double>> shape2AB;
-    std::vector<std::vector<double>> shape2A0;
-    std::vector<std::vector<double>> shape2B0;
-    std::vector<std::vector<double>> shape21r;
+    double_2d data2AB;
+    double_2d shape2AB;
+    double_2d shape2A0;
+    double_2d shape2B0;
+    double_2d shape21r;
 
     data2AB  = apply_vect_func(dataAB,  square_vector);
     shape2AB = apply_vect_func(shapeAB, square_vector);
@@ -406,11 +394,11 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     shape2B0 = apply_vect_func(shapeB0, square_vector);
     shape21r = apply_vect_func(shape1r, square_vector);
 
-    std::vector<double> SSY;
-    std::vector<double> SSXAB;
-    std::vector<double> SSXA0;
-    std::vector<double> SSXB0;
-    std::vector<double> SSX1r;
+    double_vect SSY;
+    double_vect SSXAB;
+    double_vect SSXA0;
+    double_vect SSXB0;
+    double_vect SSX1r;
 
     SSY   = reduce_2D_vect(data2AB,  sum_vector);
     SSXAB = reduce_2D_vect(shape2AB, sum_vector);
@@ -418,14 +406,14 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     SSXB0 = reduce_2D_vect(shape2B0, sum_vector);
     SSX1r = reduce_2D_vect(shape21r, sum_vector);
 
-    std::vector<std::vector<double>> datashape;
-    std::vector<double> SXYAB;
-    std::vector<double> SXYA0;
-    std::vector<double> SXYB0;
-    std::vector<double> SXY1r;
-    std::vector<double> SXYABA0;
-    std::vector<double> SXYABB0;
-    std::vector<double> SXYAB1r;
+    double_2d datashape;
+    double_vect SXYAB;
+    double_vect SXYA0;
+    double_vect SXYB0;
+    double_vect SXY1r;
+    double_vect SXYABA0;
+    double_vect SXYABB0;
+    double_vect SXYAB1r;
 
     datashape = apply_vect_func(dataAB, shapeAB, mult_vectors);
     SXYAB     = reduce_2D_vect(datashape, sum_vector);
@@ -442,13 +430,13 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     datashape = apply_vect_func(shapeAB, shape1r, mult_vectors);
     SXYAB1r   = reduce_2D_vect(datashape, sum_vector);
 
-    std::vector<double> correlAB;
-    std::vector<double> correlA0;
-    std::vector<double> correlB0;
-    std::vector<double> correl1r;
-    std::vector<double> correlABA0;
-    std::vector<double> correlABB0;
-    std::vector<double> correlAB1r;
+    double_vect correlAB;
+    double_vect correlA0;
+    double_vect correlB0;
+    double_vect correl1r;
+    double_vect correlABA0;
+    double_vect correlABB0;
+    double_vect correlAB1r;
 
     correlAB   = correl_vectors(SXYAB,   SSXAB, SSY);
     correlA0   = correl_vectors(SXYA0,   SSXA0, SSY);
@@ -458,25 +446,25 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
     
-    std::vector<double> rm2ABA0;
-    std::vector<double> rm2ABB0;
-    std::vector<double> rm2AB1r;
+    double_vect rm2ABA0;
+    double_vect rm2ABB0;
+    double_vect rm2AB1r;
     
     rm2ABA0 = rm_vectors(correlAB, correlA0);
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
     
-    std::vector<double> fABA0;
-    std::vector<double> fABB0;
-    std::vector<double> fAB1r;
+    double_vect fABA0;
+    double_vect fABB0;
+    double_vect fAB1r;
 
     fABA0 = f_vectors(correlABA0, rm2ABA0);
     fABB0 = f_vectors(correlABB0, rm2ABB0);
     fAB1r = f_vectors(correlAB1r, rm2AB1r);
     
-    std::vector<double> hABA0;
-    std::vector<double> hABB0;
-    std::vector<double> hAB1r;
+    double_vect hABA0;
+    double_vect hABB0;
+    double_vect hAB1r;
 
     hABA0 = h_vectors(fABA0, rm2ABA0);
     hABB0 = h_vectors(fABB0, rm2ABB0);
@@ -486,15 +474,15 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
                                                  (double(*)(double)) sqrt);
    
-    std::vector<double> zABA0;
-    std::vector<double> zABB0;
-    std::vector<double> zAB1r;
+    double_vect zABA0;
+    double_vect zABB0;
+    double_vect zAB1r;
 
     zABA0 = z_vectors(correlAB, correlA0, nAB, correlABA0, hABA0);
     zABB0 = z_vectors(correlAB, correlB0, nAB, correlABB0, hABB0);
     zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
 
-    std::vector<double> min_score;
+    double_vect min_score;
 
     for (size_t idx = 0; idx < zABA0.size(); ++idx) {
         double zA0 = zABA0[idx];
@@ -504,7 +492,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
         min_score.push_back(std::max({0.0, min}));
     }
 
-    std::vector<std::vector<double>> score = {min_score, correlAB, correlA0,
+    double_2d score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
 
     return score;
@@ -546,8 +534,7 @@ void show_usage(char *cmd)
     cout                                                            << endl;
 }
 
-void write_scores(std::vector<std::vector<double>> scores, 
-                  pwiz::msdata::SpectrumPtr raw_data,
+void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
                   std::ofstream& out_stream)
 {
     const bool getBinaryData = true;
@@ -575,11 +562,11 @@ void write_scores(std::vector<std::vector<double>> scores,
     }
 }
 
-std::vector<double> centre_vector(std::vector<double> vect)
+double_vect centre_vector(double_vect vect)
 {
     double sum  = std::accumulate(vect.begin(), vect.end(), 0.0);
     double mean = sum / vect.size();
-    std::vector<double> centered;
+    double_vect centered;
 
     for (auto v : vect) {
         centered.push_back(v - mean);
@@ -588,9 +575,9 @@ std::vector<double> centre_vector(std::vector<double> vect)
     return centered;
 }
 
-std::vector<double> square_vector(std::vector<double> vect)
+double_vect square_vector(double_vect vect)
 {
-    std::vector<double> squared;
+    double_vect squared;
 
     for (auto v : vect) {
         squared.push_back(v * v);
@@ -599,17 +586,16 @@ std::vector<double> square_vector(std::vector<double> vect)
     return squared;
 }
 
-double sum_vector(std::vector<double> vect)
+double sum_vector(double_vect vect)
 {
     double sum = std::accumulate(vect.begin(), vect.end(), 0.0);
 
     return sum;
 }
    
-std::vector<double> mult_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2)
+double_vect mult_vectors(double_vect vect1, double_vect vect2)
 {
-    std::vector<double> mult;
+    double_vect mult;
 
     if (vect1.size() != vect2.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -622,10 +608,9 @@ std::vector<double> mult_vectors(std::vector<double> vect1,
     return mult;
 }
    
-std::vector<double> div_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2)
+double_vect div_vectors(double_vect vect1, double_vect vect2)
 {
-    std::vector<double> divided;
+    double_vect divided;
 
     if (vect1.size() != vect2.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -639,11 +624,11 @@ std::vector<double> div_vectors(std::vector<double> vect1,
 
 }
 
-std::vector<double> correl_vectors(std::vector<double> vect1,
-                    std::vector<double> vect2, std::vector<double> vect3)
+double_vect correl_vectors(double_vect vect1, double_vect vect2, 
+                           double_vect vect3)
 {
-    std::vector<double> correlated;
-    std::vector<double> mult;
+    double_vect correlated;
+    double_vect mult;
 
     mult = mult_vectors(vect2, vect3);
     std::transform(mult.begin(), mult.end(), mult.begin(), 
@@ -662,10 +647,9 @@ std::vector<double> correl_vectors(std::vector<double> vect1,
     return correlated;
 }
 
-std::vector<double> rm_vectors(std::vector<double> vect1, 
-                                                std::vector<double> vect2)
+double_vect rm_vectors(double_vect vect1, double_vect vect2)
 {
-    std::vector<double> rm;
+    double_vect rm;
 
     if (vect1.size() != vect2.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -680,10 +664,9 @@ std::vector<double> rm_vectors(std::vector<double> vect1,
 
 }
 
-std::vector<double> f_vectors(std::vector<double> correl_vect,
-                                              std::vector<double> rm_vect)
+double_vect f_vectors(double_vect correl_vect, double_vect rm_vect)
 {
-    std::vector<double> f_vect;
+    double_vect f_vect;
 
     if (correl_vect.size() != rm_vect.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -705,10 +688,9 @@ std::vector<double> f_vectors(std::vector<double> correl_vect,
     return f_vect;
 }
 
-std::vector<double> h_vectors(std::vector<double> f_vect,
-                                              std::vector<double> rm_vect)
+double_vect h_vectors(double_vect f_vect, double_vect rm_vect)
 {
-    std::vector<double> h_vect;
+    double_vect h_vect;
 
     if (f_vect.size() != rm_vect.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -724,13 +706,10 @@ std::vector<double> h_vectors(std::vector<double> f_vect,
     return h_vect;
 }
 
-std::vector<double> z_vectors(std::vector<double> cor1,
-                              std::vector<double> cor2,
-                              std::vector<double> sqrtn,
-                              std::vector<double> cross_cor,
-                              std::vector<double> h_vect)
+double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
+                      double_vect cross_cor, double_vect h_vect)
 {
-    std::vector<double> z_vect;
+    double_vect z_vect;
 
     for (size_t idx = 0; idx < cor1.size(); ++idx) {
         
