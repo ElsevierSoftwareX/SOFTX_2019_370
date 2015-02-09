@@ -527,6 +527,8 @@ void show_usage(char *cmd)
     cout << "           " << "-D  m/z difference for doublets"      << endl;
     cout << "           " << "-s  minimum number of data points \n"        ;
     cout << "           " << "    required in each sample region"   << endl;
+    cout << "           " << "-o  turn on full output, including zero \n"  ;
+    cout << "           " << "    score points"                     << endl;
     cout                                                            << endl;
     cout << "arguments: " << "mzML_file     path to mzML file"      << endl;
     cout << "           " << "out_file      path to output file"    << endl;
