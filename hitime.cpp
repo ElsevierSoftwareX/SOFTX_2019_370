@@ -556,7 +556,7 @@ void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
-        if (opts.full_out) {
+        if (opts.full_out == true) {
             out_stream << rt << ", " << mz << ", " << amp << ", " 
                        << ms << ", " << AB << ", " << A0 << ", " 
                        << B0 << ", " << r1 << std::endl; 
@@ -792,6 +792,7 @@ Options::Options(int argc, char *argv[])
     mz_sigma        = default_mz_sigma;
     mz_delta        = default_mz_delta;
     min_sample      = default_min_sample;
+    full_out        = false;
     mzML_file       = "";
     out_file        = "";
 
