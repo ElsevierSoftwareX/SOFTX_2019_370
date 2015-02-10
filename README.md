@@ -25,26 +25,18 @@ correctly with other versions of gcc such as 4.8.1.
     module load boost-gcc/1.57.0
 ```
 
-### Step 3: Linker path
-
-In order to run the compiled program the ProteoWizard libraries must be able
-to be located. This is done by adding them to the `LD_LIBRARY_PATH` 
-environment variable.
-
-`export LD_LIBRARY_PATH=/usr/local/pwiz/3.0.7069-gcc/lib/:$LD_LIBRARY_PATH`
-
-### Step 4: Compile
+### Step 3: Compile
 
 Running `make` in the HiTIME-CPP directory should be sufficent to build the
 `hitime.out` binary. It may be necessary to modify the `INC` and `LIBDIR`
 variables in `makefile` if your library locations are different.
 
-### Step 5: Test
+### Step 4: Test
 
 Test data is included in this repository. Running the following command
-should produce meaningful output.
+should produce meaningful output saved in out.txt:
 
-`./hitime.out data/testing.mzML`
+`./hitime.out data/testing.mzML out.txt`
 
 ## Please Note:
 
@@ -52,4 +44,3 @@ HiTIME-CPP is currently under active development, as such functionality can
 be expected to change frequently and without notice. These instructions have
 been designed for the developement setup and may require significant
 modification on your system.
-
