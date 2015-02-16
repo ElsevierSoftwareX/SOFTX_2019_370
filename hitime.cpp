@@ -58,24 +58,24 @@ typedef std::vector<double_vect> double_2d;
 /*! @brief Class for holding command line options.
  *
  * This class reads command line arguments and extracts the values. The object
- * can then be passed to all functions that require access to the option.]
+ * can then be passed to all functions that require access to the option.
  */
 
 class Options {
 
     public:
-        const bool getBinaryData = true;
-        float intensity_ratio;
-        float rt_width;
-        float rt_sigma;
-        float ppm;
-        float mz_width;
-        float mz_sigma;
-        float mz_delta;
-        float min_sample;
-        bool full_out;
-        std::string mzML_file;
-        std::string out_file;
+        const bool getBinaryData = true; //! Required for pwiz to read data
+        float intensity_ratio; //! Intensity ratio between lo and hi peaks
+        float rt_width; //! Retention time FWHM in scans
+        float rt_sigma; //! Boundary for RT width in SDs
+        float ppm; //! MZ tolerance in PPM
+        float mz_width; //! MZ FWHM in PPM
+        float mz_sigma; //! Boundary for MZ in SDs
+        float mz_delta; //! MZ difference between peaks
+        float min_sample; //! Minimum number of points required in each region
+        bool full_out; //! Output all points (including zero scores)
+        std::string mzML_file; //! Path to input file
+        std::string out_file; //! Path to output file
 
         Options(int argc, char *argv[]);        
 };
@@ -783,6 +783,10 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
 /***************************** CLASS METHODS *****************************/
 /*-----------------------------------------------------------------------*/
 
+/*! @brief Options object constructor.
+ *
+ * Construct new Options object by reading in arguments from the command line.
+ */
 
 Options::Options(int argc, char *argv[])
 {
@@ -801,12 +805,13 @@ Options::Options(int argc, char *argv[])
     mzML_file       = "";
     out_file        = "";
 
-    // Show usage and exit if no options are given
+    //! Show usage and exit if no options are given
     if (argc == 1) {
         show_usage(argv[0]);
         exit(1);
     }
 
+    //! Check arguments and assign to attributes
     while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:o")) != -1){
         
         switch (opt) {
@@ -844,6 +849,7 @@ Options::Options(int argc, char *argv[])
         }
     }
 
+    //! Read remaining text arguments
     for (opt_idx = optind; opt_idx < argc; opt_idx++) {
 
         if (mzML_file == "") { 
@@ -857,6 +863,7 @@ Options::Options(int argc, char *argv[])
         }
     }
 
+    //! Check that all attributes have been set
     if (out_file == "") {
         std::cout << "Insufficient arguments supplies. See usage.";
         std::cout << std::endl;
