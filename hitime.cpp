@@ -158,11 +158,13 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 
 int main(int argc, char *argv[])
 {
-
+    // Read user options
     Options opts(argc, argv);
 
+    // Calculate number of spectra for each window
     int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
 
+    // Access the input file using pwiz
     pwiz::msdata::FullReaderList readers;
     pwiz::msdata::MSDataFile msd(opts.mzML_file, &readers);
     pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
@@ -171,19 +173,25 @@ int main(int argc, char *argv[])
     double_2d score;
     pwiz::msdata::SpectrumPtr centre_vect;
     
+    // Setup output stream
     std::ofstream outfile;
     outfile.open(opts.out_file);
     outfile.precision(12);
 
+    // Loop over the spectra
     for (int centre_rt = 0; centre_rt < rt_len; ++centre_rt) {
 
+        // Select the centre spectrum
         centre_vect = spectrumList.spectrum(centre_rt, opts.getBinaryData);
         
+        // Score the window
         score = score_spectra(msd, centre_rt, half_window, opts);
         
+        // Output the results
         write_scores(score, centre_vect, outfile, opts);
     }
 
+    // Close ouput stream
     outfile.close();
 
     std::cout << "Done!" << std::endl;
@@ -535,7 +543,9 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 /*-----------------------------------------------------------------------*/
 
 /*! Display program usage information to the user. Called when no arguments
- * are supplied or the -h option is given
+ * are supplied or the -h option is given.
+ *
+ * @param cmd The original command given by the user.
  */
 void show_usage(char *cmd)
 {
