@@ -22,23 +22,23 @@
 /*-----------------------------------------------------------------------*/
 
 
-//! Default difference in mass of isotopes
+//! Default difference in mass of isotopes.
 const float default_mz_delta        = 6.0201;
-//! Default MZ tolerance in parts per million
+//! Default MZ tolerance in parts per million.
 const float default_ppm             = 4.0;
-//! Defualt MZ Full Width Half Maximum in PPM
+//! Defualt MZ Full Width Half Maximum in PPM.
 const float default_fwhm            = 150.0;
-//! Default MZ boundary sigma
+//! Default MZ boundary sigma.
 const float default_mz_sigma        = 1.5;
-//! Default ratio of peak intensities
+//! Default ratio of peak intensities.
 const float default_intensity_ratio = 1.0;
-//! Default retention time FWHM in scans 
+//! Default retention time FWHM in scans.
 const float default_rt_width        = 17.0;
-//! Default RT boundary sigma
+//! Default RT boundary sigma.
 const float default_rt_sigma        = 1.5;
 /*! @brief Default minimum number of samples in score regions.
  * 
- * Calculated from the default RT width and default RT sigma
+ * Calculated from the default RT width and default RT sigma.
  */
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
@@ -52,8 +52,13 @@ const double root2pi = sqrt(2.0 * pi());
 /******************************* TYPEDEFS ********************************/
 /*-----------------------------------------------------------------------*/
 
+//! Type definition for a standard vector of doubles
 typedef std::vector<double> double_vect;
 
+/*! Type definition for a 2D vector of doubles.
+ *
+ * Implemented as a standard vector of standard vectors of doubles.
+ */
 typedef std::vector<double_vect> double_2d;
 
 /*-----------------------------------------------------------------------*/
