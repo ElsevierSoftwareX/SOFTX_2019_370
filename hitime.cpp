@@ -786,6 +786,12 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
 /*! @brief Options object constructor.
  *
  * Construct new Options object by reading in arguments from the command line.
+ * The number of required arguments in checked.
+ * 
+ * @param argc The argument count passed to Main
+ * @param argv The argument value array passed to Main
+ *
+ * @todo Validate user input option values
  */
 
 Options::Options(int argc, char *argv[])
@@ -805,13 +811,13 @@ Options::Options(int argc, char *argv[])
     mzML_file       = "";
     out_file        = "";
 
-    //! Show usage and exit if no options are given
+    // Show usage and exit if no options are given
     if (argc == 1) {
         show_usage(argv[0]);
         exit(1);
     }
 
-    //! Check arguments and assign to attributes
+    // Check arguments and assign to attributes
     while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:o")) != -1){
         
         switch (opt) {
@@ -849,7 +855,7 @@ Options::Options(int argc, char *argv[])
         }
     }
 
-    //! Read remaining text arguments
+    // Read remaining text arguments
     for (opt_idx = optind; opt_idx < argc; opt_idx++) {
 
         if (mzML_file == "") { 
@@ -863,7 +869,7 @@ Options::Options(int argc, char *argv[])
         }
     }
 
-    //! Check that all attributes have been set
+    // Check that all attributes have been set
     if (out_file == "") {
         std::cout << "Insufficient arguments supplies. See usage.";
         std::cout << std::endl;
