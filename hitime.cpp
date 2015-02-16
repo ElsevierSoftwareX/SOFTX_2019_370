@@ -22,24 +22,29 @@
 /*-----------------------------------------------------------------------*/
 
 
-// default difference in mass of isotopes
+//! Default difference in mass of isotopes
 const float default_mz_delta        = 6.0201;
-// default m/z tolerance in parts per million
+//! Default MZ tolerance in parts per million
 const float default_ppm             = 4.0;
-// Full Width Half Maximum in PPM
+//! Defualt MZ Full Width Half Maximum in PPM
 const float default_fwhm            = 150.0;
+//! Default MZ boundary sigma
 const float default_mz_sigma        = 1.5;
-// default ratio of isotopes
+//! Default ratio of peak intensities
 const float default_intensity_ratio = 1.0;
-// default retention time FWHM in scans 
+//! Default retention time FWHM in scans 
 const float default_rt_width        = 17.0;
+//! Default RT boundary sigma
 const float default_rt_sigma        = 1.5;
-// minimum number of samples in score regions
+/*! @brief Default minimum number of samples in score regions.
+ * 
+ * Calculated from the default RT width and default RT sigma
+ */
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
-// pi
+//! Pi
 constexpr double pi() { return std::atan(1) * 4; } 
-// sqrt 2pi
+//! Square root of 2 * Pi
 const double root2pi = sqrt(2.0 * pi());
 
 
