@@ -55,6 +55,11 @@ typedef std::vector<double_vect> double_2d;
 /******************************** CLASSES ********************************/
 /*-----------------------------------------------------------------------*/
 
+/*! @brief Class for holding command line options.
+ *
+ * This class reads command line arguments and extracts the values. The object
+ * can then be passed to all functions that require access to the option.]
+ */
 
 class Options {
 
