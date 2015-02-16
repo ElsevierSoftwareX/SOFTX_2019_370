@@ -74,18 +74,18 @@ typedef std::vector<double_vect> double_2d;
 class Options {
 
     public:
-        const bool getBinaryData = true; //!< Required for pwiz to read data
-        float intensity_ratio; //!< Intensity ratio between lo and hi peaks
-        float rt_width; //!< Retention time FWHM in scans
-        float rt_sigma; //!< Boundary for RT width in SDs
-        float ppm; //!< MZ tolerance in PPM
-        float mz_width; //!< MZ FWHM in PPM
-        float mz_sigma; //<! Boundary for MZ in SDs
-        float mz_delta; //!< MZ difference between peaks
-        float min_sample; //!< Minimum number of points required in each region
-        bool full_out; //!< Output all points (including zero scores)
-        std::string mzML_file; //!< Path to input file
-        std::string out_file; //!< Path to output file
+        const bool getBinaryData = true; //!< Required for pwiz to read data.
+        float intensity_ratio; //!< Intensity ratio between lo and hi peaks.
+        float rt_width; //!< Retention time FWHM in scans.
+        float rt_sigma; //!< Boundary for RT width in SDs.
+        float ppm; //!< MZ tolerance in PPM.
+        float mz_width; //!< MZ FWHM in PPM.
+        float mz_sigma; //<! Boundary for MZ in SDs.
+        float mz_delta; //!< MZ difference between peaks.
+        float min_sample; //!< Minimum number of points required in each region.
+        bool full_out; //!< Output all points (including zero scores).
+        std::string mzML_file; //!< Path to input file.
+        std::string out_file; //!< Path to output file.
 
         Options(int argc, char *argv[]);        
 };
@@ -95,43 +95,58 @@ class Options {
 /************************* FUNCTION DECLARATIONS *************************/
 /*-----------------------------------------------------------------------*/
 
+//! @brief Print program usage information.
 void show_usage(char *cmd);
 
+//! @brief Calculate correlation scores for a window of data.
 double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
                         int half_window, Options opts);
 
+//! @brief Write correlation scores to an output stream.
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
                   std::ofstream& out_stream, Options opts); 
 
+//! @brief Centre a vector by subtracting the mean.
 double_vect centre_vector(double_vect vect);
 
+//! @brief Square a vector.
 double_vect square_vector(double_vect vect);
 
+//! @brief Sum a vector.
 double sum_vector(double_vect vect);
 
+//! @brief Elementwise multiplication of two vectors.
 double_vect mult_vectors(double_vect vect1, double_vect vect2);
 
+//! @brief Elementwise division of two vectors.
 double_vect div_vectors(double_vect vect1, double_vect vect2);
-  
+
+//! @brief Calculate correlation between vectors.
 double_vect correl_vectors(double_vect vect1, double_vect vect2, 
                            double_vect vect3);
 
+//! @brief Calculate rm values from two vectors.
 double_vect rm_vectors(double_vect vect1, double_vect vect2);
 
+//! @brief Calculate f values from two vectors.
 double_vect f_vectors(double_vect correl_vect, double_vect rm_vect);
 
+//! @brief Calculate h values from two vectors.
 double_vect h_vectors(double_vect f_vect, double_vect rm_vect);
 
+//! @brief Calculate z values.
 double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
                       double_vect cross_cor, double_vect h_vect);
 
+//! @brief Apply function to each element of a vector. 
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
+//! @brief Apply function that combines elements of two vectors.
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
                                                                     F func);
-
+//! @brief Apply function that reduces a 2D vector to a 1D vector.
 template <typename T, typename F>
 std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 
@@ -519,7 +534,9 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 /************************* FUNCTION DEFINITIONS **************************/
 /*-----------------------------------------------------------------------*/
 
-
+/*! Display program usage information to the user. Called when no arguments
+ * are supplied or the -h option is given
+ */
 void show_usage(char *cmd)
 {
     using namespace std;
