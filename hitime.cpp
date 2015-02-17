@@ -80,7 +80,7 @@ class Options {
         float rt_sigma; //!< Boundary for RT width in SDs.
         float ppm; //!< MZ tolerance in PPM.
         float mz_width; //!< MZ FWHM in PPM.
-        float mz_sigma; //<! Boundary for MZ in SDs.
+        float mz_sigma; //!< Boundary for MZ in SDs.
         float mz_delta; //!< MZ difference between peaks.
         float min_sample; //!< Minimum number of points required in each region.
         bool full_out; //!< Output all points (including zero scores).
@@ -1084,10 +1084,3 @@ Options::Options(int argc, char *argv[])
         exit(1);
     }
 }
-
-
-/*-----------------------------------------------------------------------*/
-/******************************* OLD CODE ********************************/
-/*-----------------------------------------------------------------------*/
-
-
