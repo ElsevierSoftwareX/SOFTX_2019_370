@@ -2,12 +2,12 @@
 
 HiTIME-CPP is a program for identifying double peaks in mass spectrometry
 data implemented in C++. HiTIME-CPP is designed to be integrated with 
-existing [ProteoWizard](proteowizard.sourceforge.net) libraries. This
+existing [ProteoWizard](https://proteowizard.sourceforge.net) libraries. This
 implementation is based on the 
 [Python implementation](https://github.com/bjpop/HiTIME). 
 
 Slides describing the HiTIME algorithm and the development of HiTIME-CPP are
-available on [Slideshare](goo.gl/106Yvr).
+available on [Slideshare](http://goo.gl/106Yvr).
 
 # Build Instructions
 
@@ -44,10 +44,10 @@ should produce meaningful output saved in out.txt:
 # Documentation
 
 The HiTIME-CPP source has been documented using 
-[Doxygen](www.stack.nl/~dimitri/doxygen/index.html) type comments. These can be
-used to produce documentation in HTML and PDF (via Latex) formats. 
+[Doxygen](http://www.stack.nl/~dimitri/doxygen/index.html) type comments. These 
+can be used to produce documentation in HTML and PDF (via Latex) formats. 
 
-[Installation instructions](www.stack.nl/~dimitri/doxygen/manual/install.html). 
+[Installation instructions](http://www.stack.nl/~dimitri/doxygen/manual/install.html). 
 are available on the Doxygen website. With Doxygen installed the following 
 command can be run to produce the documentation.
 
