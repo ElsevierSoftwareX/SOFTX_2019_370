@@ -2,7 +2,7 @@
 
 HiTIME-CPP is a program for identifying double peaks in mass spectrometry
 data implemented in C++. HiTIME-CPP is designed to be integrated with 
-existing [ProteoWizard](https://proteowizard.sourceforge.net) libraries. This
+existing [ProteoWizard](http://proteowizard.sourceforge.net) libraries. This
 implementation is based on the 
 [Python implementation](https://github.com/bjpop/HiTIME). 
 
