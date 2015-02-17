@@ -632,8 +632,9 @@ void show_usage(char *cmd)
  * mz, intensity, minimum score, correlAB, correlA0, correlB0, correl1r.
  *
  * @param scores 2D vector of scores returned by score_spectra.
- * @param raw_pointer Spectrum pointer to the raw central vector.
+ * @param raw_data Spectrum pointer to the raw central vector.
  * @param out_stream Stream to write output too.
+ * @param opts User defined Options object.
  */
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
                   std::ofstream& out_stream, Options opts)
