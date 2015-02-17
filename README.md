@@ -6,6 +6,9 @@ existing [ProteoWizard](proteowizard.sourceforge.net) libraries. This
 implementation is based on the 
 [Python implementation](https://github.com/bjpop/HiTIME). 
 
+Slides describing the HiTIME algorithm and the development of HiTIME-CPP are
+available on [Slideshare](goo.gl/106Yvr).
+
 # Build Instructions
 
 ### Step 1: Clone this repository
@@ -38,9 +41,30 @@ should produce meaningful output saved in out.txt:
 
 `./hitime.out data/testing.mzML out.txt`
 
-## Please Note:
+# Documentation
+
+The HiTIME-CPP source has been documented using 
+[Doxygen](www.stack.nl/~dimitri/doxygen/index.html) type comments. These can be
+used to produce documentation in HTML and PDF (via Latex) formats. 
+
+[Installation instructions](www.stack.nl/~dimitri/doxygen/manual/install.html). 
+are available on the Doxygen website. With Doxygen installed the following 
+command can be run to produce the documentation.
+
+`doxygen Doxyfile`.
+
+The result should be the creation on a `docs/` directory with `html` and `latex`
+subdirectories. The HTML documentation should be viewable using any browser. To
+produce PDF documentation change to the `latex` directory and run:
+
+`make pdf`
+
+A `refman.pdf` file should be created with the HiTIME-CPP documentation. Please
+note PDF documentation requires PDFLatex to be available.
+
+# Please Note:
 
 HiTIME-CPP is currently under active development, as such functionality can
 be expected to change frequently and without notice. These instructions have
-been designed for the developement setup and may require significant
+been designed for the development setup and may require significant
 modification on your system.
