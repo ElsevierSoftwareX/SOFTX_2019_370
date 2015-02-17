@@ -830,7 +830,7 @@ double_vect rm_vectors(double_vect vect1, double_vect vect2)
  *
  * @return Vector of calculated f values.
  *
- * @todo Explin what f value is.
+ * @todo Explain what f value is.
  */
 double_vect f_vectors(double_vect correl_vect, double_vect rm_vect)
 {
