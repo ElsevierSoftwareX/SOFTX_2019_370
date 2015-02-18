@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,46 +8,63 @@ import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 
 parser = argparse.ArgumentParser()
-parser.add_argument('py_file', help='path to Python output file')
-parser.add_argument('cpp_file', help='path to CPP output file')
+parser.add_argument('output1', help='path to first output file')
+parser.add_argument('output2', help='path to second output file')
 args = parser.parse_args()
 
-py_data = []
+data1 = []
 
-with open(args.py_file) as py_out:
-    for line in py_out:
+with open(args.output1) as out1:
+    for line in out1:
         data = line.split(',')
         data = [float(d) for d in data]
-        py_data.append(data)
+        data1.append(data)
 
-cpp_data = []
+data2 = []
 
-with open(args.cpp_file) as cpp_out:
-    for line in cpp_out:
+with open(args.output2) as out2:
+    for line in out2:
         data = line.split(',')
         data = [float(d) for d in data]
-        cpp_data.append(data)
+        data2.append(data)
 
-for rowi in xrange(len(py_data)):
-    py_row = py_data[rowi]
-    cpp_row = cpp_data[rowi]
+if not len(data1) == len(data2):
+    print "Output files have different lengths and cannot be compared"
+    print "Try producing full output"
+    print "Ending..."
+    sys.exit()
 
-    if py_row[3] == 0.0 and not cpp_row[3] == 0.0:
-        print rowi, "PY ZERO <<<<<<<<<<<<<<<<<<<"
-        print py_row
-        print cpp_row
+print "Comparing zero score points..."
+
+zero_count = 0
+
+for rowi in xrange(len(data1)):
+    row1 = data1[rowi]
+    row2 = data2[rowi]
+
+    if row1[3] == 0.0 and not row2[3] == 0.0:
+        print rowi, "FILE 1 ZERO <<<<<<<<<<<<<<<<<<<"
+        print row1
+        print row2
         print
+        zero_count += 1
 
-    if not py_row[3] == 0.0 and cpp_row[3] == 0.0:
-        print rowi, "CPP ZERO >>>>>>>>>>>>>>>>>>"
-        print py_row
-        print cpp_row
+    if not row1[3] == 0.0 and row2[3] == 0.0:
+        print rowi, "FILE 2 ZERO >>>>>>>>>>>>>>>>>>"
+        print row1
+        print row2
         print 
+        zero_count += 1
 
-py_data = np.array(py_data)
-cpp_data = np.array(cpp_data)
+print "{0} Zero Mismatches Found".format(zero_count)
+print "These are points that have a zero score in one file and not the other"
 
-diff = py_data - cpp_data
+print "Computing statistics..."
+
+data1 = np.array(data1)
+data2 = np.array(data2)
+
+diff = data1 - data2
 
 avg_diff = np.mean(diff, axis=0)
 cols = ['RT', 'MZ', 'Amp', 'Min Score', 'AB', 'A0', 'B0', 'r1']
@@ -59,35 +77,32 @@ for avg, col in zip(avg_diff, cols):
 print
 print "            RMSE            "
 print "----------------------------"
-for coli in xrange(py_data.shape[1]):
-    rmse = np.sqrt(np.mean((cpp_data[:, coli] - 
-                                        py_data[:, coli]) ** 2))
+for coli in xrange(data1.shape[1]):
+    rmse = np.sqrt(np.mean((data2[:, coli] - data1[:, coli]) ** 2))
     print "{0:<10}: {1:>16.10f}".format(cols[coli], rmse)
 
-py_mz = py_data[:, 1]
-py_ms = py_data[:, 3]
-cpp_mz = cpp_data[:, 1]
-cpp_ms = cpp_data[:, 3]
+mz1 = data1[:, 1]
+ms1 = data1[:, 3]
+mz2 = data2[:, 1]
+ms2 = data2[:, 3]
 
 dark2_3 = [(27, 158, 119), (217, 95, 2), (117, 112, 179)]
 
 for i in range(len(dark2_3)):
     r, g, b = dark2_3[i]
     dark2_3[i] = (r / 255., g / 255., b / 255.)
-"""
+
 plt.figure(figsize=(12, 9))
 ax = plt.subplot(111)
 
 ax.spines['top'].set_visible(False)
-#ax.spines['bottom'].set_visible(False)
 ax.spines['right'].set_visible(False)
-#ax.spines['left'].set_visible(False)
 
 ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()
 
-plt.ylim(-0.2, 10)
-plt.xlim(150, 154)
+#plt.ylim(-0.2, 10)
+#plt.xlim(150, 154)
 
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
@@ -99,42 +114,22 @@ plt.title('Correlation scores for a single spectrum', fontsize=22)
 plt.tick_params(axis='both', which='both', bottom='on', top='off',
                 labelbottom='on', left='on', right='off', labelleft='on')
 
-plt.plot(py_mz, py_ms, lw=2.5, color=dark2_3[0])
-plt.plot(cpp_mz, cpp_ms, lw=2.5, color=dark2_3[2])
-plt.savefig('comparison.png', bbox_inches='tight')
+plt.plot(mz1, ms1, lw=2.5, color=dark2_3[0])
+plt.plot(mz2, ms2, lw=2.5, color=dark2_3[2])
+plt.savefig('line_comparison.png', bbox_inches='tight')
 plt.close()
 
-#np.savetxt('compare_out.txt', diff, delimiter=',', fmt='%5.5f')
+fig_peaks = plt.figure()
+ax = fig_peaks.add_subplot(111, projection='3d')
 
-""" # HERE
-
-"""
-
-fig_amp = plt.figure()
-ax = fig_amp.add_subplot(111, projection='3d')
-
-x = py_data[:, 1]
-y = cpp_data[:, 0]
-z = py_data[:, 2]
-#z[z<10000] = np.nan
+x = data1[:, 1]
+y = data2[:, 0]
+z = data1[:, 2]
 
 ax.plot_trisurf(x, y, z, cmap=cm.YlOrRd, linewidths=0.00, 
                 vmin=-300000, vmax=600000)
 
-#ax.scatter(x, y, z, 
-#           c=z,
-#           cmap=cm.YlGnBu,
-#           vmin=0,#-100000.0,
-#           vmax=600000,
-#           marker='o',
-#           s=20,
-#           linewidths=0.0,
-#           alpha=1.0, 
-#           label='Peaks'
-#           )
- 
-
-ax.set_zlim3d(-10000, 600000)
+#ax.set_zlim3d(-10000, 600000)
 ax.set_title("Example Twin Ion Peaks", size=22)
 ax.set_ylabel("Retention Time", size=16)
 ax.set_xlabel("m/z value", size=16)
@@ -148,51 +143,34 @@ plt.savefig('twin_ion_peaks.png', bbox_inches='tight',
             dpi=300)
 plt.close()
 
-"""
-""" # HERE
-fig_ms = plt.figure()
-ax = fig_ms.add_subplot(111, projection='3d')
+fig_comp = plt.figure()
+ax = fig_comp.add_subplot(111, projection='3d')
 
-x = cpp_data[:, 0]
-y = py_data[:, 1]
-z = py_data[:, 3]
-
-ax.scatter(x, y, z, c=dark2_3[1], marker='o')
-"""
-""" #HERE
-fig_cpp = plt.figure()
-ax = fig_cpp.add_subplot(111, projection='3d')
-
-x = cpp_data[:, 1]
-y = cpp_data[:, 0]
-z = py_data[:, 3]
+x = data2[:, 1]
+y = data2[:, 0]
+z = data1[:, 3]
 z[z==0] = np.nan
-z2 = cpp_data[:, 3]
+z2 = data2[:, 3]
 z2[z2==0] = np.nan
 
 ax.scatter(x, y, z, 
            c=dark2_3[1],
-           #cmap=cm.RdPu,
-           #vmin=0.0,
-           #vmax=100,
            marker='o',
            s=60,
            linewidths=0.0,
            alpha=0.20, 
-           label='Python'
            )
            
 ax.scatter(x, y, z2, 
            c=dark2_3[2],
-           #cmap=cm.BuGn,
            marker='.',
            s=50,
            linewidths=0.0,
            alpha=0.9,
-           label='C++')
+           )
 
-ax.set_xlim3d(149.5, 154.5)
-ax.set_zlim3d(-0.5, 10)
+#ax.set_xlim3d(149.5, 154.5)
+#ax.set_zlim3d(-0.5, 10)
 
 ax.set_title("Comparison of Correlation Scores", size=22)
 ax.set_ylabel("Retention Time", size=16)
@@ -205,17 +183,11 @@ plt.savefig('score_comparison.png', bbox_inches='tight',
 
 plt.close()
 
-
-""" #HERE
-
 fig_diff = plt.figure()
-ax = fig_diff.add_subplot(111)#, projection='3d')
-
+ax = fig_diff.add_subplot(111)
 
 ax.spines['top'].set_visible(False)
-#ax.spines['bottom'].set_visible(False)
 ax.spines['right'].set_visible(False)
-#ax.spines['left'].set_visible(False)
 
 ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()
@@ -226,21 +198,15 @@ plt.yticks(fontsize=14)
 plt.tick_params(axis='both', which='both', bottom='on', top='off',
                 labelbottom='on', left='on', right='off', labelleft='on')
 
-xx = cpp_data[:, 1]
-yy = cpp_data[:, 0]
-zz = py_data[:, 3] - cpp_data[:, 3]
-#z[z==0] = np.nan
-
-#ax.plot_trisurf(x, y, z, cmap=cm.Spectral, linewidths=0.00, 
-#                vmin=-2, vmax=2)
+xx = data1[:, 1]
+yy = data2[:, 0]
+zz = data1[:, 3] - data2[:, 3]
 
 ax.axhline(0.0, linestyle='--', color='k', alpha=0.8)
 
-ax.scatter(xx, zz,#y, z, 
+ax.scatter(xx, zz, 
            c=zz,
            cmap=cm.Spectral,
-           #vmin=0.0,
-           #vmax=100,
            marker='o',
            s=60,
            linewidths=0.0,
@@ -248,16 +214,13 @@ ax.scatter(xx, zz,#y, z,
            label='Difference'
            )
            
-ax.set_xlim(149.5, 154.5)
-ax.set_ylim(-2, 2)
+#ax.set_xlim(149.5, 154.5)
+#ax.set_ylim(-2, 2)
 
 ax.set_title("Difference in Correlation Scores", size=22)
-#ax.set_ylabel("Retention Time", size=16)
 ax.set_xlabel("m/z value", size=16)
-ax.set_ylabel("Python - C++", size=16)
-#ax.view_init(azim=-56, elev=25)
+ax.set_ylabel("Difference", size=16)
 
-#plt.show()
 plt.savefig('score_difference.png', bbox_inches='tight', 
             dpi=300)
 
