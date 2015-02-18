@@ -1,13 +1,19 @@
 #!/bin/env python
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 
+parser = argparse.ArgumentParser()
+parser.add_argument('py_file', help='path to Python output file')
+parser.add_argument('cpp_file', help='path to CPP output file')
+args = parser.parse_args()
+
 py_data = []
 
-with open('python_output_full.txt') as py_out:
+with open(args.py_file) as py_out:
     for line in py_out:
         data = line.split(',')
         data = [float(d) for d in data]
@@ -15,7 +21,7 @@ with open('python_output_full.txt') as py_out:
 
 cpp_data = []
 
-with open('output2.txt') as cpp_out:
+with open(args.cpp_file) as cpp_out:
     for line in cpp_out:
         data = line.split(',')
         data = [float(d) for d in data]
