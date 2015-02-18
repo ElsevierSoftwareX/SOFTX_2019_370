@@ -45,13 +45,9 @@ def main():
     print "Creating plots..."
 
     plot_line_comp(data1, data2, dark2_3)
-    print "Finished line comparison"
     plot_peaks(data1, data2)
-    print "Finished peaks"
     plot_score_comp(data2, data2, dark2_3)
-    print "Finished score comparison"
     plot_score_diff(data1, data2)
-    print "Finished score difference"
 
     print "Done!"
 
@@ -122,7 +118,6 @@ def plot_line_comp(data1, data2, colours):
     mz2 = data2[:, 1]
     ms2 = data2[:, 3]
 
-
     plt.figure(figsize=(12, 9))
     ax = plt.subplot(111)
 
@@ -183,9 +178,9 @@ def plot_score_comp(data1, data2, colours):
 
     x = data2[:, 1]
     y = data2[:, 0]
-    z = data1[:, 3]
+    z = np.copy(data1[:, 3])
+    z2 = np.copy(data2[:, 3])
     z[z==0] = np.nan
-    z2 = data2[:, 3]
     z2[z2==0] = np.nan
 
     ax.scatter(x, y, z, 
@@ -222,6 +217,12 @@ def plot_score_diff(data1, data2):
     fig_diff = plt.figure()
     ax = fig_diff.add_subplot(111)
 
+    xx = data1[:, 1]
+    yy = data2[:, 0]
+    z1 = data1[:, 3] 
+    z2 = data2[:, 3]
+    zz = z1 - z2
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -234,9 +235,6 @@ def plot_score_diff(data1, data2):
     plt.tick_params(axis='both', which='both', bottom='on', top='off',
                     labelbottom='on', left='on', right='off', labelleft='on')
 
-    xx = data1[:, 1]
-    yy = data2[:, 0]
-    zz = data1[:, 3] - data2[:, 3]
 
     ax.axhline(0.0, linestyle='--', color='k', alpha=0.8)
 
