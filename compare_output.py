@@ -170,7 +170,7 @@ def plot_peaks(data1, data2):
     ax.view_init(azim=-56, elev=25)
     zticks = ax.get_zticks().tolist()
     zticks = [int(z) / 1000 for z in zticks]
-    ax.set_zticklabels(zticks[1:])
+    ax.set_zticklabels(zticks)
 
     plt.savefig('intensity_peaks.png', bbox_inches='tight', dpi=300)
     
