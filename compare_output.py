@@ -14,21 +14,10 @@ def main():
     parser.add_argument('output2', help='path to second output file')
     args = parser.parse_args()
 
-    data1 = []
+    print "Loading data..."
 
-    with open(args.output1) as out1:
-        for line in out1:
-            data = line.split(',')
-            data = [float(d) for d in data]
-            data1.append(data)
-
-    data2 = []
-
-    with open(args.output2) as out2:
-        for line in out2:
-            data = line.split(',')
-            data = [float(d) for d in data]
-            data2.append(data)
+    data1 = read_data(args.output1)
+    data2 = read_data(args.output2)
 
     if not len(data1) == len(data2):
         print "Output files have different lengths and cannot be compared"
@@ -56,11 +45,28 @@ def main():
     print "Creating plots..."
 
     plot_line_comp(data1, data2, dark2_3)
+    print "Finished line comparison"
     plot_peaks(data1, data2)
+    print "Finished peaks"
     plot_score_comp(data2, data2, dark2_3)
+    print "Finished score comparison"
     plot_score_diff(data1, data2)
+    print "Finished score difference"
 
     print "Done!"
+
+
+def read_data(datafile):
+    
+    data_list = []
+
+    with open(datafile) as df:
+        for line in df:
+            data = line.split(',')
+            data = [float(d) for d in data]
+            data_list.append(data)
+
+    return data_list
 
 
 def compare_zeros(data1, data2):
