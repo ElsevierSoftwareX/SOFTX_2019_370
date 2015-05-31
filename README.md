@@ -13,7 +13,7 @@ available on [Slideshare](http://goo.gl/106Yvr).
 
 ### Step 1: Clone this repository
 
-`git clone git@github.com:lazappi/HiTIME-CPP.git`
+`git clone https://github.com/bjpop/HiTIME-CPP`
 
 ### Step 2: Load required modules
 
