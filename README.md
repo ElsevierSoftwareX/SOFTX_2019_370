@@ -9,7 +9,13 @@ implementation is based on the
 Slides describing the HiTIME algorithm and the development of HiTIME-CPP are
 available on [Slideshare](http://goo.gl/106Yvr).
 
-# Build Instructions
+## License
+
+HiTIME is released as open source software under the terms of the 3-Clause BSD License.
+See the contents of the file called LICENSE in the top level of the source
+code repository for a copy of the terms.
+
+## Build Instructions
 
 ### Step 1: Clone this repository
 
@@ -44,9 +50,47 @@ variables in `Makefile` if your library locations are different.
 Test data is included in this repository. Running the following command
 should produce meaningful output saved in out.txt:
 
-`./hitime.out data/testing.mzML out.txt`
+```
+    ./hitime.out ../data/testing.mzML out.txt
+```
 
-# Documentation
+Or launch a job on the cluster using the test slurm script:
+
+```
+    cd ../scripts
+    sbatch test.slurm
+```
+
+## Usage
+
+```
+Usage:     ./hitime [-options] [arguments]
+
+options:   -h  show this help information
+           -i  ratio of doublet intensities (isotope 
+               / parent)
+           -r  full width at half maximum for 
+               retention time in number of scans
+           -R  retention time width boundary in 
+               standard deviations
+           -p  m/z tolerance in parts per million
+           -m  m/z full width at half maximum in 
+               parts per million
+           -M  m/z window boundary in standard 
+               deviations
+           -D  m/z difference for doublets
+           -s  minimum number of data points 
+               required in each sample region
+           -o  turn on full output, including zero 
+               score points
+
+arguments: mzML_file     path to mzML file
+           out_file      path to output file
+
+example:   ./hitime example.mzML output.txt
+```
+
+## Documentation
 
 The HiTIME-CPP source has been documented using 
 [Doxygen](http://www.stack.nl/~dimitri/doxygen/index.html) type comments. These 
@@ -67,7 +111,7 @@ produce PDF documentation change to the `latex` directory and run:
 A `refman.pdf` file should be created with the HiTIME-CPP documentation. Please
 note PDF documentation requires PDFLatex to be available.
 
-# Please Note:
+## Please Note:
 
 HiTIME-CPP is currently under active development, as such functionality can
 be expected to change frequently and without notice. These instructions have

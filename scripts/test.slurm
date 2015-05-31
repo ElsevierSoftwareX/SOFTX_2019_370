@@ -34,5 +34,4 @@ fi
 
 module load boost-gcc/1.57.0
 module load pwiz-gcc/3.0.7069
-./hitime.out data/testing.mzML testing.txt
-#./hitime.out data/rat.mzML rat.out
+../src/hitime ../data/testing.mzML testing.txt

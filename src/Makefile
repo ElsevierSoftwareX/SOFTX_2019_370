@@ -21,7 +21,7 @@ RM	  = rm -f
 SRCS=hitime.cpp
 OBJS=$(subst .cpp,.o,$(SRCS))
 
-all: hitime.out
+all: hitime
 
 hitime.out: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o hitime.out $(OBJS)
