@@ -19,7 +19,9 @@ code repository for a copy of the terms.
 
 ### Step 1: Clone this repository
 
-`git clone https://github.com/bjpop/HiTIME-CPP`
+```
+    git clone https://github.com/bjpop/HiTIME-CPP
+```
 
 ### Step 2: Load required modules
 
@@ -64,30 +66,30 @@ Or launch a job on the cluster using the test slurm script:
 ## Usage
 
 ```
-Usage:     ./hitime [-options] [arguments]
-
-options:   -h  show this help information
-           -i  ratio of doublet intensities (isotope 
-               / parent)
-           -r  full width at half maximum for 
-               retention time in number of scans
-           -R  retention time width boundary in 
-               standard deviations
-           -p  m/z tolerance in parts per million
-           -m  m/z full width at half maximum in 
-               parts per million
-           -M  m/z window boundary in standard 
-               deviations
-           -D  m/z difference for doublets
-           -s  minimum number of data points 
-               required in each sample region
-           -o  turn on full output, including zero 
-               score points
-
-arguments: mzML_file     path to mzML file
-           out_file      path to output file
-
-example:   ./hitime example.mzML output.txt
+    Usage:     ./hitime [-options] [arguments]
+    
+    options:   -h  show this help information
+               -i  ratio of doublet intensities (isotope 
+                   / parent)
+               -r  full width at half maximum for 
+                   retention time in number of scans
+               -R  retention time width boundary in 
+                   standard deviations
+               -p  m/z tolerance in parts per million
+               -m  m/z full width at half maximum in 
+                   parts per million
+               -M  m/z window boundary in standard 
+                   deviations
+               -D  m/z difference for doublets
+               -s  minimum number of data points 
+                   required in each sample region
+               -o  turn on full output, including zero 
+                   score points
+    
+    arguments: mzML_file     path to mzML file
+               out_file      path to output file
+    
+    example:   ./hitime example.mzML output.txt
 ```
 
 ## Documentation
@@ -100,13 +102,17 @@ can be used to produce documentation in HTML and PDF (via Latex) formats.
 are available on the Doxygen website. With Doxygen installed the following 
 command can be run to produce the documentation.
 
-`doxygen Doxyfile`.
+```
+    doxygen Doxyfile
+```
 
 The result should be the creation on a `docs/` directory with `html` and `latex`
 subdirectories. The HTML documentation should be viewable using any browser. To
 produce PDF documentation change to the `latex` directory and run:
 
-`make pdf`
+```
+    make pdf
+```
 
 A `refman.pdf` file should be created with the HiTIME-CPP documentation. Please
 note PDF documentation requires PDFLatex to be available.
