@@ -30,9 +30,14 @@ correctly with other versions of gcc such as 4.8.1.
 
 ### Step 3: Compile
 
-Running `make` in the HiTIME-CPP directory should be sufficent to build the
+```
+    cd src
+    make
+```
+
+Running `make` in the `src` directory should be sufficent to build the
 `hitime.out` binary. It may be necessary to modify the `INC` and `LIBDIR`
-variables in `makefile` if your library locations are different.
+variables in `Makefile` if your library locations are different.
 
 ### Step 4: Test
 
