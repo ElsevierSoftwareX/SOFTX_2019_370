@@ -44,7 +44,7 @@ correctly with other versions of gcc such as 4.8.1.
 ```
 
 Running `make` in the `src` directory should be sufficent to build the
-`hitime.out` binary. It may be necessary to modify the `INC` and `LIBDIR`
+`hitime` binary. It may be necessary to modify the `INC` and `LIBDIR`
 variables in `Makefile` if your library locations are different.
 
 ### Step 4: Test
@@ -53,7 +53,7 @@ Test data is included in this repository. Running the following command
 should produce meaningful output saved in out.txt:
 
 ```
-    ./hitime.out ../data/testing.mzML out.txt
+    ./hitime ../data/testing.mzML out.txt
 ```
 
 Or launch a job on the cluster using the test slurm script:
