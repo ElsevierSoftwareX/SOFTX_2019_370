@@ -27,12 +27,12 @@ fi
 #SBATCH --mail-type=END
 
 # The maximum running time of the job in days-hours:mins:sec
-#SBATCH --time=0-24:0:00
+#SBATCH --time=0-10:0:00
 
 # Run the job from the directory where it was launched (default):
 # The job command(s):
 
 module load boost-gcc/1.57.0
 module load pwiz-gcc/3.0.7069
-#./hitime.out data/testing.mzML testing.txt
-./hitime.out data/rat.mzML rat.out
+./hitime.out data/testing.mzML testing.txt
+#./hitime.out data/rat.mzML rat.out
