@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <functional>
 #include <fstream>
+#include <numeric>
 
 #include <OpenMS/KERNEL/OnDiscMSExperiment.h>
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
@@ -53,9 +54,10 @@ const float default_rt_sigma        = 1.5;
 const float default_min_sample      = default_rt_width * default_rt_sigma 
                                         / 2.355;
 //! Pi
-constexpr double pi() { return std::atan(1) * 4; } 
+//constexpr double pi() { return std::atan(1) * 4; } 
 //! Square root of 2 * Pi
-const double root2pi = sqrt(2.0 * pi());
+// const double root2pi = sqrt(2.0 * pi());
+const double root2pi = sqrt(2.0 * M_PI);
 
 
 /*-----------------------------------------------------------------------*/
