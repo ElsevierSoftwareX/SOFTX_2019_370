@@ -1,0 +1,41 @@
+# Instructions for building on OSX
+
+The OpenMS source will be installed in $HOME/code/opems
+you can put it elsewhere, adjust paths accordingly
+
+1) Install dependencies
+
+ - Xcode: https://developer.apple.com/xcode/
+
+ - other dependencies using homebrew:
+
+brew install cmake
+brew install qt4
+brew tap homebrew/science
+brew tap homebrew/versions
+brew install seqan libsvm xerces-c boost coinmp glpk eigen
+
+cd $HOME/code
+mkdir openms
+
+cd $HOME/code/openms
+git clone https://github.com/OpenMS/contrib.git
+mkdir contrib-build
+cd contrib-build/
+
+cd $HOME/code/openms
+git clone https://github.com/OpenMS/OpenMS.git
+cd code/openms
+mkdir openms-build
+cd openms-build
+cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" ../OpenMS
+
+make
+make test
+
+2) Now you can build HiTIME-CPP as a project inside OpenMS
+
+cd $HOME/openms
+
+mkdir hitime-build
+
