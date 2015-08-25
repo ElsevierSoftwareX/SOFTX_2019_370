@@ -109,12 +109,15 @@ class Options {
 void show_usage(char *cmd);
 
 //! @brief Calculate correlation scores for a window of data.
+
+/*
 double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
                         int half_window, Options opts);
 
 //! @brief Write correlation scores to an output stream.
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
                   std::ofstream& out_stream, Options opts); 
+*/
 
 //! @brief Centre a vector by subtracting the mean.
 double_vect centre_vector(double_vect vect);
@@ -165,18 +168,23 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 /********************************* MAIN **********************************/
 /*-----------------------------------------------------------------------*/
 
-int main(int argc, const char** argv)
+int main(int argc, char** argv)
 {
    // Read user options
    Options opts(argc, argv);
 
    IndexedMzMLFileLoader imzml;
+   //MzMLFile mzml;
+
 
    // load data from an indexed MzML file
    OnDiscMSExperiment<> map;
-   //imzml.load(tutorial_data_path + "/data/Tutorial_FileIO_indexed.mzML", map);
-   //imzml.load("/vlsci/VLSCI/bjpop/code/HiTIME-CPP/data/rat.conv.mzML", map);
-   imzml.load(input_mzml_filename, map);
+   //MSExperiment<> map;
+   
+   imzml.load(opts.mzML_file, map);
+   //mzml.load(opts.mzML_file, map);
+   
+   
    // Get the first spectrum in memory, do some constant (non-changing) data processing
    MSSpectrum<> s = map.getSpectrum(0);
    std::cout << "There are " << map.getNrSpectra() << " spectra in the input file." << std::endl;
@@ -186,6 +194,7 @@ int main(int argc, const char** argv)
    //imzml.store("Tutorial_FileIO_output.mzML", map);
 
    // Calculate number of spectra for each window
+   // XXX fix magic number
    int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
 
 
@@ -225,8 +234,6 @@ int main(int argc, const char** argv)
    return 0;
 
 } //end of main
-
-int main(int argc, char *argv[])
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -820,7 +827,7 @@ double_vect correl_vectors(double_vect vect1, double_vect vect2,
     correlated = div_vectors(vect1, mult);
 
     for (auto& c : correlated) {
-        if(isnan(c)) {
+        if(std::isnan(c)) {
             c = 0;
         }
         if(c < 0) {
@@ -1113,8 +1120,8 @@ Options::Options(int argc, char *argv[])
 
     // Check that all attributes have been set
     if (out_file == "") {
-        std::cout << "Insufficient arguments supplies. See usage.";
-        std::cout << std::endl;
+        std::cout << "Insufficient arguments supplied. See usage.\n";
+	show_usage(argv[0]);
         exit(1);
     }
 }
