@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <functional>
 #include <fstream>
+#include <numeric>
 
 #include <OpenMS/KERNEL/OnDiscMSExperiment.h>
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
@@ -17,7 +18,6 @@
 using namespace OpenMS;
 using namespace std;
 
-
 /*
 #include "pwiz_tools/common/FullReaderList.hpp"
 #include "pwiz/data/msdata/MSDataFile.hpp"
@@ -25,12 +25,6 @@ using namespace std;
 #include "pwiz/data/msdata/SpectrumInfo.hpp"
 #include "pwiz/data/common/cv.hpp"
 */
-
-
-/*-----------------------------------------------------------------------*/
-/******************************* CONSTANTS *******************************/
-/*-----------------------------------------------------------------------*/
-
 
 //! Default difference in mass of isotopes.
 const float default_mz_delta        = 6.0201;
@@ -47,20 +41,12 @@ const float default_rt_width        = 17.0;
 //! Default RT boundary sigma.
 const float default_rt_sigma        = 1.5;
 /*! @brief Default minimum number of samples in score regions.
- * 
+ *
  * Calculated from the default RT width and default RT sigma.
  */
-const float default_min_sample      = default_rt_width * default_rt_sigma 
-                                        / 2.355;
-//! Pi
-constexpr double pi() { return std::atan(1) * 4; } 
-//! Square root of 2 * Pi
-const double root2pi = sqrt(2.0 * pi());
+const float default_min_sample = default_rt_width * default_rt_sigma / 2.355;
+const double root2pi = sqrt(2.0 * M_PI);
 
-
-/*-----------------------------------------------------------------------*/
-/******************************* TYPEDEFS ********************************/
-/*-----------------------------------------------------------------------*/
 
 //! Type definition for a standard vector of doubles
 typedef std::vector<double> double_vect;
@@ -70,10 +56,6 @@ typedef std::vector<double> double_vect;
  * Implemented as a standard vector of standard vectors of doubles.
  */
 typedef std::vector<double_vect> double_2d;
-
-/*-----------------------------------------------------------------------*/
-/******************************** CLASSES ********************************/
-/*-----------------------------------------------------------------------*/
 
 /*! @brief Class for holding command line options.
  *
@@ -97,24 +79,23 @@ class Options {
         std::string mzML_file; //!< Path to input file.
         std::string out_file; //!< Path to output file.
 
-        Options(int argc, char *argv[]);        
+        Options(int argc, char *argv[]);
 };
 
-
-/*-----------------------------------------------------------------------*/ 
-/************************* FUNCTION DECLARATIONS *************************/
-/*-----------------------------------------------------------------------*/
 
 //! @brief Print program usage information.
 void show_usage(char *cmd);
 
 //! @brief Calculate correlation scores for a window of data.
-double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx, 
+
+/*
+double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                         int half_window, Options opts);
 
 //! @brief Write correlation scores to an output stream.
 void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
-                  std::ofstream& out_stream, Options opts); 
+                  std::ofstream& out_stream, Options opts);
+*/
 
 //! @brief Centre a vector by subtracting the mean.
 double_vect centre_vector(double_vect vect);
@@ -132,7 +113,7 @@ double_vect mult_vectors(double_vect vect1, double_vect vect2);
 double_vect div_vectors(double_vect vect1, double_vect vect2);
 
 //! @brief Calculate correlation between vectors.
-double_vect correl_vectors(double_vect vect1, double_vect vect2, 
+double_vect correl_vectors(double_vect vect1, double_vect vect2,
                            double_vect vect3);
 
 //! @brief Calculate rm values from two vectors.
@@ -148,7 +129,7 @@ double_vect h_vectors(double_vect f_vect, double_vect rm_vect);
 double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
                       double_vect cross_cor, double_vect h_vect);
 
-//! @brief Apply function to each element of a vector. 
+//! @brief Apply function to each element of a vector.
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
@@ -160,23 +141,22 @@ std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
 template <typename T, typename F>
 std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func);
 
- 
-/*-----------------------------------------------------------------------*/
-/********************************* MAIN **********************************/
-/*-----------------------------------------------------------------------*/
 
-int main(int argc, const char** argv)
+int main(int argc, char** argv)
 {
    // Read user options
    Options opts(argc, argv);
 
    IndexedMzMLFileLoader imzml;
+   //MzMLFile mzml;
 
    // load data from an indexed MzML file
    OnDiscMSExperiment<> map;
-   //imzml.load(tutorial_data_path + "/data/Tutorial_FileIO_indexed.mzML", map);
-   //imzml.load("/vlsci/VLSCI/bjpop/code/HiTIME-CPP/data/rat.conv.mzML", map);
-   imzml.load(input_mzml_filename, map);
+   //MSExperiment<> map;
+
+   imzml.load(opts.mzML_file, map);
+   //mzml.load(opts.mzML_file, map);
+
    // Get the first spectrum in memory, do some constant (non-changing) data processing
    MSSpectrum<> s = map.getSpectrum(0);
    std::cout << "There are " << map.getNrSpectra() << " spectra in the input file." << std::endl;
@@ -186,6 +166,7 @@ int main(int argc, const char** argv)
    //imzml.store("Tutorial_FileIO_output.mzML", map);
 
    // Calculate number of spectra for each window
+   // XXX fix magic number
    int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
 
 
@@ -198,7 +179,7 @@ int main(int argc, const char** argv)
    int rt_len = spectrumList.size();
    double_2d score;
    pwiz::msdata::SpectrumPtr centre_vect;
-    
+
    // Setup output stream
    std::ofstream outfile;
    outfile.open(opts.out_file);
@@ -209,10 +190,10 @@ int main(int argc, const char** argv)
 
        // Select the centre spectrum
        centre_vect = spectrumList.spectrum(centre_rt, opts.getBinaryData);
-        
+
        // Score the window
        score = score_spectra(msd, centre_rt, half_window, opts);
-        
+
        // Output the results
        write_scores(score, centre_vect, outfile, opts);
    }
@@ -224,9 +205,7 @@ int main(int argc, const char** argv)
    std::cout << "Done!" << std::endl;
    return 0;
 
-} //end of main
-
-int main(int argc, char *argv[])
+}
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -234,15 +213,15 @@ int main(int argc, char *argv[])
  * @param msd Reference to the input MS data file.
  * @param centre_idx Index of the spectrum to score.
  * @param half_window The number of spectra each side of the central spectrum
- * to include. 
+ * to include.
  * @param opts Options object.
  *
- * @return Vector of five vectors (min score, correlAB, correlA0, correlB0, 
+ * @return Vector of five vectors (min score, correlAB, correlA0, correlB0,
  * correl1r) giving score for each MZ in the central spectrum.
  */
-   
+
 /*
-double_2d 
+double_2d
 score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
               int half_window, Options opts)
 {
@@ -263,7 +242,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     pwiz::msdata::SpectrumPtr mz_mu_vect;
     mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
     mz_mu_vect->getMZIntensityPairs(mz_mu_pairs);
-    
+
     double_vect points_lo_lo;
     double_vect points_lo_hi;
     double_vect points_hi_lo;
@@ -294,26 +273,26 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
     std::vector<float> rt_shape;
 
-    // Calculate guassian shape in the RT direction 
+    // Calculate guassian shape in the RT direction
     for (int i = 0; i < (2 * half_window) + 1; ++i) {
 
         float pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
-        pt = exp(pt) / (rt_sigma * root2pi); 
-    
+        pt = exp(pt) / (rt_sigma * root2pi);
+
         rt_shape.push_back(pt);
     }
 
     // Iterate over the spectra in the window
-    for (int rowi = mid_win - half_window; 
+    for (int rowi = mid_win - half_window;
          rowi <= mid_win + half_window; ++rowi) {
-        
+
         float rt_lo = rt_shape[rowi - rt_offset];
         float rt_hi = rt_lo;
 
         // Iterate over the points in the central spectrum
         for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
-    
+
             // Get the tolerances and value for this point
             double lo_tol_lo = points_lo_lo[mzi];
             double lo_tol_hi = points_lo_hi[mzi];
@@ -333,17 +312,17 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             pwiz::msdata::SpectrumPtr hi_spectrum;
             std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
             std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
-            
+
             // Check if spectrum within bounds of the file...
             if (rowi >= 0 && rowi < rt_len) {
-                
+
                 // Select points within tolerance for current spectrum
                 lo_spectrum = lo_window.spectrum(rowi, opts.getBinaryData);
                 lo_spectrum->getMZIntensityPairs(lo_pairs);
-           
+
                 // Check if points found...
                 if (lo_pairs.size() > 0) {
-            
+
                     // Calculate guassian value for each found MZ
                     for (auto pair : lo_pairs) {
                         float mz = (pair.mz - centre) / sigma;
@@ -352,7 +331,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                         shape_lo[mzi].push_back(mz);
                         data_lo[mzi].push_back(pair.intensity);
                     }
-                    
+
                     len_lo[mzi] += lo_pairs.size();
 
                 // ...if not, use dummy data
@@ -365,22 +344,22 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             } else {
                 data_lo[mzi].push_back(0);
                 shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
-            }           
-    
+            }
+
             // Increment centre to hi peak
             centre += opts.mz_delta;
             sigma = centre * mz_ppm_sigma;
-            
+
             // Check if spectrum within bounds of the file...
             if (rowi >= 0 && rowi < rt_len) {
-                
+
                 // Select points within tolerance for current spectrum
                 hi_spectrum = hi_window.spectrum(rowi, opts.getBinaryData);
                 hi_spectrum->getMZIntensityPairs(hi_pairs);
-            
+
                 // Check if points found...
                 if (hi_pairs.size() > 0) {
-            
+
                     // Calculate guassian value for each found MZ
                     for (auto pair : hi_pairs) {
                         float mz = (pair.mz - centre) / sigma;
@@ -396,7 +375,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
                     data_hi[mzi].push_back(0);
                     shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
                 }
-            
+
             // ...if outside use dummy data for this spectrum
             } else {
                 data_lo[mzi].push_back(0);
@@ -433,11 +412,11 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
     // Setup combined data vector
     for (size_t i = 0; i < data_lo.size(); ++i) {
-        
+
         double_vect dataAB_row;
         size_t length_lo = data_lo[i].size();
         size_t length_hi = data_hi[i].size();
-        
+
         for (auto lo_value : data_lo[i]){
             dataAB_row.push_back(lo_value * length_hi);
         }
@@ -448,7 +427,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
         nAB.push_back(length_lo + length_hi);
     }
-   
+
     double_2d shapeAB;
     double_2d shapeA0;
     double_2d shapeB0;
@@ -456,14 +435,14 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 
     // Setup alternative shape vectors
     for (size_t i = 0; i < shape_lo.size(); ++i) {
-        
+
         double_vect shapeAB_row;
         double_vect shapeA0_row;
         double_vect shapeB0_row;
         double_vect shape1r_row;
         size_t length_lo = shape_lo[i].size();
         size_t length_hi = shape_hi[i].size();
-        
+
         for (auto lo_value : shape_lo[i]){
             shapeAB_row.push_back(lo_value * length_hi);
             shapeA0_row.push_back(lo_value * length_hi);
@@ -476,20 +455,20 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
             shapeB0_row.push_back(hi_value * length_lo);
             shape1r_row.push_back(opts.intensity_ratio * length_lo);
         }
-        
+
         shapeAB.push_back(shapeAB_row);
         shapeA0.push_back(shapeA0_row);
         shapeB0.push_back(shapeB0_row);
         shape1r.push_back(shape1r_row);
-    } 
-    
+    }
+
     // Centre vectors
     dataAB  = apply_vect_func(dataAB,  centre_vector);
     shapeAB = apply_vect_func(shapeAB, centre_vector);
     shapeA0 = apply_vect_func(shapeA0, centre_vector);
     shapeB0 = apply_vect_func(shapeB0, centre_vector);
     shape1r = apply_vect_func(shape1r, centre_vector);
-                
+
     double_2d data2AB;
     double_2d shape2AB;
     double_2d shape2A0;
@@ -557,16 +536,16 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     correlABA0 = correl_vectors(SXYABA0, SSXAB, SSXA0);
     correlABB0 = correl_vectors(SXYABB0, SSXAB, SSXB0);
     correlAB1r = correl_vectors(SXYAB1r, SSXAB, SSX1r);
-    
+
     double_vect rm2ABA0;
     double_vect rm2ABB0;
     double_vect rm2AB1r;
-    
+
     // Calculate rm values between correlations
     rm2ABA0 = rm_vectors(correlAB, correlA0);
     rm2ABB0 = rm_vectors(correlAB, correlB0);
     rm2AB1r = rm_vectors(correlAB, correl1r);
-    
+
     double_vect fABA0;
     double_vect fABB0;
     double_vect fAB1r;
@@ -575,7 +554,7 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     fABA0 = f_vectors(correlABA0, rm2ABA0);
     fABB0 = f_vectors(correlABB0, rm2ABB0);
     fAB1r = f_vectors(correlAB1r, rm2AB1r);
-    
+
     double_vect hABA0;
     double_vect hABB0;
     double_vect hAB1r;
@@ -584,12 +563,12 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     hABA0 = h_vectors(fABA0, rm2ABA0);
     hABB0 = h_vectors(fABB0, rm2ABB0);
     hAB1r = h_vectors(fAB1r, rm2AB1r);
-    
+
     // Subtract 3 and square root
     std::for_each(nAB.begin(), nAB.end(), [](double& d) { d-=3.0;});
-    std::transform(nAB.begin(), nAB.end(), nAB.begin(), 
+    std::transform(nAB.begin(), nAB.end(), nAB.begin(),
                                                  (double(*)(double)) sqrt);
-   
+
     double_vect zABA0;
     double_vect zABB0;
     double_vect zAB1r;
@@ -618,10 +597,6 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
 }
 */
 
-
-/*-----------------------------------------------------------------------*/
-/************************* FUNCTION DEFINITIONS **************************/
-/*-----------------------------------------------------------------------*/
 
 /*! Display program usage information to the user. Called when no arguments
  * are supplied or the -h option is given.
@@ -676,29 +651,29 @@ void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
     pwiz::msdata::SpectrumInfo spectrum_info;
     spectrum_info.update(*raw_data, opts.getBinaryData);
     double rt = spectrum_info.retentionTime;
-    
+
     // Get raw MZ/Intensity pairs
     std::vector<pwiz::msdata::MZIntensityPair> raw_pairs;
     raw_data->getMZIntensityPairs(raw_pairs);
-    
+
     // Write output
     for (size_t idx = 0; idx < raw_pairs.size(); ++idx) {
         double mz  = raw_pairs[idx].mz;
         double amp = raw_pairs[idx].intensity;
-        double ms  = scores[0][idx]; 
+        double ms  = scores[0][idx];
         double AB  = scores[1][idx];
         double A0  = scores[2][idx];
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
         if (opts.full_out == true) {
-            out_stream << rt << ", " << mz << ", " << amp << ", " 
-                       << ms << ", " << AB << ", " << A0 << ", " 
-                       << B0 << ", " << r1 << std::endl; 
+            out_stream << rt << ", " << mz << ", " << amp << ", "
+                       << ms << ", " << AB << ", " << A0 << ", "
+                       << B0 << ", " << r1 << std::endl;
         } else {
             if (ms > 0.0) {
-                out_stream << rt << ", " << mz << ", " << amp << ", " 
-                           << ms << ", " << AB << ", " << A0 << ", " 
+                out_stream << rt << ", " << mz << ", " << amp << ", "
+                           << ms << ", " << AB << ", " << A0 << ", "
                            << B0 << ", " << r1 << std::endl;
             }
         }
@@ -745,9 +720,9 @@ double_vect square_vector(double_vect vect)
 
 /*! Add up all the values in a vector.
  *
- * @param vect The vector to sum. 
+ * @param vect The vector to sum.
  *
- * @return The summed value. 
+ * @return The summed value.
  */
 double sum_vector(double_vect vect)
 {
@@ -779,8 +754,8 @@ double_vect mult_vectors(double_vect vect1, double_vect vect2)
 
     return mult;
 }
-   
-/*! Divide values from one vector by values from a second vector of equal 
+
+/*! Divide values from one vector by values from a second vector of equal
  * length.
  *
  * @param vect1 The vector to be divided (numerator).
@@ -808,19 +783,19 @@ double_vect div_vectors(double_vect vect1, double_vect vect2)
 
 /*!@todo Explain input vectors and return correl vector
  */
-double_vect correl_vectors(double_vect vect1, double_vect vect2, 
+double_vect correl_vectors(double_vect vect1, double_vect vect2,
                            double_vect vect3)
 {
     double_vect correlated;
     double_vect mult;
 
     mult = mult_vectors(vect2, vect3);
-    std::transform(mult.begin(), mult.end(), mult.begin(), 
+    std::transform(mult.begin(), mult.end(), mult.begin(),
                                             (double(*)(double)) std::sqrt);
     correlated = div_vectors(vect1, mult);
 
     for (auto& c : correlated) {
-        if(isnan(c)) {
+        if(std::isnan(c)) {
             c = 0;
         }
         if(c < 0) {
@@ -836,7 +811,7 @@ double_vect correl_vectors(double_vect vect1, double_vect vect2,
  * @param vect1 The first values in the equation.
  * @param vect2 The second values in the equation.
  *
- * @return Vector of calculated RM values. 
+ * @return Vector of calculated RM values.
  */
 double_vect rm_vectors(double_vect vect1, double_vect vect2)
 {
@@ -893,11 +868,11 @@ double_vect f_vectors(double_vect correl_vect, double_vect rm_vect)
     return f_vect;
 }
 
-/*! @param f_vect Vector of values returned by f_vectors. 
+/*! @param f_vect Vector of values returned by f_vectors.
  * @param rm_vect Vector of values returned by rm_vectors.
  *
  * @return Vector of calculated h values.
- * 
+ *
  * @todo Explain what h value is.
  */
 double_vect h_vectors(double_vect f_vect, double_vect rm_vect)
@@ -934,13 +909,13 @@ double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
         cor1.size() != h_vect.size()) {
         throw std::invalid_argument("Vectors have different lengths");
     }
-    
+
     // Calculate z score
     for (size_t idx = 0; idx < cor1.size(); ++idx) {
-        
+
         double z1  = std::atanh(cor1[idx]);
         double z2  = std::atanh(cor2[idx]);
-        
+
         double num   = (z1 - z2) * sqrtn[idx];
         double denom = 2.0 * (1.0 - cross_cor[idx]) * h_vect[idx];
 
@@ -963,7 +938,7 @@ template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func)
 {
     std::vector<T> applied;
-    
+
     for (auto v : vect) {
         applied.push_back(func(v));
     }
@@ -979,15 +954,15 @@ std::vector<T> apply_vect_func(std::vector<T> vect, F func)
  * @param func Function to apply to each pair of elements. Must return a single
  * value of the same type as the vectors
  *
- * @returns Vector containing results from applying _func_ to _vect1_ and 
+ * @returns Vector containing results from applying _func_ to _vect1_ and
  * _vect2_.
  */
 template <typename T, typename F>
-std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2, 
+std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
                                                                      F func)
 {
     std::vector<T> applied;
-    
+
     // Throw exception if vectors of different lengths
     if (vect1.size() != vect2.size()) {
         throw std::invalid_argument("Vectors have different lengths");
@@ -1004,7 +979,7 @@ std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
  * to each element vector to give a 1D vector of the same type.
  *
  * @param vect2D 2D vector to apply the function too.
- * @param func Function to apply to each element of the 2D vector. Must take a 
+ * @param func Function to apply to each element of the 2D vector. Must take a
  * vector and return a single value of same type as the vector.
  *
  * @returns Vector containing results from applying _func_ to _vect2D_.
@@ -1021,15 +996,11 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
     return reduced;
 }
 
-/*-----------------------------------------------------------------------*/
-/***************************** CLASS METHODS *****************************/
-/*-----------------------------------------------------------------------*/
-
 /*! @brief Options object constructor.
  *
  * Construct new Options object by reading in arguments from the command line.
  * The number of required arguments in checked.
- * 
+ *
  * @param argc The argument count passed to Main
  * @param argv The argument value array passed to Main
  *
@@ -1061,7 +1032,7 @@ Options::Options(int argc, char *argv[])
 
     // Check arguments and assign to attributes
     while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:o")) != -1){
-        
+
         switch (opt) {
             case 'h':
                 show_usage(argv[0]);
@@ -1100,7 +1071,7 @@ Options::Options(int argc, char *argv[])
     // Read remaining text arguments
     for (opt_idx = optind; opt_idx < argc; opt_idx++) {
 
-        if (mzML_file == "") { 
+        if (mzML_file == "") {
             mzML_file = argv[opt_idx];
         } else if (out_file == "") {
             out_file = argv[opt_idx];
@@ -1113,8 +1084,8 @@ Options::Options(int argc, char *argv[])
 
     // Check that all attributes have been set
     if (out_file == "") {
-        std::cout << "Insufficient arguments supplies. See usage.";
-        std::cout << std::endl;
+        std::cout << "Insufficient arguments supplied. See usage.\n";
+	show_usage(argv[0]);
         exit(1);
     }
 }
