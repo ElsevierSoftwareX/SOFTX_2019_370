@@ -1,5 +1,7 @@
 #include <numeric>
 #include <cmath>
+#include <stdexcept>
+#include <algorithm>
 #include "vector.h"
 
 /*! Calculate the mean of all values in the vector and subtract from each
