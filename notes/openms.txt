@@ -1,0 +1,3 @@
+# Adding external code to OpenMS
+
+http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/external_code.html
