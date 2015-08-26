@@ -93,3 +93,9 @@ target/
 *.swp
 *.png
 docs/
+
+src/CMakeCache.txt
+src/CMakeFiles/
+src/Main
+src/cmake_install.cmake
+src/Makefile
