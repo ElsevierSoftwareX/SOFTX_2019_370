@@ -11,6 +11,7 @@ set(my_executables
 ## (all these classes will be linked into a library)
 set(my_sources
 	vector.cpp
+	score.cpp
 	#ExampleLibraryFile.cpp
 	#Tutorial_FileIO_mzML.cpp
 )
