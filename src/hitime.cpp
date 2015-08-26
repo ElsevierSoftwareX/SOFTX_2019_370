@@ -1,5 +1,8 @@
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
 #include "options.h"
+#include "constants.h"
+#include "vector.h"
+#include "score.h"
 
 using namespace OpenMS;
 using namespace std;
@@ -19,18 +22,45 @@ int main(int argc, char** argv)
    imzml.load(opts.mzML_file, map);
    //mzml.load(opts.mzML_file, map);
 
+   // Calculate number of spectra for each window
+   int half_window = ceil(opts.rt_sigma * opts.rt_width / std_dev_in_fwhm);
+
+   // Setup output stream
+   std::ofstream outfile;
+   outfile.open(opts.out_file);
+   outfile.precision(12);
+
+   double_2d score;
+
+   for (Size n = 0; n < map.getNrSpectra(); n++)
+   {
+       //MSSpectrum<> s = map.getSpectrum(n);
+       // Score the window
+       score = score_spectra(map, n, half_window, opts);
+
+       // Output the results
+       //write_scores(score, centre_vect, outfile, opts);
+
+       /*
+       std::cout << "The nth spectrum has " << s.size() << " peaks." << endl;
+       MSSpectrum<>::Iterator it;
+       for (it = s.begin(); it != s.end(); ++it)
+       {
+           cout << "(" << it->getMZ() << "," << it->getIntensity() << ")";
+       }
+       cout << endl;
+       */
+   }
+
+   // Close ouput stream
+   outfile.close();
+
    // Get the first spectrum in memory, do some constant (non-changing) data processing
-   MSSpectrum<> s = map.getSpectrum(0);
-   std::cout << "There are " << map.getNrSpectra() << " spectra in the input file." << std::endl;
-   std::cout << "The first spectrum has " << s.size() << " peaks." << std::endl;
+   //MSSpectrum<> s = map.getSpectrum(0);
+   //std::cout << "There are " << map.getNrSpectra() << " spectra in the input file." << std::endl;
 
    // store the (unmodified) data in a different file
    //imzml.store("Tutorial_FileIO_output.mzML", map);
-
-   // Calculate number of spectra for each window
-   // XXX fix magic number
-   int half_window = ceil(opts.rt_sigma * opts.rt_width / 2.355);
-
 
 /*
    // Access the input file using pwiz

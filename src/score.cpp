@@ -1,5 +1,4 @@
 /*
-#include <iostream>
 #include <unistd.h>
 #include <math.h>
 #include <iomanip>
@@ -15,28 +14,29 @@
 #include <OpenMS/KERNEL/OnDiscMSExperiment.h>
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
 #include "vector.h"
+*/
+
+#include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
+#include <iostream>
+#include "vector.h"
+#include "options.h"
+#include "constants.h"
 
 using namespace OpenMS;
 using namespace std;
-*/
-
 
 //! @brief Calculate correlation scores for a window of data.
 
 /*
-double_2d score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
+double_2d score_spectra(OnDiscMSExperiment<> map, int centre_idx,
                         int half_window, Options opts);
-
-//! @brief Write correlation scores to an output stream.
-void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
-                  std::ofstream& out_stream, Options opts);
 */
 
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
  *
- * @param msd Reference to the input MS data file.
+ * @param map collection of spectra in the input.
  * @param centre_idx Index of the spectrum to score.
  * @param half_window The number of spectra each side of the central spectrum
  * to include.
@@ -46,23 +46,26 @@ void write_scores(double_2d scores, pwiz::msdata::SpectrumPtr raw_data,
  * correl1r) giving score for each MZ in the central spectrum.
  */
 
-/*
 double_2d
-score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
+score_spectra(OnDiscMSExperiment<> map, int centre_idx,
               int half_window, Options opts)
 {
+
+    cout << "Scoring spectrum " << centre_idx << endl;
     // Create pointer to the spectrum list
-    pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
+    //pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
 
     // Calculate constant values
-    float  rt_sigma     = opts.rt_width / 2.355;
-    double mz_ppm_sigma = opts.mz_width / 2.355e6;
-    int    rt_len       = spectrumList.size();
+    float  rt_sigma     = opts.rt_width / std_dev_in_fwhm;
+    double mz_ppm_sigma = opts.mz_width / (std_dev_in_fwhm * 1e6);
+    //int    rt_len       = spectrumList.size();
+    Size rt_len = map.getNrSpectra();
     int    mid_win      = centre_idx;
     double lo_tol       = 1.0 - opts.mz_sigma * mz_ppm_sigma;
     double hi_tol       = 1.0 + opts.mz_sigma * mz_ppm_sigma;
     int    rt_offset    = mid_win - half_window;
 
+/*
     // Extract the central spectrum
     std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
     pwiz::msdata::SpectrumPtr mz_mu_vect;
@@ -418,7 +421,8 @@ score_spectra(pwiz::msdata::MSDataFile &msd, int centre_idx,
     // Package return values
     double_2d score = {min_score, correlAB, correlA0,
                                               correlB0, correl1r};
+    */
+    double_2d score = {};
 
     return score;
 }
-*/

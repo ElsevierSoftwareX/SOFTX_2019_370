@@ -1,5 +1,7 @@
 #include <math.h>
 
+//! Convert standard deviation to FWHM
+const float std_dev_in_fwhm = 2.355;
 //! Default difference in mass of isotopes.
 const float default_mz_delta        = 6.0201;
 //! Default MZ tolerance in parts per million.
@@ -18,5 +20,5 @@ const float default_rt_sigma        = 1.5;
  *
  * Calculated from the default RT width and default RT sigma.
  */
-const float default_min_sample = default_rt_width * default_rt_sigma / 2.355;
+const float default_min_sample = default_rt_width * default_rt_sigma / std_dev_in_fwhm;
 const double root2pi = sqrt(2.0 * M_PI);
