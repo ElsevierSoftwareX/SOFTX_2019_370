@@ -151,6 +151,30 @@ hitime.cpp.s:
 	$(MAKE) -f CMakeFiles/hitime.dir/build.make CMakeFiles/hitime.dir/hitime.cpp.s
 .PHONY : hitime.cpp.s
 
+options.o: options.cpp.o
+.PHONY : options.o
+
+# target to build an object file
+options.cpp.o:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/options.cpp.o
+.PHONY : options.cpp.o
+
+options.i: options.cpp.i
+.PHONY : options.i
+
+# target to preprocess a source file
+options.cpp.i:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/options.cpp.i
+.PHONY : options.cpp.i
+
+options.s: options.cpp.s
+.PHONY : options.s
+
+# target to generate assembly for a file
+options.cpp.s:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/options.cpp.s
+.PHONY : options.cpp.s
+
 score.o: score.cpp.o
 .PHONY : score.o
 
@@ -212,6 +236,9 @@ help:
 	@echo "... hitime.o"
 	@echo "... hitime.i"
 	@echo "... hitime.s"
+	@echo "... options.o"
+	@echo "... options.i"
+	@echo "... options.s"
 	@echo "... score.o"
 	@echo "... score.i"
 	@echo "... score.s"

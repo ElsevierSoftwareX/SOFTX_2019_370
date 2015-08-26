@@ -12,8 +12,7 @@ set(my_executables
 set(my_sources
 	vector.cpp
 	score.cpp
-	#ExampleLibraryFile.cpp
-	#Tutorial_FileIO_mzML.cpp
+	options.cpp
 )
 
 ## find OpenMS configuration and register target "OpenMS" (our library)
