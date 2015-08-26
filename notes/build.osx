@@ -26,8 +26,8 @@ cd contrib-build/
 cd $HOME/code/openms
 git clone https://github.com/OpenMS/OpenMS.git
 cd code/openms
-mkdir openms-build
-cd openms-build
+mkdir openms_build
+cd openms_build
 cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" ../OpenMS
 
 make
@@ -35,7 +35,16 @@ make test
 
 2) Now you can build HiTIME-CPP as a project inside OpenMS
 
-cd $HOME/openms
+cd $HOME/code/openms
 
-mkdir hitime-build
 
+cd $HOME/code
+
+https://github.com/bjpop/HiTIME-CPP
+
+# check out the openms branch
+
+cd $HOME/code/HiTIME-CPP/src/
+cmake -D OpenMS_DIR=/Users/bjpop/code/openms/openms_build/ .
+
+make
