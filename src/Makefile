@@ -127,30 +127,6 @@ my_custom_lib/fast:
 	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/build
 .PHONY : my_custom_lib/fast
 
-ExampleLibraryFile.o: ExampleLibraryFile.cpp.o
-.PHONY : ExampleLibraryFile.o
-
-# target to build an object file
-ExampleLibraryFile.cpp.o:
-	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/ExampleLibraryFile.cpp.o
-.PHONY : ExampleLibraryFile.cpp.o
-
-ExampleLibraryFile.i: ExampleLibraryFile.cpp.i
-.PHONY : ExampleLibraryFile.i
-
-# target to preprocess a source file
-ExampleLibraryFile.cpp.i:
-	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/ExampleLibraryFile.cpp.i
-.PHONY : ExampleLibraryFile.cpp.i
-
-ExampleLibraryFile.s: ExampleLibraryFile.cpp.s
-.PHONY : ExampleLibraryFile.s
-
-# target to generate assembly for a file
-ExampleLibraryFile.cpp.s:
-	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/ExampleLibraryFile.cpp.s
-.PHONY : ExampleLibraryFile.cpp.s
-
 hitime.o: hitime.cpp.o
 .PHONY : hitime.o
 
@@ -175,6 +151,30 @@ hitime.cpp.s:
 	$(MAKE) -f CMakeFiles/hitime.dir/build.make CMakeFiles/hitime.dir/hitime.cpp.s
 .PHONY : hitime.cpp.s
 
+vector.o: vector.cpp.o
+.PHONY : vector.o
+
+# target to build an object file
+vector.cpp.o:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/vector.cpp.o
+.PHONY : vector.cpp.o
+
+vector.i: vector.cpp.i
+.PHONY : vector.i
+
+# target to preprocess a source file
+vector.cpp.i:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/vector.cpp.i
+.PHONY : vector.cpp.i
+
+vector.s: vector.cpp.s
+.PHONY : vector.s
+
+# target to generate assembly for a file
+vector.cpp.s:
+	$(MAKE) -f CMakeFiles/my_custom_lib.dir/build.make CMakeFiles/my_custom_lib.dir/vector.cpp.s
+.PHONY : vector.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -185,12 +185,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... my_custom_lib"
-	@echo "... ExampleLibraryFile.o"
-	@echo "... ExampleLibraryFile.i"
-	@echo "... ExampleLibraryFile.s"
 	@echo "... hitime.o"
 	@echo "... hitime.i"
 	@echo "... hitime.s"
+	@echo "... vector.o"
+	@echo "... vector.i"
+	@echo "... vector.s"
 .PHONY : help
 
 

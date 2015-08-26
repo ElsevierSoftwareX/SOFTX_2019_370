@@ -10,7 +10,8 @@ set(my_executables
 ## list all classes here, which are required by your executables
 ## (all these classes will be linked into a library)
 set(my_sources
-	ExampleLibraryFile.cpp
+	vector.cpp
+	#ExampleLibraryFile.cpp
 	#Tutorial_FileIO_mzML.cpp
 )
 
