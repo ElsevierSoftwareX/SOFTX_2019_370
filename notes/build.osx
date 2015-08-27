@@ -9,11 +9,15 @@ you can put it elsewhere, adjust paths accordingly
 
  - other dependencies using homebrew:
 
+brew install autoconf
+brew install automake
+brew install libtool
 brew install cmake
 brew install qt4
 brew tap homebrew/science
 brew tap homebrew/versions
 brew install seqan libsvm xerces-c boost coinmp glpk eigen
+# XXX coinmp doesn't seem to work from brew install, don't worry it isn't really needed.
 
 cd $HOME/code
 mkdir openms
@@ -22,10 +26,13 @@ cd $HOME/code/openms
 git clone https://github.com/OpenMS/contrib.git
 mkdir contrib-build
 cd contrib-build/
+cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=WILDMAGIC $HOME/code/openms/contrib
+cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=GLPK $HOME/code/openms/contrib
+cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=EIGEN $HOME/code/openms/contrib
 
 cd $HOME/code/openms
 git clone https://github.com/OpenMS/OpenMS.git
-cd code/openms
+cd $HOME/code/openms
 mkdir openms_build
 cd openms_build
 cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" ../OpenMS
@@ -33,10 +40,7 @@ cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" ../O
 make
 make test
 
-2) Now you can build HiTIME-CPP as a project inside OpenMS
-
-cd $HOME/code/openms
-
+2) Now you can build HiTIME-CPP 
 
 cd $HOME/code
 
@@ -45,6 +49,6 @@ https://github.com/bjpop/HiTIME-CPP
 # check out the openms branch
 
 cd $HOME/code/HiTIME-CPP/src/
-cmake -D OpenMS_DIR=/Users/bjpop/code/openms/openms_build/ .
+cmake -D OpenMS_DIR=$HOME/code/openms/openms_build/ .
 
 make
