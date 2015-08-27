@@ -1,1 +1,1 @@
-./hitime ../data/testing.mzML out
+./hitime ../data/testing.mzML out.mzML
