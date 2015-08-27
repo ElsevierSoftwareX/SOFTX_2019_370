@@ -1,22 +1,5 @@
-/*
-#include <unistd.h>
-#include <math.h>
-#include <iomanip>
-#include <cstdlib>
-#include <string>
-#include <cmath>
-#include <algorithm>
-#include <stdexcept>
-#include <functional>
-#include <fstream>
-#include <numeric>
-#include <iostream>
-#include <OpenMS/KERNEL/OnDiscMSExperiment.h>
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
-#include "vector.h"
-*/
-
-#include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
+#include <OpenMS/KERNEL/Peak1D.h>
 #include <iostream>
 #include "vector.h"
 #include "options.h"
@@ -24,14 +7,6 @@
 
 using namespace OpenMS;
 using namespace std;
-
-//! @brief Calculate correlation scores for a window of data.
-
-/*
-double_2d score_spectra(OnDiscMSExperiment<> map, int centre_idx,
-                        int half_window, Options opts);
-*/
-
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -47,33 +22,25 @@ double_2d score_spectra(OnDiscMSExperiment<> map, int centre_idx,
  */
 
 double_2d
-score_spectra(OnDiscMSExperiment<> map, int centre_idx,
-              int half_window, Options opts)
+score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options opts)
 {
-
-    cout << "Scoring spectrum " << centre_idx << endl;
-    // Create pointer to the spectrum list
-    //pwiz::msdata::SpectrumList& spectrumList = *msd.run.spectrumListPtr;
-
     // Calculate constant values
-    float  rt_sigma     = opts.rt_width / std_dev_in_fwhm;
+    float rt_sigma = opts.rt_width / std_dev_in_fwhm;
     double mz_ppm_sigma = opts.mz_width / (std_dev_in_fwhm * 1e6);
-    //int    rt_len       = spectrumList.size();
     Size rt_len = map.getNrSpectra();
-    int    mid_win      = centre_idx;
-    double lo_tol       = 1.0 - opts.mz_sigma * mz_ppm_sigma;
-    double hi_tol       = 1.0 + opts.mz_sigma * mz_ppm_sigma;
-    int    rt_offset    = mid_win - half_window;
+    // XXX why rename centre_idx to mid_win?
+    int mid_win = centre_idx;
+    double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
+    double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
+    int rt_offset = mid_win - half_window;
 
-/*
-    // Extract the central spectrum
-    std::vector<pwiz::msdata::MZIntensityPair> mz_mu_pairs;
-    pwiz::msdata::SpectrumPtr mz_mu_vect;
-    mz_mu_vect = spectrumList.spectrum(mid_win, opts.getBinaryData);
-    mz_mu_vect->getMZIntensityPairs(mz_mu_pairs);
+    // XXX mz_mu_vect seems like a bad name
+    MSSpectrum<> mz_mu_vect = map.getSpectrum(mid_win);
 
+    // Low peak tolerances
     double_vect points_lo_lo;
     double_vect points_lo_hi;
+    // High peak tolerances
     double_vect points_hi_lo;
     double_vect points_hi_hi;
 
@@ -85,11 +52,14 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx,
     std::vector<int> len_hi;
 
     // Calculate tolerances for the lo and hi peak for each central MZ
-    for (auto pair : mz_mu_pairs) {
-        points_lo_lo.push_back(pair.mz * lo_tol);
-        points_lo_hi.push_back(pair.mz * hi_tol);
-        points_hi_lo.push_back((pair.mz + opts.mz_delta) * lo_tol);
-        points_hi_hi.push_back((pair.mz + opts.mz_delta) * hi_tol);
+    MSSpectrum<>::Iterator it;
+    for (it = mz_mu_vect.begin(); it != mz_mu_vect.end(); ++it)
+    {
+	double this_mz = it->getMZ();	
+        points_lo_lo.push_back(this_mz * lo_tol);
+        points_lo_hi.push_back(this_mz * hi_tol);
+        points_hi_lo.push_back((this_mz + opts.mz_delta) * lo_tol);
+        points_hi_hi.push_back((this_mz + opts.mz_delta) * hi_tol);
 
         double_vect data;
         data_lo.push_back(data);
@@ -100,79 +70,85 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx,
         len_hi.push_back(0);
     }
 
+    // XXX why float?
+    // XXX Can't we compute this once outside the function?
     std::vector<float> rt_shape;
 
     // Calculate guassian shape in the RT direction
-    for (int i = 0; i < (2 * half_window) + 1; ++i) {
-
+    for (int i = 0; i < (2 * half_window) + 1; ++i)
+    {
         float pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
         pt = exp(pt) / (rt_sigma * root2pi);
-
         rt_shape.push_back(pt);
     }
 
     // Iterate over the spectra in the window
-    for (int rowi = mid_win - half_window;
-         rowi <= mid_win + half_window; ++rowi) {
-
+    for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
+    {
         float rt_lo = rt_shape[rowi - rt_offset];
         float rt_hi = rt_lo;
 
-        // Iterate over the points in the central spectrum
-        for (size_t mzi = 0; mzi < mz_mu_pairs.size(); ++mzi) {
+	MSSpectrum<> rowi_spectrum;
+        if (rowi >= 0 && rowi < rt_len)
+	{
+       	    rowi_spectrum = map.getSpectrum(rowi);
+	}
 
+        // Iterate over the points in the central spectrum
+        for (size_t mzi = 0; mzi < mz_mu_vect.size(); ++mzi)
+	{
             // Get the tolerances and value for this point
             double lo_tol_lo = points_lo_lo[mzi];
             double lo_tol_hi = points_lo_hi[mzi];
             double hi_tol_lo = points_hi_lo[mzi];
             double hi_tol_hi = points_hi_hi[mzi];
-            double centre    = mz_mu_pairs[mzi].mz;
-            double sigma     = centre * mz_ppm_sigma;
-
-            // Use pwiz to get point with tolerance from spectra
-            pwiz::analysis::SpectrumList_MZWindow lo_window(
-                                                msd.run.spectrumListPtr,
-                                                lo_tol_lo, lo_tol_hi);
-            pwiz::analysis::SpectrumList_MZWindow hi_window(
-                                                msd.run.spectrumListPtr,
-                                                hi_tol_lo, hi_tol_hi);
-            pwiz::msdata::SpectrumPtr lo_spectrum;
-            pwiz::msdata::SpectrumPtr hi_spectrum;
-            std::vector<pwiz::msdata::MZIntensityPair> lo_pairs;
-            std::vector<pwiz::msdata::MZIntensityPair> hi_pairs;
+            double centre = mz_mu_vect[mzi].getMZ();
+            double sigma = centre * mz_ppm_sigma;
 
             // Check if spectrum within bounds of the file...
-            if (rowi >= 0 && rowi < rt_len) {
-
+            if (rowi >= 0 && rowi < rt_len)
+	    {
                 // Select points within tolerance for current spectrum
-                lo_spectrum = lo_window.spectrum(rowi, opts.getBinaryData);
-                lo_spectrum->getMZIntensityPairs(lo_pairs);
+		Size lo_index = rowi_spectrum.findNearest(lo_tol_lo);
+		Size hi_index = rowi_spectrum.findNearest(lo_tol_hi);
 
                 // Check if points found...
-                if (lo_pairs.size() > 0) {
-
+		// XXX should check if the value found at index is near to our target mz
+                if (lo_index <= hi_index)
+		{
                     // Calculate guassian value for each found MZ
-                    for (auto pair : lo_pairs) {
-                        float mz = (pair.mz - centre) / sigma;
+                    for (Size index = lo_index; index <= hi_index; ++index)
+		    {
+			Peak1D peak = rowi_spectrum[index];
+			double mz = peak.getMZ();
+			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         mz = rt_lo * exp(mz) / (sigma * root2pi);
                         shape_lo[mzi].push_back(mz);
-                        data_lo[mzi].push_back(pair.intensity);
+		        double intensity = peak.getIntensity();	
+                        data_lo[mzi].push_back(intensity);
                     }
-
-                    len_lo[mzi] += lo_pairs.size();
+                    len_lo[mzi] += hi_index - lo_index + 1; 
 
                 // ...if not, use dummy data
-                } else {
+                }
+		else
+		{
                     data_lo[mzi].push_back(0);
                     shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+		    // XXX I think this should be:
+		    // len_lo[mzi] += 1;
                 }
 
             // ...if outside use dummy data for this spectrum
-            } else {
+            }
+	    else
+	    {
                 data_lo[mzi].push_back(0);
                 shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+		// XXX I think this should be:
+		// len_lo[mzi] += 1;
             }
 
             // Increment centre to hi peak
@@ -180,35 +156,48 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx,
             sigma = centre * mz_ppm_sigma;
 
             // Check if spectrum within bounds of the file...
-            if (rowi >= 0 && rowi < rt_len) {
-
+            if (rowi >= 0 && rowi < rt_len)
+	    {
                 // Select points within tolerance for current spectrum
-                hi_spectrum = hi_window.spectrum(rowi, opts.getBinaryData);
-                hi_spectrum->getMZIntensityPairs(hi_pairs);
+		Size lo_index = rowi_spectrum.findNearest(hi_tol_lo);
+		Size hi_index = rowi_spectrum.findNearest(hi_tol_hi);
 
                 // Check if points found...
-                if (hi_pairs.size() > 0) {
-
+		// XXX should check if the value found at index is near to our target mz
+                if (lo_index <= hi_index)
+		{
                     // Calculate guassian value for each found MZ
-                    for (auto pair : hi_pairs) {
-                        float mz = (pair.mz - centre) / sigma;
+                    for (Size index = lo_index; index <= hi_index; ++index)
+		    {
+			Peak1D peak = rowi_spectrum[index];
+			double mz = peak.getMZ();
+			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         mz = rt_hi * exp(mz) / (sigma * root2pi);
                         shape_hi[mzi].push_back(mz);
-                        data_hi[mzi].push_back(pair.intensity);
+		        double intensity = peak.getIntensity();	
+                        data_hi[mzi].push_back(intensity);
                     }
-                    len_hi[mzi] += hi_pairs.size();
+                    len_hi[mzi] += hi_index - lo_index + 1; 
 
                 // ...if not, use dummy data
-                } else {
+                }
+		else
+		{
                     data_hi[mzi].push_back(0);
                     shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
+		    // XXX I think this should be:
+		    // len_hi[mzi] += 1;
                 }
 
             // ...if outside use dummy data for this spectrum
-            } else {
-                data_lo[mzi].push_back(0);
-                shape_lo[mzi].push_back(rt_hi / (sigma * root2pi));
+            }
+	    else
+	    {
+                data_hi[mzi].push_back(0);
+                shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
+		// XXX I think this should be:
+		// len_hi[mzi] += 1;
             }
         }
     }
@@ -419,10 +408,45 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx,
     }
 
     // Package return values
-    double_2d score = {min_score, correlAB, correlA0,
-                                              correlB0, correl1r};
-    */
-    double_2d score = {};
+    double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
 
     return score;
+}
+
+/*! Scores are output in CSV format with the following fields: retention time,
+ * mz, intensity, minimum score, correlAB, correlA0, correlB0, correl1r.
+ *
+ * @param scores 2D vector of scores returned by score_spectra.
+ * @param raw_data Spectrum pointer to the raw central vector.
+ * @param out_stream Stream to write output too.
+ * @param opts User defined Options object.
+ */
+void write_scores(double_2d scores, MSSpectrum<> raw_data,
+                  std::ofstream& out_stream, Options opts)
+{
+    // Get central spectrum retention time
+    double rt = raw_data.getRT();
+
+    // Write output
+    for (size_t idx = 0; idx < raw_data.size(); ++idx) {
+        double mz  = raw_data[idx].getMZ();
+        double amp = raw_data[idx].getIntensity();
+        double ms  = scores[0][idx];
+        double AB  = scores[1][idx];
+        double A0  = scores[2][idx];
+        double B0  = scores[3][idx];
+        double r1  = scores[4][idx];
+
+        if (opts.full_out == true) {
+            out_stream << rt << ", " << mz << ", " << amp << ", "
+                       << ms << ", " << AB << ", " << A0 << ", "
+                       << B0 << ", " << r1 << std::endl;
+        } else {
+            if (ms > 0.0) {
+                out_stream << rt << ", " << mz << ", " << amp << ", "
+                           << ms << ", " << AB << ", " << A0 << ", "
+                           << B0 << ", " << r1 << std::endl;
+            }
+        }
+    }
 }

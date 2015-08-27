@@ -6,7 +6,6 @@ void show_usage(char *cmd);
 class Options {
 
     public:
-        const bool getBinaryData = true; //!< Required for pwiz to read data.
         float intensity_ratio; //!< Intensity ratio between lo and hi peaks.
         float rt_width; //!< Retention time FWHM in scans.
         float rt_sigma; //!< Boundary for RT width in SDs.
