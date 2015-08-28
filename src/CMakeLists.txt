@@ -60,6 +60,11 @@ if (OpenMS_FOUND)
 	target_link_libraries(${i} OpenMS my_custom_lib)
   endforeach(i)
 
+  # Release uses optimisation, debug does not
+  set(CMAKE_BUILD_TYPE Release)
+  # set(CMAKE_BUILD_TYPE Debug)
+
+
 
 else(OpenMS_FOUND)
   message(FATAL_ERROR "OpenMSConfig.cmake file not found!")
