@@ -4,8 +4,10 @@
 #include "vector.h"
 #include "score.h"
 
-using namespace OpenMS;
+#include <iostream>
+#include <iterator>
 using namespace std;
+using namespace OpenMS;
 
 int main(int argc, char** argv)
 {
@@ -18,15 +20,10 @@ int main(int argc, char** argv)
    OnDiscMSExperiment<> input_map;
    MSExperiment<> output_map;
 
-   imzml.load(opts.mzML_file, input_map);
+   imzml.load(opts.in_file, input_map);
 
    // Calculate number of spectra for each window
    int half_window = ceil(opts.rt_sigma * opts.rt_width / std_dev_in_fwhm);
-
-   // Setup output stream
-   // std::ofstream outfile;
-   // outfile.open(opts.out_file);
-   // outfile.precision(12);
 
    double_2d score;
 
@@ -40,7 +37,7 @@ int main(int argc, char** argv)
        // XXX this must be a deep copy
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
 
-       // Write the score for each peak into the output spectrum (mz is kept the same in the output). 
+       // Write the score for each peak into the output spectrum (mz is kept the same in the output).
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[0][index]);
@@ -48,7 +45,7 @@ int main(int argc, char** argv)
        output_map.addSpectrum(output_spectrum);
 
        // Output the results
-       // write_scores(score, input_spectrum, outfile, opts);
+       // write_scores(score, input_spectrum, outfile);
    }
 
    // Write the output scored mzml file
@@ -56,6 +53,6 @@ int main(int argc, char** argv)
 
    // Close ouput stream
    // outfile.close();
-   
+
    return 0;
 }

@@ -1,136 +1,109 @@
+#include <boost/program_options.hpp>
 #include <iostream>
-#include "options.h"
+#include <iterator>
 #include "constants.h"
+#include "options.h"
 
+namespace po = boost::program_options;
 using namespace std;
 
-/*! Display program usage information to the user. Called when no arguments
- * are supplied or the -h option is given.
- *
- * @param cmd The original command given by the user.
- */
-void show_usage(char *cmd)
+Options::Options(int argc, char* argv[])
 {
-    using namespace std;
-
-    cout << "Usage:     " << cmd << " [-options] [arguments]"       << endl;
-    cout                                                            << endl;
-    cout << "options:   " << "-h  show this help information"       << endl;
-    cout << "           " << "-i  ratio of doublet intensities (isotope \n";
-    cout << "           " << "    / parent)"                        << endl;
-    cout << "           " << "-r  full width at half maximum for \n"       ;
-    cout << "           " << "    retention time in number of scans"<< endl;
-    cout << "           " << "-R  retention time width boundary in \n"     ;
-    cout << "           " << "    standard deviations"              << endl;
-    cout << "           " << "-p  m/z tolerance in parts per million"      ;
-    cout                                                            << endl;
-    cout << "           " << "-m  m/z full width at half maximum in \n"    ;
-    cout << "           " << "    parts per million"                << endl;
-    cout << "           " << "-M  m/z window boundary in standard \n"      ;
-    cout << "           " << "    deviations"                       << endl;
-    cout << "           " << "-D  m/z difference for doublets"      << endl;
-    cout << "           " << "-s  minimum number of data points \n"        ;
-    cout << "           " << "    required in each sample region"   << endl;
-    cout << "           " << "-o  turn on full output, including zero \n"  ;
-    cout << "           " << "    score points"                     << endl;
-    cout                                                            << endl;
-    cout << "arguments: " << "mzML_file     path to mzML file"      << endl;
-    cout << "           " << "out_file      path to output file"    << endl;
-    cout                                                            << endl;
-    cout << "example:   " << cmd << " example.mzML output.txt"      << endl;
-    cout                                                            << endl;
-}
-
-/*! @brief Options object constructor.
- *
- * Construct new Options object by reading in arguments from the command line.
- * The number of required arguments in checked.
- *
- * @param argc The argument count passed to Main
- * @param argv The argument value array passed to Main
- *
- * @todo Validate user input option values
- */
-
-Options::Options(int argc, char *argv[])
-{
-    char opt;
-    int opt_idx;
-
     intensity_ratio = default_intensity_ratio;
-    rt_width        = default_rt_width;
-    rt_sigma        = default_rt_sigma;
-    ppm             = default_ppm;
-    mz_width        = default_fwhm;
-    mz_sigma        = default_mz_sigma;
-    mz_delta        = default_mz_delta;
-    min_sample      = default_min_sample;
-    full_out        = false;
-    mzML_file       = "";
-    out_file        = "";
+    rt_width = default_rt_width;
+    rt_sigma = default_rt_sigma;
+    ppm = default_ppm;
+    mz_width = default_fwhm;
+    mz_sigma = default_mz_sigma;
+    mz_delta = default_mz_delta;
+    min_sample = default_min_sample;
+    in_file = "";
+    out_file = "";
+    debug = false;
 
-    // Show usage and exit if no options are given
-    if (argc == 1) {
-        show_usage(argv[0]);
-        exit(1);
+
+    po::options_description desc(program_name + " allowed options");
+    desc.add_options()
+        ("help,h", "Show this help information")
+        ("iratio,a", po::value<double>(), "Ratio of doublet intensities (isotope / parent)")
+        ("rtwidth,r", po::value<double>(), "Full width at half maximum for retention time in number of scans")
+        ("rtwindow,t", po::value<double>(), "Retention time width boundary in standard deviations")
+        ("ppm,p", po::value<double>(), "M/Z tolerance in parts per million")
+        ("mzwidth,m", po::value<double>(), "M/Z full width at half maximum in parts per million")
+        ("mzwindow,z", po::value<double>(), "M/Z window boundary in standard deviations")
+        ("mzdelta,d", po::value<double>(), "M/Z delta for doublets")
+        ("mindata,n", po::value<int>(), "Minimum number of data points required in each sample region")
+        ("debug", "Minimum number of data points required in each sample region")
+        ("infile,i", po::value<string>()->required(), "Input mzML file")
+        ("outfile,o", po::value<string>()->required(), "Output mzML file");
+
+    if (argc <= 1)
+    {
+        cout << program_name << " insufficient command line arguments." << endl;
+        cout << desc << "\n";
+        exit(0);
     }
 
-    // Check arguments and assign to attributes
-    while ((opt = getopt(argc, argv, "hd:i:r:R:p:m:M:D:s:o")) != -1){
+    po::variables_map vm;
 
-        switch (opt) {
-            case 'h':
-                show_usage(argv[0]);
-                exit(1);
-                break;
-            case 'i':
-                intensity_ratio = std::stof(std::string(optarg));
-                break;
-            case 'r':
-                rt_width = std::stof(std::string(optarg));
-                break;
-            case 'R':
-                rt_sigma = std::stof(std::string(optarg));
-                break;
-            case 'p':
-                ppm = std::stof(std::string(optarg));
-                break;
-            case 'm':
-                mz_width = std::stof(std::string(optarg));
-                break;
-            case 'M':
-                mz_sigma = std::stof(std::string(optarg));
-                break;
-            case 'D':
-                mz_delta = std::stof(std::string(optarg));
-                break;
-            case 's':
-                min_sample = std::stof(std::string(optarg));
-                break;
-            case 'o':
-                full_out = true;
-                break;
-        }
+    try
+    {
+       po::store(po::parse_command_line(argc, argv, desc), vm);
+
+       if (vm.count("help"))
+       {
+          cout << desc << "\n";
+          exit(0);
+       }
+       po::notify(vm); // throws on error, so do after help in case
+                       // there are any problems
+     }
+     catch(boost::program_options::required_option& e)
+     {
+          std::cerr << program_name << " ERROR: " << e.what() << std::endl << std::endl;
+          exit(-1);
+     }
+     catch(boost::program_options::error& e)
+     {
+          std::cerr << program_name << " ERROR: " << e.what() << std::endl << std::endl;
+          exit(-1);
+     }
+
+    if (vm.count("help")) {
+        cout << desc << "\n";
+        exit(0);
     }
-
-    // Read remaining text arguments
-    for (opt_idx = optind; opt_idx < argc; opt_idx++) {
-
-        if (mzML_file == "") {
-            mzML_file = argv[opt_idx];
-        } else if (out_file == "") {
-            out_file = argv[opt_idx];
-        } else {
-            std::cout << "Too many arguments supplied. See usage.";
-            std::cout << std::endl;
-            exit(1);
-        }
+    if (vm.count("iratio")) {
+        intensity_ratio = vm["iratio"].as<double>();
     }
-
-    // Check that all attributes have been set
-    if (out_file == "") {
-        std::cout << "Insufficient arguments supplied. See usage.\n";
-	show_usage(argv[0]);
-        exit(1);
+    if (vm.count("rtwidth")) {
+        rt_width = vm["rtwidth"].as<double>();
+    }
+    if (vm.count("rtwindow")) {
+        rt_sigma = vm["rtwindow"].as<double>();
+    }
+    if (vm.count("ppm")) {
+        ppm = vm["ppm"].as<double>();
+    }
+    if (vm.count("mzwidth")) {
+        mz_width = vm["mzwidth"].as<double>();
+    }
+    if (vm.count("mzwindow")) {
+        mz_sigma = vm["mzwindow"].as<double>();
+    }
+    if (vm.count("mzdelta")) {
+        mz_delta = vm["mzdelta"].as<double>();
+    }
+    if (vm.count("mindata")) {
+        min_sample = vm["mindata"].as<double>();
+    }
+    if (vm.count("infile")) {
+        in_file = vm["infile"].as<string>();
+    }
+    if (vm.count("outfile")) {
+        out_file = vm["outfile"].as<string>();
+    }
+    if (vm.count("debug")) {
+        debug = true;
     }
 }

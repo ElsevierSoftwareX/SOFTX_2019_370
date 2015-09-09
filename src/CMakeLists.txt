@@ -15,6 +15,7 @@ set(my_sources
 	options.cpp
 )
 
+
 ## find OpenMS configuration and register target "OpenMS" (our library)
 find_package(OpenMS)
 ## if the above fails you can try calling cmake with -D OpenMS_DIR=/path/to/OpenMS/
@@ -53,11 +54,15 @@ if (OpenMS_FOUND)
   ## library with additional classes from above
   add_library(my_custom_lib STATIC ${my_sources})
 
+  #find_package(Boost 1.40 COMPONENTS program_options REQUIRED )
+  find_package(Boost COMPONENTS program_options REQUIRED )
+  #include_directories( ${Boost_INCLUDE_DIR} )
+
   ## add targets for the executables
   foreach(i ${my_executables})
     add_executable(${i} ${i}.cpp)
     ## link executables against OpenMS
-	target_link_libraries(${i} OpenMS my_custom_lib)
+	target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES})
   endforeach(i)
 
   # Release uses optimisation, debug does not

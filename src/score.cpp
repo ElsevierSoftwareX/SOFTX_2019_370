@@ -25,13 +25,19 @@ double_2d
 score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
-    float rt_sigma = opts.rt_width / std_dev_in_fwhm;
-    double mz_ppm_sigma = opts.mz_width / (std_dev_in_fwhm * 1e6);
+    double rt_width_opt = opts.rt_width;
+    double mz_width_opt = opts.mz_width;
+    double mz_sigma_opt = opts.mz_sigma;
+    double mz_delta_opt = opts.mz_delta;
+    double min_sample_opt = opts.min_sample;
+    double intensity_ratio_opt = opts.intensity_ratio;
+    double rt_sigma = rt_width_opt / std_dev_in_fwhm;
+    double mz_ppm_sigma = mz_width_opt / (std_dev_in_fwhm * 1e6);
     Size rt_len = map.getNrSpectra();
     // XXX why rename centre_idx to mid_win?
     int mid_win = centre_idx;
-    double lo_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
-    double hi_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
+    double lo_tol = 1.0 - mz_sigma_opt * mz_ppm_sigma;
+    double hi_tol = 1.0 + mz_sigma_opt * mz_ppm_sigma;
     int rt_offset = mid_win - half_window;
 
     // XXX mz_mu_vect seems like a bad name
@@ -55,11 +61,11 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
     MSSpectrum<>::Iterator it;
     for (it = mz_mu_vect.begin(); it != mz_mu_vect.end(); ++it)
     {
-	double this_mz = it->getMZ();	
+	double this_mz = it->getMZ();
         points_lo_lo.push_back(this_mz * lo_tol);
         points_lo_hi.push_back(this_mz * hi_tol);
-        points_hi_lo.push_back((this_mz + opts.mz_delta) * lo_tol);
-        points_hi_hi.push_back((this_mz + opts.mz_delta) * hi_tol);
+        points_hi_lo.push_back((this_mz + mz_delta_opt) * lo_tol);
+        points_hi_hi.push_back((this_mz + mz_delta_opt) * hi_tol);
 
         double_vect data;
         data_lo.push_back(data);
@@ -126,10 +132,10 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
                         mz = -0.5 * mz * mz;
                         mz = rt_lo * exp(mz) / (sigma * root2pi);
                         shape_lo[mzi].push_back(mz);
-		        double intensity = peak.getIntensity();	
+		        double intensity = peak.getIntensity();
                         data_lo[mzi].push_back(intensity);
                     }
-                    len_lo[mzi] += hi_index - lo_index + 1; 
+                    len_lo[mzi] += hi_index - lo_index + 1;
 
                 // ...if not, use dummy data
                 }
@@ -152,7 +158,7 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
             }
 
             // Increment centre to hi peak
-            centre += opts.mz_delta;
+            centre += mz_delta_opt;
             sigma = centre * mz_ppm_sigma;
 
             // Check if spectrum within bounds of the file...
@@ -175,10 +181,10 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
                         mz = -0.5 * mz * mz;
                         mz = rt_hi * exp(mz) / (sigma * root2pi);
                         shape_hi[mzi].push_back(mz);
-		        double intensity = peak.getIntensity();	
+		        double intensity = peak.getIntensity();
                         data_hi[mzi].push_back(intensity);
                     }
-                    len_hi[mzi] += hi_index - lo_index + 1; 
+                    len_hi[mzi] += hi_index - lo_index + 1;
 
                 // ...if not, use dummy data
                 }
@@ -206,7 +212,7 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
 
     // Set point with insufficient samples to zero
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
-        if (len_lo[leni] < opts.min_sample) {
+        if (len_lo[leni] < min_sample_opt) {
             data_lo[leni]  = {0.0};
             shape_lo[leni] = {0.0};
         }
@@ -214,13 +220,13 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
 
     // Set points with insufficient samples to zero
     for (size_t leni = 0; leni < len_hi.size(); ++leni) {
-        if (len_hi[leni] < opts.min_sample) {
+        if (len_hi[leni] < min_sample_opt) {
             data_hi[leni]  = {0.0};
             shape_hi[leni] = {0.0};
         } else {
             // Multiply high points by intensity ratio
             for (auto& s : shape_hi[leni]) {
-                s *= opts.intensity_ratio;
+                s *= intensity_ratio_opt;
             }
         }
     }
@@ -271,7 +277,7 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
             shapeAB_row.push_back(hi_value * length_lo);
             shapeA0_row.push_back(0.0);
             shapeB0_row.push_back(hi_value * length_lo);
-            shape1r_row.push_back(opts.intensity_ratio * length_lo);
+            shape1r_row.push_back(intensity_ratio_opt * length_lo);
         }
 
         shapeAB.push_back(shapeAB_row);
@@ -421,14 +427,14 @@ score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options
  * @param out_stream Stream to write output too.
  * @param opts User defined Options object.
  */
-void write_scores(double_2d scores, MSSpectrum<> raw_data,
-                  std::ofstream& out_stream, Options opts)
+void write_scores(double_2d scores, MSSpectrum<> raw_data, std::ofstream& out_stream)
 {
     // Get central spectrum retention time
     double rt = raw_data.getRT();
 
     // Write output
-    for (size_t idx = 0; idx < raw_data.size(); ++idx) {
+    for (size_t idx = 0; idx < raw_data.size(); ++idx)
+    {
         double mz  = raw_data[idx].getMZ();
         double amp = raw_data[idx].getIntensity();
         double ms  = scores[0][idx];
@@ -437,16 +443,8 @@ void write_scores(double_2d scores, MSSpectrum<> raw_data,
         double B0  = scores[3][idx];
         double r1  = scores[4][idx];
 
-        if (opts.full_out == true) {
-            out_stream << rt << ", " << mz << ", " << amp << ", "
-                       << ms << ", " << AB << ", " << A0 << ", "
-                       << B0 << ", " << r1 << std::endl;
-        } else {
-            if (ms > 0.0) {
-                out_stream << rt << ", " << mz << ", " << amp << ", "
-                           << ms << ", " << AB << ", " << A0 << ", "
-                           << B0 << ", " << r1 << std::endl;
-            }
-        }
+        out_stream << rt << ", " << mz << ", " << amp << ", "
+                   << ms << ", " << AB << ", " << A0 << ", "
+                   << B0 << ", " << r1 << std::endl;
     }
 }

@@ -1,24 +1,20 @@
 #include <unistd.h>
-
-//! @brief Print program usage information.
-void show_usage(char *cmd);
+#include <boost/program_options.hpp>
 
 class Options {
 
     public:
-        float intensity_ratio; //!< Intensity ratio between lo and hi peaks.
-        float rt_width; //!< Retention time FWHM in scans.
-        float rt_sigma; //!< Boundary for RT width in SDs.
-        float ppm; //!< MZ tolerance in PPM.
-        float mz_width; //!< MZ FWHM in PPM.
-        float mz_sigma; //!< Boundary for MZ in SDs.
-        float mz_delta; //!< MZ difference between peaks.
-        float min_sample; //!< Minimum number of points required in each region.
-        bool full_out; //!< Output all points (including zero scores).
-        std::string mzML_file; //!< Path to input file.
+        double intensity_ratio; //!< Intensity ratio between lo and hi peaks.
+        double rt_width; //!< Retention time FWHM in scans.
+        double rt_sigma; //!< Boundary for RT width in SDs.
+        double ppm; //!< MZ tolerance in PPM.
+        double mz_width; //!< MZ FWHM in PPM.
+        double mz_sigma; //!< Boundary for MZ in SDs.
+        double mz_delta; //!< MZ difference between peaks.
+        double min_sample; //!< Minimum number of points required in each region.
+        std::string in_file; //!< Path to input file.
         std::string out_file; //!< Path to output file.
+        bool debug;
 
         Options(int argc, char *argv[]);
 };
-
-
