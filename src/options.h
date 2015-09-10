@@ -15,6 +15,7 @@ class Options {
         std::string in_file; //!< Path to input file.
         std::string out_file; //!< Path to output file.
         bool debug;
+        int num_threads;
 
         Options(int argc, char *argv[]);
 };

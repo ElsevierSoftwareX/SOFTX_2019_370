@@ -20,6 +20,7 @@ Options::Options(int argc, char* argv[])
     in_file = "";
     out_file = "";
     debug = false;
+    num_threads = 1;
 
 
     po::options_description desc(program_name + " allowed options");
@@ -34,6 +35,7 @@ Options::Options(int argc, char* argv[])
         ("mzdelta,d", po::value<double>(), "M/Z delta for doublets")
         ("mindata,n", po::value<int>(), "Minimum number of data points required in each sample region")
         ("debug", "Minimum number of data points required in each sample region")
+        ("threads,j", po::value<int>(), "Number of threads to use")
         ("infile,i", po::value<string>()->required(), "Input mzML file")
         ("outfile,o", po::value<string>()->required(), "Output mzML file");
 
@@ -105,5 +107,14 @@ Options::Options(int argc, char* argv[])
     }
     if (vm.count("debug")) {
         debug = true;
+    }
+    if (vm.count("threads")) {
+        int requested_threads = vm["threads"].as<int>();
+        if (requested_threads < 1)
+        {
+            cerr << program_name << " ERROR: number of requested threads may not be less than 1";
+            exit(-1);
+        }
+        num_threads = requested_threads;
     }
 }

@@ -22,7 +22,7 @@ using namespace std;
  */
 
 double_2d
-score_spectra(OnDiscMSExperiment<> map, int centre_idx, int half_window, Options opts)
+score_spectra(MSExperiment<> map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
     double rt_width_opt = opts.rt_width;
