@@ -1,12 +1,43 @@
 #include <OpenMS/FORMAT/IndexedMzMLFileLoader.h>
 #include <OpenMS/KERNEL/Peak1D.h>
+#include <mutex>
 #include <iostream>
 #include "vector.h"
 #include "options.h"
 #include "constants.h"
+#include "score.h"
 
 using namespace OpenMS;
 using namespace std;
+
+mutex output_spectrum_lock;
+
+// Worker function for scoring a block of spectra. This is executed by a thread. 
+void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
+{
+   double_2d score;
+   for (int n = low_spectra; n < high_spectra; n++)
+   {
+       score = score_spectra(input_map, n, half_window, opts);
+
+       MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
+       MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
+
+       // Copy the computed score into the output intensity
+       for (int index = 0; index < input_spectrum.size(); ++index)
+       {
+           output_spectrum[index].setIntensity(score[0][index]);
+       }
+       // Writing to the output_map must be synchronised between threads, with only one thread
+       // allowed to write at a time.
+       unique_lock<mutex> lck {output_spectrum_lock};
+       output_map.addSpectrum(output_spectrum);
+       output_spectrum_lock.unlock();
+       // Output the results
+       // write_scores(score, input_spectrum, outfile);
+   }
+}
+
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -22,7 +53,7 @@ using namespace std;
  */
 
 double_2d
-score_spectra(MSExperiment<> map, int centre_idx, int half_window, Options opts)
+score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
     double rt_width_opt = opts.rt_width;
