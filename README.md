@@ -2,12 +2,7 @@
 
 HiTIME-CPP is a program for identifying double peaks in mass spectrometry
 data implemented in C++. HiTIME-CPP is designed to be integrated with 
-existing [ProteoWizard](http://proteowizard.sourceforge.net) libraries. This
-implementation is based on the 
-[Python implementation](https://github.com/bjpop/HiTIME). 
-
-Slides describing the HiTIME algorithm and the development of HiTIME-CPP are
-available on [Slideshare](http://goo.gl/106Yvr).
+existing [OpenMS](http://open-ms.sourceforge.net/) libraries. 
 
 ## License
 
@@ -17,31 +12,20 @@ code repository for a copy of the terms.
 
 ## Build Instructions
 
-### Step 1: Clone this repository
+### Step 1: Build OpenMS from source
+
+- [Linux](http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/install_linux.html)
+- [OS X](http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/install_mac.html)
+
+See below for more notes on building OpenMS.
+
+### Step 2: Clone this repository
 
 ```
     git clone https://github.com/bjpop/HiTIME-CPP
 ```
 
-### Step 2: Load required modules
-
-HiTIME-CPP requires both the ProteoWizard and [Boost](www.boost.org) 
-libraries as well as taking advantage newer compiler features. For a 
-successful build these must be available. **NOTE:** HiTIME-CPP may not build
-correctly with other versions of gcc such as 4.8.1.
-
-```
-    module load gcc/4.9.1
-    module load pwiz-gcc/3.0.7069
-    module load boost-gcc/1.57.0
-```
-
 ### Step 3: Compile
-
-```
-    cd src
-    make
-```
 
 Running `make` in the `src` directory should be sufficent to build the
 `hitime` binary. It may be necessary to modify the `INC` and `LIBDIR`
@@ -53,73 +37,66 @@ Test data is included in this repository. Running the following command
 should produce meaningful output saved in out.txt:
 
 ```
-    ./hitime ../data/testing.mzML out.txt
-```
-
-Or launch a job on the cluster using the test slurm script:
-
-```
-    cd ../scripts
-    sbatch test.slurm
+cd data
+../src/hitime -i testing.mzML -o results.mzML
 ```
 
 ## Usage
 
 ```
-    Usage:     ./hitime [-options] [arguments]
-    
-    options:   -h  show this help information
-               -i  ratio of doublet intensities (isotope 
-                   / parent)
-               -r  full width at half maximum for 
-                   retention time in number of scans
-               -R  retention time width boundary in 
-                   standard deviations
-               -p  m/z tolerance in parts per million
-               -m  m/z full width at half maximum in 
-                   parts per million
-               -M  m/z window boundary in standard 
-                   deviations
-               -D  m/z difference for doublets
-               -s  minimum number of data points 
-                   required in each sample region
-               -o  turn on full output, including zero 
-                   score points
-    
-    arguments: mzML_file     path to mzML file
-               out_file      path to output file
-    
-    example:   ./hitime example.mzML output.txt
+HiTIME allowed options:
+  -h [ --help ]         Show this help information
+  -a [ --iratio ] arg   Ratio of doublet intensities (isotope / parent)
+  -r [ --rtwidth ] arg  Full width at half maximum for retention time in number
+                        of scans
+  -t [ --rtwindow ] arg Retention time width boundary in standard deviations
+  -p [ --ppm ] arg      M/Z tolerance in parts per million
+  -m [ --mzwidth ] arg  M/Z full width at half maximum in parts per million
+  -z [ --mzwindow ] arg M/Z window boundary in standard deviations
+  -d [ --mzdelta ] arg  M/Z delta for doublets
+  -n [ --mindata ] arg  Minimum number of data points required in each sample 
+                        region
+  --debug               Minimum number of data points required in each sample 
+                        region
+  -j [ --threads ] arg  Number of threads to use
+  -i [ --infile ] arg   Input mzML file
+  -o [ --outfile ] arg  Output mzML file
 ```
 
-## Documentation
-
-The HiTIME-CPP source has been documented using 
-[Doxygen](http://www.stack.nl/~dimitri/doxygen/index.html) type comments. These 
-can be used to produce documentation in HTML and PDF (via Latex) formats. 
-
-[Installation instructions](http://www.stack.nl/~dimitri/doxygen/manual/install.html). 
-are available on the Doxygen website. With Doxygen installed the following 
-command can be run to produce the documentation.
+For example:
 
 ```
-    doxygen Doxyfile
+hitime -j 4 -i example.mzML -o results.mzML 
 ```
 
-The result should be the creation on a `docs/` directory with `html` and `latex`
-subdirectories. The HTML documentation should be viewable using any browser. To
-produce PDF documentation change to the `latex` directory and run:
+for a computation using 4 threads, where `example.mzML` contains the input mass spectrometry data in mzML format, and the output file is called `results.mzML`
+
+## Building OpenMS
+
+OpenMS requires the following build tools and libraries:
+
+ - autoconf
+ - automake
+ - libtool
+ - cmake
+ - Qt
+
+### Linux depdencies
+ 
+On Linux systems they can be installed via the package management system, for example on Ubuntu:
 
 ```
-    make pdf
+sudo apt-get install autoconf automake libtool cmake qt-sdk 
 ```
 
-A `refman.pdf` file should be created with the HiTIME-CPP documentation. Please
-note PDF documentation requires PDFLatex to be available.
+You will also need the gcc C compiler installed.
 
-## Please Note:
+### OS X dependencies
 
-HiTIME-CPP is currently under active development, as such functionality can
-be expected to change frequently and without notice. These instructions have
-been designed for the development setup and may require significant
-modification on your system.
+On OS X they can be install via Homebrew:
+
+```
+brew install autoconf automake libtool cmake qt4
+```
+
+You will also need [Xcode](https://developer.apple.com/xcode/)
