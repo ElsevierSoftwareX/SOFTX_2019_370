@@ -73,6 +73,9 @@ for a computation using 4 threads, where `example.mzML` contains the input mass 
 
 ## Building OpenMS
 
+These instructions assume you are building the code in `$HOME/code`. If you wish to build it somewhere else replace 
+`$HOME/code` with your own location.
+
 OpenMS requires the following build tools and libraries:
 
  - autoconf
@@ -87,6 +90,9 @@ On Linux systems they can be installed via the package management system, for ex
 
 ```
 sudo apt-get install autoconf automake libtool cmake qt-sdk 
+mkdir $HOME/code/openms
+cd $HOME/code/openms
+
 ```
 
 You will also need the gcc C compiler installed.
