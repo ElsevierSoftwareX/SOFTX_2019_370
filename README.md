@@ -12,24 +12,32 @@ code repository for a copy of the terms.
 
 ## Build Instructions
 
-### Step 1: Build OpenMS from source
+#### Step 1: Build OpenMS from source
 
 - [Linux](http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/install_linux.html)
 - [OS X](http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/install_mac.html)
 
 See below for more notes on building OpenMS.
 
-### Step 2: Clone this repository
+#### Step 2: Clone this repository
 
 ```
-    git clone https://github.com/bjpop/HiTIME-CPP
+cd $HOME/code
+git clone https://github.com/bjpop/HiTIME-CPP
+```
+
+#### Step 3: Configure the build with cmake
+
+```
+cd $HOME/code/HiTIME-CPP/src/
+cmake -D OpenMS_DIR=$HOME/code/openms/OpenMS-build/ .
 ```
 
 ### Step 3: Compile
 
-Running `make` in the `src` directory should be sufficent to build the
-`hitime` binary. It may be necessary to modify the `INC` and `LIBDIR`
-variables in `Makefile` if your library locations are different.
+```
+make
+```
 
 ### Step 4: Test
 
@@ -90,18 +98,30 @@ You will also need the gcc C compiler installed, and an internet connection (the
  
 On Linux systems they can be installed via the package management system, for example on Ubuntu:
 
-#### install packaged dependencies
+#### Install packaged dependencies
+
 ```
 sudo apt-get install autoconf automake libtool cmake qt-sdk 
 ```
-#### create a directory to build OpenMS
+
+#### Create a directory to build OpenMS
+
 ```
 mkdir $HOME/code/openms
 cd $HOME/code/openms
 ```
-#### clone OpenMS contrib libraries (bundled dependencies)
+
+#### Clone OpenMS contrib libraries (bundled dependencies)
+
 ```
 git clone https://github.com/OpenMS/contrib.git
+```
+
+#### Make a directory to build the contrib libraries
+
+```
+mkdir $HOME/code/openms/contrib-build
+cd $HOME/code/openms/contrib-build
 ```
 
 #### build the ZLIB bundled contrib separately.
@@ -120,8 +140,6 @@ cmake -DBUILD_TYPE=ZLIB ../contrib
 this will take a while
 
 ```
-mkdir $HOME/code/openms/contrib-build
-cd $HOME/code/openms/contrib-build
 cmake -DBUILD_TYPE=SEQAN ../contrib
 cmake -DBUILD_TYPE=LIBSVM ../contrib
 cmake -DBUILD_TYPE=XERCESC ../contrib
@@ -162,12 +180,12 @@ If the configuration works successfully you should see a lot of output which con
 
 #### build OpenMS
 
-This will take a while.
 
 ```
 make
 ```
 
+This will take a while. When it is done you should have a large number of executables in the directory `$HOME/code/openms/OpenMS-build`, such as TOPPView. 
 
 ### OS X build
 
