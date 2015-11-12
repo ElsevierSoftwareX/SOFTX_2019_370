@@ -98,6 +98,15 @@ You will also need the gcc C compiler installed, and an internet connection (the
  
 On Linux systems they can be installed via the package management system, for example on Ubuntu:
 
+#### Optionally specify where the gcc and g++ compilers are
+
+On some systems `gcc` and `g++` are not in standard paths. Cmake seems to have difficulty with this.
+This issue can be resolved by exporting the `CC` and `CXX` environment variables:
+
+```
+export CC=`which gcc`
+export CXX=`which g++`
+
 #### Install packaged dependencies
 
 ```
