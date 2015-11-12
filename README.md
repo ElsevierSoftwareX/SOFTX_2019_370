@@ -84,7 +84,7 @@ OpenMS requires the following build tools and libraries:
  - cmake
  - Qt
 
-You will also need the gcc C compiler installed.
+You will also need the gcc C compiler installed, and an internet connection (the build process downloads files).
 
 ### Linux build 
  
@@ -113,7 +113,7 @@ You ought to be able to build with `-DBUILD_TYPE=ALL` but it fails because of th
 cmake -DBUILD_TYPE=ZLIB ../contrib
 ```
 
-#### build all the contrib libraries
+#### build all the remaining contrib libraries
 
  - SEQAN, LIBSVM, XERCESC, BOOST, GSL, COINOR, BZIP2, GLPK, EIGEN, WILDMAGIC
 
