@@ -106,6 +106,7 @@ This issue can be resolved by exporting the `CC` and `CXX` environment variables
 ```
 export CC=`which gcc`
 export CXX=`which g++`
+```
 
 #### Install packaged dependencies
 
