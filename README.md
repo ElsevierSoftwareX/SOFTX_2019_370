@@ -84,20 +84,28 @@ OpenMS requires the following build tools and libraries:
  - cmake
  - Qt
 
-### Linux depdencies
+### Linux build 
  
 On Linux systems they can be installed via the package management system, for example on Ubuntu:
 
 ```
+# install packaged dependencies
 sudo apt-get install autoconf automake libtool cmake qt-sdk 
+# create a directory to build OpenMS
 mkdir $HOME/code/openms
 cd $HOME/code/openms
-
+# clone OpenMS contrib libraries (bundled dependencies)
+git clone https://github.com/OpenMS/contrib.git
+# build all the contrib libraries (SEQAN, LIBSVM, XERCESC, BOOST, GSL, COINOR, BZIP2, ZLIB, GLPK, EIGEN, WILDMAGIC)
+# this will take a while
+mkdir $HOME/codecontrib-build
+cd contrib-build
+cmake -DBUILD_TYPE=ALL ../contrib
 ```
 
 You will also need the gcc C compiler installed.
 
-### OS X dependencies
+### OS X build
 
 On OS X they can be install via Homebrew:
 
