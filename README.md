@@ -137,7 +137,7 @@ cd $HOME/code/openms/contrib-build
 #### build the ZLIB bundled contrib separately.
 
 We have to do this on its own due to a bug in the build software. See [this ticket](https://github.com/OpenMS/contrib/issues/5).
-You ought to be able to build with `-DBUILD_TYPE=ALL` but it fails because of the above bug. 
+You ought to be able to build with `-DBUILD_TYPE=ALL` directly, but it fails because of the above bug. 
 
 ```
 cmake -DBUILD_TYPE=ZLIB ../contrib
@@ -150,16 +150,7 @@ cmake -DBUILD_TYPE=ZLIB ../contrib
 this will take a while
 
 ```
-cmake -DBUILD_TYPE=SEQAN ../contrib
-cmake -DBUILD_TYPE=LIBSVM ../contrib
-cmake -DBUILD_TYPE=XERCESC ../contrib
-cmake -DBUILD_TYPE=BOOST ../contrib
-cmake -DBUILD_TYPE=GSL ../contrib
-cmake -DBUILD_TYPE=COINOR ../contrib
-cmake -DBUILD_TYPE=BZIP2 ../contrib
-cmake -DBUILD_TYPE=GLPK ../contrib
-cmake -DBUILD_TYPE=EIGEN ../contrib
-cmake -DBUILD_TYPE=WILDMAGIC ../contrib
+cmake -DBUILD_TYPE=ALL ../contrib
 ```
 
 #### clone the OpenMS repository
