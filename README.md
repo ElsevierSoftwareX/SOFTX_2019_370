@@ -120,8 +120,8 @@ cmake -DBUILD_TYPE=ZLIB ../contrib
 this will take a while
 
 ```
-mkdir $HOME/codecontrib-build
-cd contrib-build
+mkdir $HOME/code/openms/contrib-build
+cd $HOME/code/openms/contrib-build
 cmake -DBUILD_TYPE=SEQAN ../contrib
 cmake -DBUILD_TYPE=LIBSVM ../contrib
 cmake -DBUILD_TYPE=XERCESC ../contrib
@@ -132,6 +132,40 @@ cmake -DBUILD_TYPE=BZIP2 ../contrib
 cmake -DBUILD_TYPE=GLPK ../contrib
 cmake -DBUILD_TYPE=EIGEN ../contrib
 cmake -DBUILD_TYPE=WILDMAGIC ../contrib
+```
+
+#### clone the OpenMS repository
+
+```
+cd $HOME/code/openms
+git clone https://github.com/OpenMS/OpenMS.git
+```
+
+#### create a build directory for OpenMS
+
+```
+mkdir $HOME/code/openms/OpenMS-build
+cd $HOME/code/openms/OpenMS-build
+```
+
+#### configure the OpenMS build with cmake
+
+
+```
+cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" -DBOOST_USE_STATIC=OFF ../OpenMS
+```
+
+I am not sure about the effect or purpose of the `/usr;/usr/local` in the above command.
+
+If the configuration works successfully you should see a lot of output which contains the message "You have successfully configured OpenMS." near the end.
+
+
+#### build OpenMS
+
+This will take a while.
+
+```
+make
 ```
 
 
