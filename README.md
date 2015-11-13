@@ -30,8 +30,12 @@ git clone https://github.com/bjpop/HiTIME-CPP
 
 ```
 cd $HOME/code/HiTIME-CPP/src/
-cmake -D OpenMS_DIR=$HOME/code/openms/OpenMS-build/ .
+cmake -D OpenMS_DIR=/absolute/path/to/OpenMS-build/ .
 ```
+**NOTE** in the command above the text `/absolute/path/to/OpenMS-build/` should be the full (absolute) path
+to the place where the directory `OpenMS-build` was created. In our instructions below it would be the expansion
+of `$HOME/code/openms/OpenMS-build`. For some strange reason it seems like cmake does not like it if you have
+shell variables, such as `$HOME` in the `OpenMS_DIR` variable setting.
 
 ### Step 3: Compile
 
@@ -171,10 +175,8 @@ cd $HOME/code/openms/OpenMS-build
 
 
 ```
-cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build;/usr;/usr/local" -DBOOST_USE_STATIC=OFF ../OpenMS
+cmake -DCMAKE_PREFIX_PATH="$HOME/code/openms/contrib-build" ../OpenMS
 ```
-
-I am not sure about the effect or purpose of the `/usr;/usr/local` in the above command.
 
 If the configuration works successfully you should see a lot of output which contains the message "You have successfully configured OpenMS." near the end.
 
@@ -187,6 +189,12 @@ make
 ```
 
 This will take a while. When it is done you should have a large number of executables in the directory `$HOME/code/openms/OpenMS-build`, such as TOPPView. 
+
+It will also try to build the documentation. This can fail if you do not have a graphics display working (such as X11). If building the documentation fails then you can run:
+
+```
+make doc_minimal
+```
 
 ### OS X build
 
