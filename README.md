@@ -49,9 +49,12 @@ Test data is included in this repository. Running the following command
 should produce meaningful output saved in out.txt:
 
 ```
-cd data
+cd $HOME/code/HiTIME-CPP/data
 ../src/hitime -i testing.mzML -o results.mzML
 ```
+
+You might see some warnings in the output which complain about the format the of input `testing.mzML` file. You can
+safely ignore them. It is just OpenMS being strict about the format of the file. 
 
 ## Usage
 
