@@ -34,7 +34,7 @@ cmake -D OpenMS_DIR=/absolute/path/to/OpenMS-build/ .
 ```
 **NOTE** in the command above the text `/absolute/path/to/OpenMS-build/` should be the full (absolute) path
 to the place where the directory `OpenMS-build` was created. In our instructions below it would be the expansion
-of `$HOME/code/openms/OpenMS-build`. For some strange reason it seems like cmake does not like it if you have
+of `$HOME/code/openms/OpenMS-build`. For some strange reason it seems that Cmake does not like it if you have
 shell variables, such as `$HOME` in the `OpenMS_DIR` variable setting.
 
 ### Step 3: Compile
