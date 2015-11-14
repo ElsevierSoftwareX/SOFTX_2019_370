@@ -30,59 +30,51 @@ export CC=`which gcc`
 export CXX=`which g++`
 
 BASEDIR=`pwd`
-HITME_BUILD_DIR="$BASEDIR/hitme_build"
+HITME_BUILD_DIR="$BASEDIR/hitime_build"
 
 OPEN_MS_CONTRIB_BUILD_DIR="$HITME_BUILD_DIR/contrib-build"
-OPEN_MS_BUILD_DIR="$OPEN_MS_DIR/OpenMS-build"
-HITIME_SRC_DIR="HiTIME-CPP/src"
+OPEN_MS_BUILD_DIR="$HITME_BUILD_DIR/OpenMS-build"
+HITIME_SRC_DIR="$HITME_BUILD_DIR/HiTIME-CPP/src"
 
-echo "making hitime_build directory"
-mkdir $HITME_BUILD_DIR
-cd $HITME_BUILD_DIR
-
-echo "cloning openms contrib repository https://github.com/OpenMS/contrib.git"
-# git clone https://github.com/OpenMS/contrib.git > $HITME_BUILD_DIR/OpenMS_contrib.git_clone.out 2>&1
-git clone https://github.com/OpenMS/contrib.git 
-
-echo "making openms contrib build directory"
-mkdir $OPEN_MS_CONTRIB_BUILD_DIR
-cd $OPEN_MS_CONTRIB_BUILD_DIR
-
-echo "building openms contrib dependencies"
-#cmake -DBUILD_TYPE=ZLIB ../contrib > $HITME_BUILD_DIR/OpenMS.contrib_build.out 2>&1
-cmake -DBUILD_TYPE=ZLIB ../contrib 
-#cmake -DBUILD_TYPE=ALL ../contrib >> $HITME_BUILD_DIR/OpenMS.contrib_build.out 2>&1
-cmake -DBUILD_TYPE=ALL ../contrib 
-
-echo "cloning openms repository git clone https://github.com/OpenMS/OpenMS.git"
-cd $$HITME_BUILD_DIR
-#git clone https://github.com/OpenMS/OpenMS.git > $HITME_BUILD_DIR/OpenMS.git_clone.out 2>&1
-git clone https://github.com/OpenMS/OpenMS.git 
-
-echo "making build directory for openms"
-mkdir $OPEMS_BUILD_DIR
-cd $OPEMS_BUILD_DIR 
-
-echo "configuring openms build"
-# cmake -DCMAKE_PREFIX_PATH="$OPEN_MS_CONTRIB_BUILD_DIR" ../OpenMS > $HITME_BUILD_DIR/OpenMS_config.out 2>&1
-cmake -DCMAKE_PREFIX_PATH="$OPEN_MS_CONTRIB_BUILD_DIR" ../OpenMS 
-
-echo "building openms"
-# make > $HITME_BUILD_DIR/openms_build.out 2>&1
-make 
-
-exit
-
-cd $HITME_BUILD_DIR
-echo "cloning HiTIME-CPP repository"
-git clone https://github.com/bjpop/HiTIME-CPP > $HITME_BUILD_DIR/HiTIME.git_clone.out 2>&1
+#echo "making hitime_build directory"
+#mkdir $HITME_BUILD_DIR
+#cd $HITME_BUILD_DIR
+#
+#echo "cloning openms contrib repository https://github.com/OpenMS/contrib.git"
+#git clone https://github.com/OpenMS/contrib.git 
+#
+#echo "making openms contrib build directory"
+#mkdir $OPEN_MS_CONTRIB_BUILD_DIR
+#cd $OPEN_MS_CONTRIB_BUILD_DIR
+#
+#echo "building openms contrib dependencies"
+#cmake -DBUILD_TYPE=ZLIB ../contrib 
+#cmake -DBUILD_TYPE=ALL ../contrib 
+#
+#echo "cloning openms repository git clone https://github.com/OpenMS/OpenMS.git"
+#cd $HITME_BUILD_DIR
+#git clone https://github.com/OpenMS/OpenMS.git 
+#
+#echo "making build directory for openms"
+#mkdir $OPEN_MS_BUILD_DIR
+#cd $OPEN_MS_BUILD_DIR
+#
+#echo "configuring openms build"
+#cmake -DCMAKE_PREFIX_PATH="$OPEN_MS_CONTRIB_BUILD_DIR" ../OpenMS 
+#
+#echo "building openms"
+#make doc_minimal
+#
+#cd $HITME_BUILD_DIR
+#echo "cloning HiTIME-CPP repository"
+#git clone https://github.com/bjpop/HiTIME-CPP 
 
 echo "configuring hitime build" 
 
 cd $HITIME_SRC_DIR
-cmake -D OpenMS_DIR=$OPEN_MS_BUILD_DIR . > $HITME_BUILD_DIR/HiTIME.config.out 2>&1
+cmake -D OpenMS_DIR=$OPEN_MS_BUILD_DIR . 
 
 echo "building hitime"
-make > $HITME_BUILD_DIR/HiTIME.build.out 2>&1
+make 
 
 echo "done"
