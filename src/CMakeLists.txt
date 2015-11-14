@@ -72,14 +72,14 @@ if (OpenMS_FOUND)
 
    if(Boost_FOUND)
       include_directories(${Boost_INCLUDE_DIRS}) 
-      #target_link_libraries(progname ${Boost_LIBRARIES})
+      target_link_libraries(progname ${Boost_LIBRARIES})
    endif()
 
   ## add targets for the executables
   foreach(i ${my_executables})
     add_executable(${i} ${i}.cpp)
     ## link executables against OpenMS
-	target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES})
+	target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES} -lpthread)
   endforeach(i)
 
   # Release uses optimisation, debug does not
