@@ -12,6 +12,9 @@ code repository for a copy of the terms.
 
 ## Build Instructions
 
+These instructions assume you are building the code in `$HOME/code`. If you wish to build it somewhere else replace 
+`$HOME/code` with your own location.
+
 #### Step 1: Build OpenMS from source
 
 - [Linux](http://ftp.mi.fu-berlin.de/pub/OpenMS/release-documentation/html/install_linux.html)
@@ -46,7 +49,7 @@ make
 ### Step 4: Test
 
 Test data is included in this repository. Running the following command
-should produce meaningful output saved in out.txt:
+should produce meaningful output saved in `results.mzML`:
 
 ```
 cd $HOME/code/HiTIME-CPP/data
