@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #set -x
-set -e
+#set -e
 
 # Instructions for building on OSX
 # The OpenMS source will be installed in $HITIME_BASE/opems
@@ -16,12 +16,15 @@ set -e
 
 # You will need to define the HITIME_BASE shell variable to be
 # the filepath of the place where you want to make the installation.
+# 
+# Most likely this should be in the same (parent) directory where you
+# have a copy of the HiTIME-CPP repository.
 #
 # For example:
 #
 # HITIME_BASE=$HOME/code
 
-HITIME_BASE=$HOME/scratch/code
+HITIME_BASE=$HOME/code
 
 if [ -z ${HITIME_BASE+x} ]; then
     echo "You must set the variable HITIME_BASE in the build shell script"
@@ -69,16 +72,15 @@ make
 make test
 
 # 2) Now you can build HiTIME-CPP 
-
-cd $HITIME_BASE
-
-# You may not want to do this part if you have already got the CPP source tree somewhere else
-git clone https://github.com/bjpop/HiTIME-CPP
+# This assumes you have already checked out the repository for HiTIME-CPP like so:
+# cd $HITIME_BASE
+# git clone https://github.com/bjpop/HiTIME-CPP
 # switch to the branch that you want
-cd HiTIME-CPP
-git checkout -b threads origin/threads
+# cd HiTIME-CPP
+# git checkout -b threads origin/threads
 
-cd src
+cd $HITIME_BASE/HiTIME-CPP/src
 
-cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ .
+#cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ .
+cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" .
 make
