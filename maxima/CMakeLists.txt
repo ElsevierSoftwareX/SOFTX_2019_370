@@ -1,10 +1,10 @@
 ### example CMakeLists.txt to develop programs using OpenMS
-project("hitime")
+project("hitime-max")
 cmake_minimum_required(VERSION 2.8.3)
 
 ## list all your executables here (a corresponding .cpp file should exist, e.g. Main.cpp)
 set(my_executables
-	hitime	
+	hitime-max
 )
 
 ## list all classes here, which are required by your executables
