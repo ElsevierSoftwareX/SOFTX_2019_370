@@ -1,1 +1,1 @@
-./hitime ../data/testing.mzML out.mzML
+./hitime-score -i ../data/testing.mzML -o ../data/score.mzML

@@ -15,7 +15,7 @@ mutex output_spectrum_lock;
 // Worker function for scoring a block of spectra. This is executed by a thread. 
 void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
 {
-   double_2d score;
+   double_vect score;
    for (int n = low_spectra; n < high_spectra; n++)
    {
        score = score_spectra(input_map, n, half_window, opts);
@@ -26,7 +26,7 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
-           output_spectrum[index].setIntensity(score[0][index]);
+           output_spectrum[index].setIntensity(score[index]);
        }
        // Writing to the output_map must be synchronised between threads, with only one thread
        // allowed to write at a time.
@@ -52,7 +52,7 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
  * correl1r) giving score for each MZ in the central spectrum.
  */
 
-double_2d
+double_vect
 score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
@@ -71,6 +71,10 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     double hi_tol = 1.0 + mz_sigma_opt * mz_ppm_sigma;
     int rt_offset = mid_win - half_window;
 
+    double_vect score;
+
+    //std::cerr << "Here 1\n";
+
     // XXX mz_mu_vect seems like a bad name
     MSSpectrum<> mz_mu_vect = map.getSpectrum(mid_win);
 
@@ -80,6 +84,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 
     double_2d data_lo;
     std::vector<int> len_lo;
+
+    //std::cerr << "Here 2\n";
 
     // Calculate tolerances for the lo and hi peak for each central MZ
     MSSpectrum<>::Iterator it;
@@ -94,8 +100,10 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         len_lo.push_back(0);
     }
 
+    //std::cerr << "Here 3\n";
 
     // Iterate over the spectra in the window
+    // Compute all the local data for each mz in the central spectrum
     for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
     {
 	MSSpectrum<> rowi_spectrum;
@@ -103,6 +111,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	{
        	    rowi_spectrum = map.getSpectrum(rowi);
 	}
+        //XXX what do we do if this is false?
 
         // Iterate over the points in the central spectrum
         for (size_t mzi = 0; mzi < mz_mu_vect.size(); ++mzi)
@@ -110,8 +119,6 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             // Get the tolerances and value for this point
             double lo_tol_lo = points_lo_lo[mzi];
             double lo_tol_hi = points_lo_hi[mzi];
-            double centre = mz_mu_vect[mzi].getMZ();
-            double sigma = centre * mz_ppm_sigma;
 
             // Check if spectrum within bounds of the file...
             if (rowi >= 0 && rowi < rt_len)
@@ -139,7 +146,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		{
                     data_lo[mzi].push_back(0);
 		    // XXX I think this should be:
-		    // len_lo[mzi] += 1;
+		    len_lo[mzi] += 1;
                 }
 
             // ...if outside use dummy data for this spectrum
@@ -148,14 +155,35 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	    {
                 data_lo[mzi].push_back(0);
 		// XXX I think this should be:
-		// len_lo[mzi] += 1;
+		len_lo[mzi] += 1;
             }
         }
     }
 
-    return 100;
+    //std::cerr << "Here 4\n";
+    
+    // Check if the center intensity is a local maxima
+    for (size_t mzi = 0; mzi < mz_mu_vect.size(); ++mzi)
+    {
+        //std::cerr << "Here 5\n";
+	double center_intensity = mz_mu_vect[mzi].getIntensity();
+        double result = center_intensity;
+        for (int data_index = 0; data_index < len_lo[mzi]; ++data_index)
+        {
+           //std::cerr << "Here 6\n";
+           if (center_intensity < data_lo[mzi][data_index])
+           {
+              //std::cerr << "Here 7\n";
+              result = 0.0;
+              break;
+           }
+        }
+        //std::cerr << "Here 8\n";
+        score.push_back(result);
+    }
+
     //XXX fixme
-    //return score;
+    return score;
 }
 
 /*! Scores are output in CSV format with the following fields: retention time,

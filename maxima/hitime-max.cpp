@@ -3,7 +3,7 @@
 #include "options.h"
 #include "constants.h"
 #include "vector.h"
-#include "score.h"
+#include "maxima.h"
 
 #include <iostream>
 #include <iterator>
