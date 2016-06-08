@@ -23,6 +23,7 @@ Options::Options(int argc, char* argv[])
     num_threads = 1;
 
 
+    // XXX add default values to help messages
     po::options_description desc(program_name + " allowed options");
     desc.add_options()
         ("help,h", "Show this help information")
