@@ -22,13 +22,14 @@ Options::Options(int argc, char* argv[])
     debug = false;
     num_threads = 1;
 
+    string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
+    string rtwidth_str = "Full width at half maximum for retention time in number of scans. Defaults to " + to_string(default_rt_width);
 
-    // XXX add default values to help messages
     po::options_description desc(program_name + " allowed options");
     desc.add_options()
         ("help,h", "Show this help information")
-        ("iratio,a", po::value<double>(), "Ratio of doublet intensities (isotope / parent)")
-        ("rtwidth,r", po::value<double>(), "Full width at half maximum for retention time in number of scans")
+        ("iratio,a", po::value<double>(), iratio_str.c_str())
+        ("rtwidth,r", po::value<double>(), rtwidth_str.c_str())
         ("rtwindow,t", po::value<double>(), "Retention time width boundary in standard deviations")
         ("ppm,p", po::value<double>(), "M/Z tolerance in parts per million")
         ("mzwidth,m", po::value<double>(), "M/Z full width at half maximum in parts per million")
