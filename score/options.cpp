@@ -24,19 +24,26 @@ Options::Options(int argc, char* argv[])
 
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
     string rtwidth_str = "Full width at half maximum for retention time in number of scans. Defaults to " + to_string(default_rt_width);
+    string rtwindow_str = "Retention time width boundary in standard deviations. Defaults to " + to_string(default_rt_sigma);
+    string ppm_str = "M/Z tolerance in parts per million. Defaults to " + to_string(default_ppm);
+    string mzwidth_str = "M/Z full width at half maximum in parts per million. Defaults to " + to_string(default_fwhm);
+    string mzsigma_str = "M/Z window boundary in standard deviations. Defaults to " + to_string(default_mz_sigma);
+    string mzdelta_str = "M/Z delta for doublets. Defaults to " + to_string(default_mz_delta);
+    string minsample_str = "Minimum number of data points required in each sample region. Defaults to " + to_string(default_min_sample);
+    string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
 
     po::options_description desc(program_name + " allowed options");
     desc.add_options()
         ("help,h", "Show this help information")
         ("iratio,a", po::value<double>(), iratio_str.c_str())
         ("rtwidth,r", po::value<double>(), rtwidth_str.c_str())
-        ("rtwindow,t", po::value<double>(), "Retention time width boundary in standard deviations")
-        ("ppm,p", po::value<double>(), "M/Z tolerance in parts per million")
-        ("mzwidth,m", po::value<double>(), "M/Z full width at half maximum in parts per million")
-        ("mzwindow,z", po::value<double>(), "M/Z window boundary in standard deviations")
-        ("mzdelta,d", po::value<double>(), "M/Z delta for doublets")
-        ("mindata,n", po::value<int>(), "Minimum number of data points required in each sample region")
-        ("debug", "Minimum number of data points required in each sample region")
+        ("rtwindow,t", po::value<double>(), rtwindow_str.c_str())
+        ("ppm,p", po::value<double>(), ppm_str.c_str())
+        ("mzwidth,m", po::value<double>(), mzwidth_str.c_str())
+        ("mzwindow,z", po::value<double>(), mzsigma_str.c_str())
+        ("mzdelta,d", po::value<double>(), mzdelta_str.c_str())
+        ("mindata,n", po::value<int>(), minsample_str.c_str())
+        ("debug", "Generate debugging output")
         ("threads,j", po::value<int>(), "Number of threads to use")
         ("infile,i", po::value<string>()->required(), "Input mzML file")
         ("outfile,o", po::value<string>()->required(), "Output mzML file");
