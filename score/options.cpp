@@ -34,7 +34,7 @@ Options::Options(int argc, char* argv[])
 
     po::options_description desc(program_name + " allowed options");
     desc.add_options()
-        ("help,h", "Show this help information")
+        ("help,h", "Show this help information.")
         ("iratio,a", po::value<double>(), iratio_str.c_str())
         ("rtwidth,r", po::value<double>(), rtwidth_str.c_str())
         ("rtwindow,t", po::value<double>(), rtwindow_str.c_str())
@@ -44,7 +44,7 @@ Options::Options(int argc, char* argv[])
         ("mzdelta,d", po::value<double>(), mzdelta_str.c_str())
         ("mindata,n", po::value<int>(), minsample_str.c_str())
         ("debug", "Generate debugging output")
-        ("threads,j", po::value<int>(), "Number of threads to use")
+        ("threads,j", po::value<int>(), threads_str.c_str())
         ("infile,i", po::value<string>()->required(), "Input mzML file")
         ("outfile,o", po::value<string>()->required(), "Output mzML file");
 
