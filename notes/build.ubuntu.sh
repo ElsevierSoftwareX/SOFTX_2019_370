@@ -64,11 +64,11 @@ make test
 
 # 2) Now you can build HiTIME-CPP 
 # This assumes you have already checked out the repository for HiTIME-CPP like so:
-# cd $HITIME_BASE
-# git clone https://github.com/bjpop/HiTIME-CPP
-# switch to the branch that you want
-# cd HiTIME-CPP
-# git checkout -b threads origin/threads
+cd $HITIME_BASE
+git clone https://github.com/bjpop/HiTIME-CPP
+#switch to the branch that you want
+cd HiTIME-CPP
+git checkout -b local_maxima origin/local_maxima
 
 cd $HITIME_BASE/HiTIME-CPP/src
 
