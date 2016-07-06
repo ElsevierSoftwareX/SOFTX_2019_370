@@ -40,8 +40,7 @@ brew install cmake
 brew install qt4
 brew tap homebrew/science
 brew tap homebrew/versions
-#brew install libsvm xerces-c boost coinmp eigen
-brew install libsvm xerces-c boost eigen
+brew install libsvm xerces-c boost
 
 echo "building OPENMS contrib packages"
 
@@ -77,10 +76,9 @@ cd $HITIME_BASE
 git clone https://github.com/bjpop/HiTIME-CPP
 #switch to the branch that you want
 cd HiTIME-CPP
-git checkout -b threads origin/threads
+git checkout -b threads origin/local_maxima
 
 cd $HITIME_BASE/HiTIME-CPP/score
 
-#cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ .
 cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" .
 make

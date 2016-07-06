@@ -33,7 +33,7 @@ echo "installing dependencies"
 
 sudo apt-get install cmake g++ autoconf qt4-dev-tools patch libtool make git \
      libqt4-core libqt4-dev libqt4-gui libqt4-opengl-dev automake libqtwebkit-dev
-sudo apt-get install libboost-regex-dev libboost-iostreams-dev libboost-date-time-dev libboost-math-dev \
+sudo apt-get install libboost-all-dev \
      libsvm-dev libglpk-dev libzip-dev zlib1g-dev libxerces-c-dev libbz2-dev
 
 echo "building OPENMS contrib packages"
@@ -55,7 +55,7 @@ cd $HITIME_BASE/openms
 git clone https://github.com/OpenMS/OpenMS.git
 mkdir openms_build
 cd openms_build
-cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" ../OpenMS
+cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" -DBOOST_USE_STATIC=OFF ../OpenMS
 
 echo "building OPENMS"
 
