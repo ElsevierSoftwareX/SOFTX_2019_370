@@ -79,7 +79,7 @@ make test
 # cd HiTIME-CPP
 # git checkout -b threads origin/threads
 
-cd $HITIME_BASE/HiTIME-CPP/src
+cd $HITIME_BASE/HiTIME-CPP/score
 
 #cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ .
 cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" .

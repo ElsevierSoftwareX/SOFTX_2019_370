@@ -147,8 +147,9 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             if (rowi >= 0 && rowi < rt_len)
 	    {
                 // Select points within tolerance for current spectrum
-		Size lo_index = rowi_spectrum.findNearest(lo_tol_lo);
-		Size hi_index = rowi_spectrum.findNearest(lo_tol_hi);
+                // Want lower bound
+                Size lo_index = Size(rowi_spectrum.MZBegin(lo_tol_lo) - rowi_spectrum.begin());
+                Size hi_index = Size(rowi_spectrum.MZBegin(lo_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
 		// XXX should check if the value found at index is near to our target mz
@@ -159,14 +160,15 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		    {
 			Peak1D peak = rowi_spectrum[index];
 			double mz = peak.getMZ();
+		        double intensity = peak.getIntensity();
+                        if (mz < lo_tol_lo) continue;
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         mz = rt_lo * exp(mz) / (sigma * root2pi);
                         shape_lo[mzi].push_back(mz);
-		        double intensity = peak.getIntensity();
                         data_lo[mzi].push_back(intensity);
+                        len_lo[mzi]++;
                     }
-                    len_lo[mzi] += hi_index - lo_index + 1;
 
                 // ...if not, use dummy data
                 }
@@ -174,8 +176,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		{
                     data_lo[mzi].push_back(0);
                     shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
-		    // XXX I think this should be:
-		    // len_lo[mzi] += 1;
+		    len_lo[mzi]++;
                 }
 
             // ...if outside use dummy data for this spectrum
@@ -184,8 +185,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	    {
                 data_lo[mzi].push_back(0);
                 shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
-		// XXX I think this should be:
-		// len_lo[mzi] += 1;
+		len_lo[mzi]++;
             }
 
             // Increment centre to hi peak
@@ -196,8 +196,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             if (rowi >= 0 && rowi < rt_len)
 	    {
                 // Select points within tolerance for current spectrum
-		Size lo_index = rowi_spectrum.findNearest(hi_tol_lo);
-		Size hi_index = rowi_spectrum.findNearest(hi_tol_hi);
+               Size lo_index = Size(rowi_spectrum.MZBegin(hi_tol_lo) - rowi_spectrum.begin());
+               Size hi_index = Size(rowi_spectrum.MZBegin(hi_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
 		// XXX should check if the value found at index is near to our target mz
@@ -208,14 +208,15 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		    {
 			Peak1D peak = rowi_spectrum[index];
 			double mz = peak.getMZ();
+		        double intensity = peak.getIntensity();
+                        if (mz < hi_tol_lo) continue;
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         mz = rt_hi * exp(mz) / (sigma * root2pi);
                         shape_hi[mzi].push_back(mz);
-		        double intensity = peak.getIntensity();
                         data_hi[mzi].push_back(intensity);
+                        len_hi[mzi]++;
                     }
-                    len_hi[mzi] += hi_index - lo_index + 1;
 
                 // ...if not, use dummy data
                 }
@@ -223,8 +224,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		{
                     data_hi[mzi].push_back(0);
                     shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
-		    // XXX I think this should be:
-		    // len_hi[mzi] += 1;
+                    len_hi[mzi]++;
                 }
 
             // ...if outside use dummy data for this spectrum
@@ -233,8 +233,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	    {
                 data_hi[mzi].push_back(0);
                 shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
-		// XXX I think this should be:
-		// len_hi[mzi] += 1;
+		len_hi[mzi]++;
             }
         }
     }
