@@ -152,7 +152,6 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                 Size hi_index = Size(rowi_spectrum.MZBegin(lo_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
-		// XXX should check if the value found at index is near to our target mz
                 if (lo_index <= hi_index)
 		{
                     // Calculate guassian value for each found MZ
@@ -200,7 +199,6 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                Size hi_index = Size(rowi_spectrum.MZBegin(hi_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
-		// XXX should check if the value found at index is near to our target mz
                 if (lo_index <= hi_index)
 		{
                     // Calculate guassian value for each found MZ
@@ -245,6 +243,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         if (len_lo[leni] < min_sample_opt) {
             data_lo[leni]  = {0.0};
             shape_lo[leni] = {0.0};
+            len_lo[leni] = 1;
         }
     }
 
@@ -253,6 +252,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         if (len_hi[leni] < min_sample_opt) {
             data_hi[leni]  = {0.0};
             shape_hi[leni] = {0.0};
+            len_hi[leni] = 1;
         } else {
             // Multiply high points by intensity ratio
             for (auto& s : shape_hi[leni]) {
@@ -270,7 +270,6 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         double_vect dataAB_row;
         size_t length_lo = data_lo[i].size();
         size_t length_hi = data_hi[i].size();
-
         for (auto lo_value : data_lo[i]){
             dataAB_row.push_back(lo_value * length_hi);
         }
