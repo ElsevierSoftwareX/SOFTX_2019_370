@@ -54,26 +54,15 @@ if (OpenMS_FOUND)
   ## library with additional classes from above
   add_library(my_custom_lib STATIC ${my_sources})
 
-  #find_package(Boost 1.40 COMPONENTS program_options REQUIRED )
-  #find_package(Boost COMPONENTS program_options REQUIRED )
-  #include_directories( ${Boost_INCLUDE_DIR} )
+  set(Boost_USE_STATIC_LIBS OFF) 
+  set(Boost_USE_MULTITHREADED ON)  
+  set(Boost_USE_STATIC_RUNTIME OFF) 
+  find_package(Boost COMPONENTS program_options REQUIRED) 
 
-  set(Boost_NO_SYSTEM_PATHS TRUE) 
-  if (Boost_NO_SYSTEM_PATHS)
-    set(BOOST_ROOT "/usr/local/boost/1.58.0-gcc/")
-    set(BOOST_INCLUDE_DIRS "${BOOST_ROOT}/include")
-    set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib")
-  endif (Boost_NO_SYSTEM_PATHS)
-
-   set(Boost_USE_STATIC_LIBS OFF) 
-   set(Boost_USE_MULTITHREADED ON)  
-   set(Boost_USE_STATIC_RUNTIME OFF) 
-   find_package(Boost 1.58 COMPONENTS program_options) 
-
-   if(Boost_FOUND)
+  if(Boost_FOUND)
       include_directories(${Boost_INCLUDE_DIRS}) 
       #target_link_libraries(progname ${Boost_LIBRARIES})
-   endif()
+  endif()
 
   ## add targets for the executables
   foreach(i ${my_executables})
@@ -85,8 +74,6 @@ if (OpenMS_FOUND)
   # Release uses optimisation, debug does not
   set(CMAKE_BUILD_TYPE Release)
   # set(CMAKE_BUILD_TYPE Debug)
-
-
 
 else(OpenMS_FOUND)
   message(FATAL_ERROR "OpenMSConfig.cmake file not found!")
