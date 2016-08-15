@@ -83,8 +83,10 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 
     double_2d data_lo;
     double_2d data_hi;
-    double_2d shape_lo;
-    double_2d shape_hi;
+    double_2d MZ_shape_lo;
+    double_2d MZ_shape_hi;
+    double_2d RT_shape_lo;
+    double_2d RT_shape_hi;
     std::vector<int> len_lo;
     std::vector<int> len_hi;
 
@@ -101,8 +103,10 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         double_vect data;
         data_lo.push_back(data);
         data_hi.push_back(data);
-        shape_lo.push_back(data);
-        shape_hi.push_back(data);
+        MZ_shape_lo.push_back(data);
+        MZ_shape_hi.push_back(data);
+        RT_shape_lo.push_back(data);
+        RT_shape_hi.push_back(data);
         len_lo.push_back(0);
         len_hi.push_back(0);
     }
@@ -124,7 +128,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
     {
         float rt_lo = rt_shape[rowi - rt_offset];
-        float rt_hi = rt_lo;
+        float rt_hi = rt_lo * intensity_ratio_opt;
 
 	MSSpectrum<> rowi_spectrum;
         if (rowi >= 0 && rowi < rt_len)
@@ -163,8 +167,9 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                         if (mz < lo_tol_lo) continue;
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
-                        mz = rt_lo * exp(mz) / (sigma * root2pi);
-                        shape_lo[mzi].push_back(mz);
+                        mz = exp(mz) / (sigma * root2pi);
+                        MZ_shape_lo[mzi].push_back(mz);
+                        RT_shape_lo[mzi].push_back(rt_lo);
                         data_lo[mzi].push_back(intensity);
                         len_lo[mzi]++;
                     }
@@ -174,7 +179,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		else
 		{
                     data_lo[mzi].push_back(0);
-                    shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+                    MZ_shape_lo[mzi].push_back(1.0 / (sigma * root2pi));
+                    RT_shape_lo[mzi].push_back(rt_lo);
 		    len_lo[mzi]++;
                 }
 
@@ -183,7 +189,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	    else
 	    {
                 data_lo[mzi].push_back(0);
-                shape_lo[mzi].push_back(rt_lo / (sigma * root2pi));
+                MZ_shape_lo[mzi].push_back(1.0 / (sigma * root2pi));
+                RT_shape_lo[mzi].push_back(rt_lo);
 		len_lo[mzi]++;
             }
 
@@ -210,8 +217,9 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                         if (mz < hi_tol_lo) continue;
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
-                        mz = rt_hi * exp(mz) / (sigma * root2pi);
-                        shape_hi[mzi].push_back(mz);
+                        mz = exp(mz) / (sigma * root2pi);
+                        MZ_shape_hi[mzi].push_back(mz);
+                        RT_shape_hi[mzi].push_back(rt_hi);
                         data_hi[mzi].push_back(intensity);
                         len_hi[mzi]++;
                     }
@@ -221,7 +229,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 		else
 		{
                     data_hi[mzi].push_back(0);
-                    shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
+                    MZ_shape_hi[mzi].push_back(1.0 / (sigma * root2pi));
+                    RT_shape_hi[mzi].push_back(rt_hi);
                     len_hi[mzi]++;
                 }
 
@@ -230,7 +239,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
 	    else
 	    {
                 data_hi[mzi].push_back(0);
-                shape_hi[mzi].push_back(rt_hi / (sigma * root2pi));
+                MZ_shape_hi[mzi].push_back(1.0 / (sigma * root2pi));
+                RT_shape_hi[mzi].push_back(rt_hi);
 		len_hi[mzi]++;
             }
         }
@@ -242,7 +252,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     for (size_t leni = 0; leni < len_lo.size(); ++leni) {
         if (len_lo[leni] < min_sample_opt) {
             data_lo[leni]  = {0.0};
-            shape_lo[leni] = {0.0};
+            MZ_shape_lo[leni] = {0.0};
+            RT_shape_lo[leni] = {0.0};
             len_lo[leni] = 1;
         }
     }
@@ -251,13 +262,58 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     for (size_t leni = 0; leni < len_hi.size(); ++leni) {
         if (len_hi[leni] < min_sample_opt) {
             data_hi[leni]  = {0.0};
-            shape_hi[leni] = {0.0};
+            MZ_shape_hi[leni] = {0.0};
+            RT_shape_hi[leni] = {0.0};
             len_hi[leni] = 1;
         } else {
             // Multiply high points by intensity ratio
-            for (auto& s : shape_hi[leni]) {
+            for (auto& s : MZ_shape_hi[leni]) {
                 s *= intensity_ratio_opt;
             }
+        }
+    }
+
+    // Project data into RT and MZ planes
+    double RT_mean = 0.0;
+    double RT_variance = 0.0;
+
+    // RT mean; same for all windows
+    double sum = 0.0;
+    for (double s : rt_shape) {
+        sum += s;
+    }
+    RT_mean = sum/rt_shape.size();
+    double sum = 0.0;
+    for (double s : rt_shape) {
+        sum += (s - RT_mean) * (s - RT_mean);
+    }
+    RT_variance = sum/rt_shape.size();
+    // hi mass RT_mean and var are ratio * these
+
+    double_2d MZ_data_lo;
+    double_2d MZ_data_hi;
+    for (size_t i = 0; i < shape_lo.size(); ++i)
+    {
+        double MZ_mean = 0.0;
+        double MZ_variance = 0.0;
+        double sum = 0.0;
+        for (double s : shape_lo[i]) {
+            sum += s;
+        }
+        MZ_mean = sum/shape_lo[i].size();
+        double sum = 0.0;
+        for (double s : shape_lo[i]) {
+            sum += (s - MZ_mean) * (s - MZ_mean);
+        }
+        MZ_variance = sum/shape_lo[i].size();
+        MZ_sd = sqrt(MZ_variance);
+/** TODO HERE **/
+        // normalise to RT and MZ data in window
+        // need new vector.  eg data --> RT data, & need MZ_data
+        for (int j; data_lo[i]; j++) {
+            d = data_lo[i][j];
+            s = RT_shape_lo[i][j];
+            an = ((d / s) - MZ_mean) / MZ_sd;
         }
     }
 
@@ -287,22 +343,22 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     double_2d shape1r;
 
     // Setup alternative shape vectors
-    for (size_t i = 0; i < shape_lo.size(); ++i) {
+    for (size_t i = 0; i < MZ_shape_lo.size(); ++i) {
 
         double_vect shapeAB_row;
         double_vect shapeA0_row;
         double_vect shapeB0_row;
         double_vect shape1r_row;
-        size_t length_lo = shape_lo[i].size();
-        size_t length_hi = shape_hi[i].size();
+        size_t length_lo = MZ_shape_lo[i].size();
+        size_t length_hi = MZ_shape_hi[i].size();
 
-        for (auto lo_value : shape_lo[i]){
+        for (auto lo_value : MZ_shape_lo[i]){
             shapeAB_row.push_back(lo_value * length_hi);
             shapeA0_row.push_back(lo_value * length_hi);
             shapeB0_row.push_back(0.0);
             shape1r_row.push_back(length_hi);
         }
-        for (auto hi_value : shape_hi[i]){
+        for (auto hi_value : MZ_shape_hi[i]){
             shapeAB_row.push_back(hi_value * length_lo);
             shapeA0_row.push_back(0.0);
             shapeB0_row.push_back(hi_value * length_lo);
