@@ -3,16 +3,14 @@
 #set -x
 #set -e
 
-# Instructions for building on OSX
-# The OpenMS source will be installed in $HITIME_BASE/opems
+# Instructions for building on Ubuntu 
+# The OpenMS source will be installed in $HITIME_BASE/openms
 # you can put it elsewhere, adjust paths accordingly
 #
 #
 #1) Install dependencies
 #
-# - Xcode: https://developer.apple.com/xcode/
-#
-# - other dependencies using homebrew:
+# - using the Ubuntu package manager
 
 # You will need to define the HITIME_BASE shell variable to be
 # the filepath of the place where you want to make the installation.
@@ -31,16 +29,12 @@ if [ -z ${HITIME_BASE+x} ]; then
     exit 1
 fi
 
-echo "brew installing dependencies"
+echo "installing dependencies"
 
-brew install autoconf
-brew install automake
-brew install libtool
-brew install cmake
-brew install qt4
-brew tap homebrew/science
-brew tap homebrew/versions
-brew install libsvm xerces-c boost
+sudo apt-get install cmake g++ autoconf qt4-dev-tools patch libtool make git \
+     libqt4-core libqt4-dev libqt4-gui libqt4-opengl-dev automake libqtwebkit-dev
+sudo apt-get install libboost-all-dev \
+     libsvm-dev libglpk-dev libzip-dev zlib1g-dev libxerces-c-dev libbz2-dev
 
 echo "building OPENMS contrib packages"
 
@@ -51,11 +45,9 @@ cd openms
 git clone https://github.com/OpenMS/contrib.git
 mkdir contrib-build
 cd contrib-build
-cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=GLPK $HITIME_BASE/openms/contrib
-cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=SEQAN $HITIME_BASE/openms/contrib
-cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=WILDMAGIC $HITIME_BASE/openms/contrib
-cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=GLPK $HITIME_BASE/openms/contrib
-cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=EIGEN $HITIME_BASE/openms/contrib
+cmake -DBUILD_TYPE=SEQAN ../contrib
+cmake -DBUILD_TYPE=WILDMAGIC ../contrib
+cmake -DBUILD_TYPE=EIGEN ../contrib
 
 echo "configuring OPENMS"
 
@@ -63,7 +55,7 @@ cd $HITIME_BASE/openms
 git clone https://github.com/OpenMS/OpenMS.git
 mkdir openms_build
 cd openms_build
-cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" ../OpenMS
+cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" -DBOOST_USE_STATIC=OFF ../OpenMS
 
 echo "building OPENMS"
 
@@ -76,7 +68,7 @@ cd $HITIME_BASE
 git clone https://github.com/bjpop/HiTIME-CPP
 #switch to the branch that you want
 cd HiTIME-CPP
-git checkout -b threads origin/local_maxima
+git checkout -b local_maxima origin/local_maxima
 
 cd $HITIME_BASE/HiTIME-CPP/score
 
