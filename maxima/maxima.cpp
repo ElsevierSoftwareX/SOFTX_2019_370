@@ -20,11 +20,21 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        double_vect score = score_spectra(input_map, n, half_window, opts);
        MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
+       double this_rt = input_spectrum.getRT();
+       double this_mz;
+       double this_score;
 
        // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[index]);
+           this_score = output_spectrum[index].getIntensity();
+           if (this_score > 0)
+           {
+               this_mz = output_spectrum[index].getMZ();
+               //cout << this_rt << " " << this_mz << " " << this_score << endl;
+               cout << fixed << this_mz << " " << fixed << this_rt << " " << fixed << this_score << endl;
+           }
        }
        // Writing to the output_map must be synchronised between threads, with only one thread
        // allowed to write at a time.

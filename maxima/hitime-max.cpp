@@ -35,6 +35,8 @@ int main(int argc, char** argv)
    int low_spectrum = 0;
    int high_spectrum = spectra_per_thread;
 
+   cout.precision(17);
+
    //cout << "Num threads: " << opts.num_threads << endl;
    //cout << "Spectra per thread: " << spectra_per_thread << endl;
 
