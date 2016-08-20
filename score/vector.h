@@ -18,6 +18,9 @@ double_vect square_vector(double_vect vect);
 //! @brief Sum a vector.
 double sum_vector(double_vect vect);
 
+//! @brief add a const to all elements of the vector.
+double_vect shift_vector(double_vect vect, double offset);
+
 //! @brief Elementwise multiplication of two vectors.
 double_vect mult_vectors(double_vect vect1, double_vect vect2);
 

@@ -13,10 +13,10 @@ using namespace std;
 mutex output_spectrum_lock;
 
 // Worker function for scoring a block of spectra. This is executed by a thread. 
-void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
+void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, size_t half_window, Options opts, size_t low_spectra, size_t high_spectra)
 {
    double_2d score;
-   for (int n = low_spectra; n < high_spectra; n++)
+   for (size_t n = low_spectra; n < high_spectra; n++)
    {
        score = score_spectra(input_map, n, half_window, opts);
 
@@ -24,7 +24,7 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
 
        // Copy the computed score into the output intensity
-       for (int index = 0; index < input_spectrum.size(); ++index)
+       for (size_t index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[0][index]);
        }
@@ -53,7 +53,7 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
  */
 
 double_2d
-score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts)
+score_spectra(MSExperiment<> &map, size_t centre_idx, size_t half_window, Options opts)
 {
     // Calculate constant values
     double rt_width_opt = opts.rt_width;
@@ -66,10 +66,10 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     double mz_ppm_sigma = mz_width_opt / (std_dev_in_fwhm * 1e6);
     Size rt_len = map.getNrSpectra();
     // XXX why rename centre_idx to mid_win?
-    int mid_win = centre_idx;
+    size_t mid_win = centre_idx;
     double lo_tol = 1.0 - mz_sigma_opt * mz_ppm_sigma;
     double hi_tol = 1.0 + mz_sigma_opt * mz_ppm_sigma;
-    int rt_offset = mid_win - half_window;
+    size_t rt_offset = mid_win - half_window;
 
     // XXX mz_mu_vect seems like a bad name
     MSSpectrum<> mz_mu_vect = map.getSpectrum(mid_win);
@@ -81,14 +81,14 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     double_vect points_hi_lo;
     double_vect points_hi_hi;
 
-    double_2d data_lo;
-    double_2d data_hi;
+    double_2d RT_data_lo;
+    double_2d RT_data_hi;
+    double_2d MZ_data_lo;
+    double_2d MZ_data_hi;
     double_2d MZ_shape_lo;
     double_2d MZ_shape_hi;
     double_2d RT_shape_lo;
     double_2d RT_shape_hi;
-    std::vector<int> len_lo;
-    std::vector<int> len_hi;
 
     // Calculate tolerances for the lo and hi peak for each central MZ
     MSSpectrum<>::Iterator it;
@@ -101,34 +101,46 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         points_hi_hi.push_back((this_mz + mz_delta_opt) * hi_tol);
 
         double_vect data;
-        data_lo.push_back(data);
-        data_hi.push_back(data);
+        MZ_data_lo.push_back(data);
+        MZ_data_hi.push_back(data);
         MZ_shape_lo.push_back(data);
         MZ_shape_hi.push_back(data);
         RT_shape_lo.push_back(data);
         RT_shape_hi.push_back(data);
-        len_lo.push_back(0);
-        len_hi.push_back(0);
     }
 
-    // XXX why float?
     // XXX Can't we compute this once outside the function?
-    std::vector<float> rt_shape;
+    std::vector<double> rt_shape;
 
-    // Calculate guassian shape in the RT direction
-    for (int i = 0; i < (2 * half_window) + 1; ++i)
+    // Calculate Gaussian shape in the RT direction
+    size_t n = 0;
+    double RT_mean = 0.0;
+    double RT_sd = 0.0;
+    for (size_t i = 0; i < (2 * half_window) + 1; ++i)
     {
-        float pt = (i - half_window) / rt_sigma;
+        double pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
-        pt = exp(pt) / (rt_sigma * root2pi);
-        rt_shape.push_back(pt);
+        double fit = exp(pt) / (rt_sigma * root2pi);
+        rt_shape.push_back(fit);
+
+        // online mean and variance
+        n += 1;
+        double delta = x - RT_mean;    // prior
+        RT_mean += delta/n;    // posterior
+        RT_sd += delta*(x - RT_mean);
+    }
+    // Final calc for RT_sd
+    if (n > 1)    // is already = 0.0 otherwise
+    {
+        RT_sd /= (n - 1);
+        RT_sd = sqrt(RT_sd);
     }
 
     // Iterate over the spectra in the window
-    for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
+    for (size_t rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
     {
-        float rt_lo = rt_shape[rowi - rt_offset];
-        float rt_hi = rt_lo * intensity_ratio_opt;
+        double rt_lo = rt_shape[rowi - rt_offset];
+        double rt_hi = rt_lo * intensity_ratio_opt;
 
 	MSSpectrum<> rowi_spectrum;
         if (rowi >= 0 && rowi < rt_len)
@@ -158,27 +170,71 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                 // Check if points found...
                 if (lo_index <= hi_index)
 		{
-                    // Calculate guassian value for each found MZ
+                    n = 0;
+                    double MZ_mean = 0.0;
+                    double MZ_sd = 0.0;
+                    double_vect data;
+                    // Calculate Gaussian value for each found MZ
                     for (Size index = lo_index; index <= hi_index; ++index)
 		    {
 			Peak1D peak = rowi_spectrum[index];
 			double mz = peak.getMZ();
 		        double intensity = peak.getIntensity();
+
                         if (mz < lo_tol_lo) continue;
+
+                        // online mean and variance
+                        n += 1;
+                        double delta = mz - MZ_mean;    // prior
+                        MZ_mean += delta/n;    // posterior
+                        MZ_sd += delta*(mz - MZ_mean);
+                        
+                        // calc mz fit
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
-                        mz = exp(mz) / (sigma * root2pi);
-                        MZ_shape_lo[mzi].push_back(mz);
+                        double fit = exp(mz) / (sigma * root2pi);
+
+                        // row data
+                        data.push_back(intensity);
+
+                        // Store RT projections with normalisation
+                        // calculate (intensity - RT_mean * fit) / (RT_sd * fit)
+                        // = (intensity/fit - RT_mean)/RT_sd
+                        intensity /= fit;
+                        intensity -= RT_mean;
+                        if (RT_sd > 0) intensity /= RT_sd;
+                        else intensity = 0.0;
+
+                        // collect for window based calculations later
+                        RT_data_lo[mzi].push_back(intensity);
+                        MZ_shape_lo[mzi].push_back(fit);
                         RT_shape_lo[mzi].push_back(rt_lo);
-                        data_lo[mzi].push_back(intensity);
-                        len_lo[mzi]++;
+                    }
+
+                    // Final calc for MZ_sd
+                    if (n > 1)    // is already = 0.0 otherwise
+                    {
+                        MZ_sd /= (n - 1);
+                        MZ_sd = sqrt(MZ_sd);
+                    }
+
+                    // Now store MZ projections with normalisation
+                    for (auto& intensity : data)
+		    {
+                        // rescale = (intensity/fit - RT_mean)/RT_sd
+                        intensity /= rt_lo;
+                        intensity -= MZ_mean;
+                        if (MZ_sd > 0) intensity /= MZ_sd;
+                        else intensity = 0.0;
+                        MZ_data_lo[mzi].push_back(intensity);
                     }
 
                 // ...if not, use dummy data
                 }
 		else
 		{
-                    data_lo[mzi].push_back(0);
+                    RT_data_lo[mzi].push_back(0);
+                    MZ_data_lo[mzi].push_back(0);
                     MZ_shape_lo[mzi].push_back(1.0 / (sigma * root2pi));
                     RT_shape_lo[mzi].push_back(rt_lo);
 		    len_lo[mzi]++;
@@ -188,7 +244,8 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             }
 	    else
 	    {
-                data_lo[mzi].push_back(0);
+                RT_data_lo[mzi].push_back(0);
+                MZ_data_lo[mzi].push_back(0);
                 MZ_shape_lo[mzi].push_back(1.0 / (sigma * root2pi));
                 RT_shape_lo[mzi].push_back(rt_lo);
 		len_lo[mzi]++;
@@ -208,40 +265,82 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
                 // Check if points found...
                 if (lo_index <= hi_index)
 		{
-                    // Calculate guassian value for each found MZ
+                    n = 0;
+                    double MZ_mean = 0.0;
+                    double MZ_sd = 0.0;
+                    double_vect data;
+                    // Calculate Gaussian value for each found MZ
                     for (Size index = lo_index; index <= hi_index; ++index)
 		    {
 			Peak1D peak = rowi_spectrum[index];
 			double mz = peak.getMZ();
 		        double intensity = peak.getIntensity();
+
                         if (mz < hi_tol_lo) continue;
+
+                        // online mean and variance
+                        n += 1;
+                        double delta = mz - MZ_mean;    // prior
+                        MZ_mean += delta/n;    // posterior
+                        MZ_sd += delta*(mz - MZ_mean);
+
+                        // calc mz fit
 			mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
-                        mz = exp(mz) / (sigma * root2pi);
-                        MZ_shape_hi[mzi].push_back(mz);
+                        double fit = exp(mz) / (sigma * root2pi);
+
+                        // row data
+                        data.push_back(intensity);
+
+                        // Store RT projections with normalisation
+                        // calculate (intensity - RT_mean * fit) / (RT_sd * fit)
+                        // = (intensity/fit - RT_mean)/RT_sd
+                        intensity /= fit;
+                        intensity -= RT_mean;
+                        if (RT_sd > 0) intensity /= RT_sd;
+                        else intensity = 0.0;
+
+                        // collect for window based calculations later
+                        RT_data_hi[mzi].push_back(intensity);
+                        MZ_shape_hi[mzi].push_back(fit);
                         RT_shape_hi[mzi].push_back(rt_hi);
-                        data_hi[mzi].push_back(intensity);
-                        len_hi[mzi]++;
                     }
 
+                    // Final calc for MZ_sd
+                    if (n > 1)    // is already = 0.0 otherwise
+                    {
+                        MZ_sd /= (n - 1);
+                        MZ_sd = sqrt(MZ_sd);
+                    }
+
+                    // Now store MZ projections with normalisation
+                    for (auto& intensity : data)
+		    {
+                        // rescale = (intensity/fit - RT_mean)/RT_sd
+                        intensity /= rt_lo;
+                        intensity -= MZ_mean;
+                        if (MZ_sd > 0) intensity /= MZ_sd;
+                        else intensity = 0.0;
+                        MZ_data_hi[mzi].push_back(intensity);
+                    }
                 // ...if not, use dummy data
                 }
 		else
 		{
-                    data_hi[mzi].push_back(0);
+                    RT_data_hi[mzi].push_back(0);
+                    MZ_data_hi[mzi].push_back(0);
                     MZ_shape_hi[mzi].push_back(1.0 / (sigma * root2pi));
                     RT_shape_hi[mzi].push_back(rt_hi);
-                    len_hi[mzi]++;
                 }
 
             // ...if outside use dummy data for this spectrum
             }
 	    else
 	    {
-                data_hi[mzi].push_back(0);
+                RT_data_hi[mzi].push_back(0);
+                MZ_data_hi[mzi].push_back(0);
                 MZ_shape_hi[mzi].push_back(1.0 / (sigma * root2pi));
                 RT_shape_hi[mzi].push_back(rt_hi);
-		len_hi[mzi]++;
             }
         }
     }
@@ -249,71 +348,24 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     //! @todo Combine hi and lo conditions/loops
 
     // Set point with insufficient samples to zero
-    for (size_t leni = 0; leni < len_lo.size(); ++leni) {
-        if (len_lo[leni] < min_sample_opt) {
-            data_lo[leni]  = {0.0};
+    // mz_mu_vect, RT_data, MZ_data, RT_shape, MZ_shape whould all be the same size
+    // and each sub vector should be the same size
+    for (size_t i = 0; i < RT_data_lo.size(); ++i) {
+        if (RT_data_lo[leni].size() < min_sample_opt) {
+            RT_data_lo[leni]  = {0.0};
+            MZ_data_lo[leni]  = {0.0};
             MZ_shape_lo[leni] = {0.0};
             RT_shape_lo[leni] = {0.0};
-            len_lo[leni] = 1;
         }
     }
 
     // Set points with insufficient samples to zero
-    for (size_t leni = 0; leni < len_hi.size(); ++leni) {
-        if (len_hi[leni] < min_sample_opt) {
-            data_hi[leni]  = {0.0};
+    for (size_t i = 0; i < RT_data_hi.size(); ++i) {
+        if (RT_data_hi[leni].size() < min_sample_opt) {
+            RT_data_hi[leni]  = {0.0};
+            MZ_data_hi[leni]  = {0.0};
             MZ_shape_hi[leni] = {0.0};
             RT_shape_hi[leni] = {0.0};
-            len_hi[leni] = 1;
-        } else {
-            // Multiply high points by intensity ratio
-            for (auto& s : MZ_shape_hi[leni]) {
-                s *= intensity_ratio_opt;
-            }
-        }
-    }
-
-    // Project data into RT and MZ planes
-    double RT_mean = 0.0;
-    double RT_variance = 0.0;
-
-    // RT mean; same for all windows
-    double sum = 0.0;
-    for (double s : rt_shape) {
-        sum += s;
-    }
-    RT_mean = sum/rt_shape.size();
-    double sum = 0.0;
-    for (double s : rt_shape) {
-        sum += (s - RT_mean) * (s - RT_mean);
-    }
-    RT_variance = sum/rt_shape.size();
-    // hi mass RT_mean and var are ratio * these
-
-    double_2d MZ_data_lo;
-    double_2d MZ_data_hi;
-    for (size_t i = 0; i < shape_lo.size(); ++i)
-    {
-        double MZ_mean = 0.0;
-        double MZ_variance = 0.0;
-        double sum = 0.0;
-        for (double s : shape_lo[i]) {
-            sum += s;
-        }
-        MZ_mean = sum/shape_lo[i].size();
-        double sum = 0.0;
-        for (double s : shape_lo[i]) {
-            sum += (s - MZ_mean) * (s - MZ_mean);
-        }
-        MZ_variance = sum/shape_lo[i].size();
-        MZ_sd = sqrt(MZ_variance);
-/** TODO HERE **/
-        // normalise to RT and MZ data in window
-        // need new vector.  eg data --> RT data, & need MZ_data
-        for (int j; data_lo[i]; j++) {
-            d = data_lo[i][j];
-            s = RT_shape_lo[i][j];
-            an = ((d / s) - MZ_mean) / MZ_sd;
         }
     }
 
@@ -371,12 +423,15 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
         shape1r.push_back(shape1r_row);
     }
 
-    // Centre vectors
-    dataAB  = apply_vect_func(dataAB,  centre_vector);
-    shapeAB = apply_vect_func(shapeAB, centre_vector);
-    shapeA0 = apply_vect_func(shapeA0, centre_vector);
-    shapeB0 = apply_vect_func(shapeB0, centre_vector);
-    shape1r = apply_vect_func(shape1r, centre_vector);
+    // Combined means
+    dataAB_mean = reduce_2D_vect(reduce_2D_vect(
+
+    // Shift vectors
+    dataAB  = apply_vect_func(dataAB, dataAB_mean, shift_vector);
+    shapeAB = apply_vect_func(shapeAB, shapeAB_mean, shift_vector);
+    shapeA0 = apply_vect_func(shapeA0, shapeA0_mean, shift_vector);
+    shapeB0 = apply_vect_func(shapeB0, shapeB0_mean, shift_vector);
+    shape1r = apply_vect_func(shape1r, shape1r_mean, shift_vector);
 
     double_2d data2AB;
     double_2d shape2AB;

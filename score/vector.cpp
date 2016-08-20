@@ -4,6 +4,24 @@
 #include <algorithm>
 #include "vector.h"
 
+/*! Shift all values in the vector by a constant
+ *
+ * @param vect The vector to shift.
+ * @param double Offset.
+ *
+ * @return The shifted vector.
+ */
+double_vect shift_vector(double_vect vect, double offset)
+{
+    double_vect shifted;
+
+    for (auto v : vect) {
+        shifted.push_back(v - offset);
+    }
+
+    return shifted;
+}
+
 /*! Calculate the mean of all values in the vector and subtract from each
  * individual value.
  *
