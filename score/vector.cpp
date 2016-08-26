@@ -72,6 +72,31 @@ double sum_vector(double_vect vect)
     return sum;
 }
 
+/*! Average of all the values in a vector.
+ *
+ * @param vect The vector to average.
+ *
+ * @return The mean value.
+ */
+double mean_vector(double_vect vect)
+{
+    double mean = std::accumulate(vect.begin(), vect.end(), 0.0);
+
+    return mean/vect.size();
+}
+
+/*! Average of element pairs from two vectors.
+ *
+ * @param double 1st value.
+ * @param double 2nd value.
+ *
+ * @return The mean value.
+ */
+double mean_scalars(double val1, double val2)
+{
+    return 0.5 * (val1 + val2);
+}
+
 /*! Multiply pairs of values from two vectors of equal length.
  *
  * @param vect1 First vector to be multiplied.
@@ -94,6 +119,18 @@ double_vect mult_vectors(double_vect vect1, double_vect vect2)
     }
 
     return mult;
+}
+
+/*! multiply element pairs from two vectors.
+ *
+ * @param double 1st value.
+ * @param double 2nd value.
+ *
+ * @return The product value.
+ */
+double mult_scalars(double val1, double val2)
+{
+    return val1 * val2;
 }
 
 /*! Divide values from one vector by values from a second vector of equal
