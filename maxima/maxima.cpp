@@ -20,11 +20,21 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        double_vect score = score_spectra(input_map, n, half_window, opts);
        MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
+       double this_rt = input_spectrum.getRT();
+       double this_mz;
+       double this_score;
 
        // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[index]);
+           this_score = output_spectrum[index].getIntensity();
+           if (this_score > 0)
+           {
+               this_mz = output_spectrum[index].getMZ();
+               //cout << this_rt << " " << this_mz << " " << this_score << endl;
+               cout << fixed << this_mz << " " << fixed << this_rt << " " << fixed << this_score << endl;
+           }
        }
        // Writing to the output_map must be synchronised between threads, with only one thread
        // allowed to write at a time.
@@ -35,6 +45,53 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        // write_scores(score, input_spectrum, outfile);
    }
 }
+
+/* Find index of the least mass >= low_mass, and the greatest mass <= high_mass */
+
+void get_bounds(MSSpectrum<> &spectrum, double low_mass, double high_mass, Size &lo_index, Size &hi_index)
+{
+    double this_mass;
+    lo_index = -1;
+    hi_index = -1;
+    Size probe;
+    Size max_probe = spectrum.size() - 1;
+
+    probe = spectrum.findNearest(low_mass);
+
+    if (probe >= 0 && probe <= max_probe)
+    {
+       this_mass = spectrum[probe].getMZ();
+       while(probe <= max_probe && this_mass < low_mass)
+       {
+          probe += 1;
+          this_mass = spectrum[probe].getMZ();
+       }
+
+       if (this_mass >= low_mass && this_mass <= high_mass)
+       {
+          lo_index = probe;
+       }
+
+    }
+
+    probe = spectrum.findNearest(high_mass);
+
+    if (probe >= 0 && probe <= max_probe)
+    {
+       this_mass = spectrum[probe].getMZ();
+       while(probe > 0 && this_mass > high_mass)
+       {
+          probe -= 1;
+          this_mass = spectrum[probe].getMZ();
+       }
+
+       if (this_mass >= low_mass && this_mass <= high_mass)
+       {
+          hi_index = probe;
+       }
+    }
+}
+
 
 
 /*! Compute the local maxima scores for the input spectrum.
@@ -93,11 +150,13 @@ score_spectra(MSExperiment<> &map, int mid_win, int half_window, Options opts)
              double lo_tol_hi = points_hi[mzi];
 
              // Select points within tolerance for current spectrum
-             Size lo_index = rowi_spectrum.findNearest(lo_tol_lo);
-             Size hi_index = rowi_spectrum.findNearest(lo_tol_hi);
+
+             Size lo_index;
+             Size hi_index;
+             get_bounds(rowi_spectrum, lo_tol_lo, lo_tol_hi, lo_index, hi_index);
              // Check if points found...
              // XXX should check if the value found at index is near to our target mz
-             if (lo_index <= hi_index)
+             if (lo_index != -1 && hi_index != -1 && lo_index <= hi_index)
              {
                 // Collect neighbouring local intensities
                 for (Size index = lo_index; index <= hi_index; ++index)

@@ -38,6 +38,52 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
    }
 }
 
+/* Find index of the least mass >= low_mass, and the greatest mass <= high_mass */
+
+void get_bounds(MSSpectrum<> &spectrum, double low_mass, double high_mass, Size &lo_index, Size &hi_index)
+{
+    double this_mass;
+    lo_index = -1;
+    hi_index = -1;
+    Size probe;
+    Size max_probe = spectrum.size() - 1;
+
+    probe = spectrum.findNearest(low_mass);
+
+    if (probe >= 0 && probe <= max_probe)
+    {
+       this_mass = spectrum[probe].getMZ();
+       while(probe <= max_probe && this_mass < low_mass)
+       {
+          probe += 1;
+          this_mass = spectrum[probe].getMZ();
+       } 
+
+       if (this_mass >= low_mass && this_mass <= high_mass)
+       {
+          lo_index = probe;
+       }
+
+    }
+
+    probe = spectrum.findNearest(high_mass);
+
+    if (probe >= 0 && probe <= max_probe)
+    {
+       this_mass = spectrum[probe].getMZ();
+       while(probe > 0 && this_mass > high_mass)
+       {
+          probe -= 1;
+          this_mass = spectrum[probe].getMZ();
+       } 
+
+       if (this_mass >= low_mass && this_mass <= high_mass)
+       {
+          hi_index = probe;
+       }
+    }
+}
+
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -184,12 +230,22 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             if (rowi >= 0 && rowi < rt_len)
 	    {
                 // Select points within tolerance for current spectrum
+/*
                 // Want lower bound
                 Size lo_index = Size(rowi_spectrum.MZBegin(lo_tol_lo) - rowi_spectrum.begin());
                 Size hi_index = Size(rowi_spectrum.MZBegin(lo_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
                 if (lo_index <= hi_index)
+*/
+                Size lo_index;
+                Size hi_index;
+                get_bounds(rowi_spectrum, lo_tol_lo, lo_tol_hi, lo_index, hi_index);
+
+                // Check if points found...
+		// XXX should check if the value found at index is near to our target mz
+                if (lo_index != -1 && hi_index != -1 && lo_index <= hi_index)
+//
 		{
                     n = 0;
                     double MZ_mean = 0.0;
@@ -265,11 +321,22 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
             if (rowi >= 0 && rowi < rt_len)
 	    {
                 // Select points within tolerance for current spectrum
+/*
                Size lo_index = Size(rowi_spectrum.MZBegin(hi_tol_lo) - rowi_spectrum.begin());
                Size hi_index = Size(rowi_spectrum.MZBegin(hi_tol_hi) - rowi_spectrum.begin());
 
                 // Check if points found...
                 if (lo_index <= hi_index)
+*/
+                Size lo_index = -1;
+                Size hi_index = -1;
+                get_bounds(rowi_spectrum, hi_tol_lo, hi_tol_hi, lo_index, hi_index);
+
+                // Check if points found...
+		// XXX should check if the value found at index is near to our target mz
+                //if (lo_index <= hi_index)
+                if (lo_index != -1 && hi_index != -1 && lo_index <= hi_index)
+//
 		{
                     n = 0;
                     double MZ_mean = 0.0;
