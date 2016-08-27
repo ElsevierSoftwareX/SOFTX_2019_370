@@ -24,7 +24,7 @@ void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int hal
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
 
        // Copy the computed score into the output intensity
-       for (size_t index = 0; index < input_spectrum.size(); ++index)
+       for (int index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[0][index]);
        }
@@ -178,7 +178,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     size_t n = 0;
     double RT_mean = 0.0;
     double RT_sd = 0.0;
-    for (size_t i = 0; i < (2 * half_window) + 1; ++i)
+    for (int i = 0; i < (2 * half_window) + 1; ++i)
     {
         double pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
@@ -199,7 +199,7 @@ score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts
     }
 
     // Iterate over the spectra in the window
-    for (long long int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
+    for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
     {
         double rt_lo = rt_shape[rowi - rt_offset];
         double rt_hi = rt_lo * intensity_ratio_opt;
