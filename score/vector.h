@@ -18,8 +18,20 @@ double_vect square_vector(double_vect vect);
 //! @brief Sum a vector.
 double sum_vector(double_vect vect);
 
+//! @brief Mean a vector.
+double mean_vector(double_vect vect);
+
+//! @brief Average of two values.
+double mean_scalars(double val1, double val2);
+
+//! @brief add a const to all elements of the vector.
+double_vect shift_vector(double_vect vect1, double offset);
+
 //! @brief Elementwise multiplication of two vectors.
 double_vect mult_vectors(double_vect vect1, double_vect vect2);
+
+//! @brief Elementwise multiplication of two scalars.
+double mult_scalars(double val1, double val2);
 
 //! @brief Elementwise division of two vectors.
 double_vect div_vectors(double_vect vect1, double_vect vect2);
@@ -45,9 +57,9 @@ double_vect z_vectors(double_vect cor1, double_vect cor2, double_vect sqrtn,
 template <typename T, typename F>
 std::vector<T> apply_vect_func(std::vector<T> vect, F func);
 
-//! @brief Apply function that combines elements of two vectors.
-template <typename T, typename F>
-std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
+//! @brief Apply function to elements of vectors.
+template <typename T1, typename T2, typename F>
+std::vector<T1> apply_vect_func(std::vector<T1> vect1, std::vector<T2> vect2,
                                                                     F func);
 
 /*! Template function that takes a 2D vector of any type and applies a function
@@ -71,23 +83,23 @@ std::vector<T> reduce_2D_vect (std::vector<std::vector<T>> vect2D, F func)
     return reduced;
 }
 
-
-/*! Template function that takes two vectors of any type and applies a function
- * to each pair of elements to give another vector of the same type.
+/*! Template function that takes two vectors of same or different types
+ * and applies a function to each pair of elements to give another vector
+ * of the same type as the first vector.
  *
  * @param vect1 First vector to apply the function too.
  * @param vect2 Second vector to apply the function too
  * @param func Function to apply to each pair of elements. Must return a single
- * value of the same type as the vectors
+ * value of the same type as the first vector
  *
  * @returns Vector containing results from applying _func_ to _vect1_ and
  * _vect2_.
  */
-template <typename T, typename F>
-std::vector<T> apply_vect_func(std::vector<T> vect1, std::vector<T> vect2,
+template <typename T1, typename T2, typename F>
+std::vector<T1> apply_vect_func(std::vector<T1> vect1, std::vector<T2> vect2,
                                                                      F func)
 {
-    std::vector<T> applied;
+    std::vector<T1> applied;
 
     // Throw exception if vectors of different lengths
     if (vect1.size() != vect2.size()) {
