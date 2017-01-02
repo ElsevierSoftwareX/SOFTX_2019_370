@@ -42,5 +42,6 @@ RUN make
 WORKDIR $BASE_DIR/maxima
 RUN cmake -D OpenMS_DIR=$BASEDIR/openms/openms_build/ -D CMAKE_PREFIX_PATH="$BASE_DIR/openms/contrib-build;/usr;/usr/local" .
 RUN make
+WORKDIR $BASE_DIR
 COPY ./hitime /
 ENTRYPOINT ["/hitime"]
