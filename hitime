@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+if [ "$#" -lt 1 ]; then
+   echo "hitime error: insufficient command line arguments"
+   echo "usage: hitime [score|maxima] args ..."
+   exit 2
+fi
+
+if [ "$1" = 'score' ]; then
+    echo score
+    shift 1
+    exec score/hitime-score "$@"
+elif [ "$1" = 'maxima' ]; then
+    echo maxima
+    shift 1
+    exec score/hitime-maxima "$@"
+fi

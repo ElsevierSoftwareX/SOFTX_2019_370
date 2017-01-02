@@ -3,8 +3,24 @@ MAINTAINER Bernie Pope
 ENV BASE_DIR /src
 ADD ./score $BASE_DIR/score
 ADD ./maxima $BASE_DIR/maxima
-RUN apt-get -y update
-RUN apt-get install -y cmake g++ autoconf patch libtool make git automake libboost-all-dev libsvm-dev libglpk-dev libzip-dev zlib1g-dev libxerces-c-dev libbz2-dev libqt4-dev
+RUN apt-get -y update && apt-get install -y \
+   autoconf \
+   automake \
+   cmake \
+   git \
+   g++ \
+   libtool \
+   make \
+   libboost-all-dev \
+   libbz2-dev \
+   libglpk-dev \
+   libqt4-dev \
+   libsvm-dev \
+   libxerces-c-dev \
+   libzip-dev \
+   patch \
+   zlib1g-dev \
+   && rm -rf /var/lib/apt/lists/*
 WORKDIR $BASE_DIR 
 RUN mkdir openms
 WORKDIR $BASE_DIR/openms
@@ -26,4 +42,5 @@ RUN make
 WORKDIR $BASE_DIR/maxima
 RUN cmake -D OpenMS_DIR=$BASEDIR/openms/openms_build/ -D CMAKE_PREFIX_PATH="$BASE_DIR/openms/contrib-build;/usr;/usr/local" .
 RUN make
-ENTRYPOINT ["/src/score/hitime-score"]
+COPY ./hitime /
+ENTRYPOINT ["/hitime"]
