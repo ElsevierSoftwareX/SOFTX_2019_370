@@ -1,14 +1,24 @@
 # HiTIME-CPP
 
-HiTIME-CPP is a program for identifying double peaks in mass spectrometry
-data implemented in C++. HiTIME-CPP is designed to be integrated with 
-existing [OpenMS](http://open-ms.sourceforge.net/) libraries. 
+HiTIME-CPP is a program for identifying twin-ion signals in
+[Liquid chromatography-mass spectrometry (LCMS)](https://en.wikipedia.org/wiki/Liquid_chromatography%E2%80%93mass_spectrometry) data. 
+HiTIME-CPP is designed to be integrated with existing analysis pipelines, such as those 
+created with [OpenMS](https://www.openms.de/). 
+
+HiTIME-CPP filters twin-ion signals in LCMS data. Each data point in the input is scored according to the goodness-of-fit of its neighbourhood to twin Gaussians of expected dimensions and spacings. This process re-weights each data point by its likelihood of being part of a true twin ion signal. 
+
+HiTIME-CPP bundles two programs:
+  * *hitime score*: takes an [mzML](https://en.wikipedia.org/wiki/Mass_spectrometry_data_format#mzML) file as input and produces an mzML file as output. Intentsity values in the input file which correspond to the lower mass in a twin-ion peak are retained and scored highly in the output, all other intensities are downweighted towards zero.
+  * *hitime max*: takes the mzML output from `hitime score` and detects local maxima intensities, these should occur at the center of the lower mass in each twin ion pair. 
+
 
 ## License
 
-HiTIME is released as open source software under the terms of the 3-Clause BSD License.
+HiTIME is released as open source software under the terms of the [3-Clause BSD License](https://opensource.org/licenses/BSD-3-Clause).
 See the contents of the file called LICENSE in the top level of the source
 code repository for a copy of the terms.
+
+## Installation
 
 ## Build Instructions
 
