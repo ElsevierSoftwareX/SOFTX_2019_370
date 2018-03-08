@@ -15,7 +15,7 @@ mutex output_spectrum_lock;
 // Worker function for scoring a block of spectra. This is executed by a thread. 
 void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
 {
-   double_2d score;
+   double_vect score;
    for (int n = low_spectra; n < high_spectra; n++)
    {
        score = score_spectra(input_map, n, half_window, opts);
@@ -26,64 +26,15 @@ void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_wi
        // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
-           output_spectrum[index].setIntensity(score[0][index]);
+           output_spectrum[index].setIntensity(score[index]);
        }
        // Writing to the output_map must be synchronised between threads, with only one thread
        // allowed to write at a time.
        unique_lock<mutex> lck {output_spectrum_lock};
        output_map.addSpectrum(output_spectrum);
        output_spectrum_lock.unlock();
-       // Output the results
-       // write_scores(score, input_spectrum, outfile);
    }
 }
-
-/* Find index of the least mass >= low_mass, and the greatest mass <= high_mass */
-/* AI: ignore for testing
-void get_bounds(MSSpectrum<> &spectrum, double low_mass, double high_mass, Size &lo_index, Size &hi_index)
-{
-    double this_mass;
-    lo_index = -1;
-    hi_index = -1;
-    Size probe;
-    Size max_probe = spectrum.size() - 1;
-
-    probe = spectrum.findNearest(low_mass);
-
-    if (probe >= 0 && probe <= max_probe)
-    {
-       this_mass = spectrum[probe].getMZ();
-       while(probe <= max_probe && this_mass < low_mass)
-       {
-          probe += 1;
-          this_mass = spectrum[probe].getMZ();
-       } 
-
-       if (this_mass >= low_mass && this_mass <= high_mass)
-       {
-          lo_index = probe;
-       }
-
-    }
-
-    probe = spectrum.findNearest(high_mass);
-
-    if (probe >= 0 && probe <= max_probe)
-    {
-       this_mass = spectrum[probe].getMZ();
-       while(probe > 0 && this_mass > high_mass)
-       {
-          probe -= 1;
-          this_mass = spectrum[probe].getMZ();
-       } 
-
-       if (this_mass >= low_mass && this_mass <= high_mass)
-       {
-          hi_index = probe;
-       }
-    }
-}
-*/
 
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
@@ -95,306 +46,155 @@ void get_bounds(MSSpectrum<> &spectrum, double low_mass, double high_mass, Size 
  * to include.
  * @param opts Options object.
  *
- * @return Vector of five vectors (min score, correlAB, correlA0, correlB0,
- * correl1r) giving score for each MZ in the central spectrum.
+ * @return Vector of score at each MZ in central spectrum.
  */
 
-double_2d
+double_vect
 score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
-    double rt_width_opt = opts.rt_width;
-    double mz_width_opt = opts.mz_width;
-    double mz_sigma_opt = opts.mz_sigma;
     double mz_delta_opt = opts.mz_delta;
     double min_sample_opt = opts.min_sample;
     double intensity_ratio_opt = opts.intensity_ratio;
-    double rt_sigma = rt_width_opt / std_dev_in_fwhm;
-    double mz_ppm_sigma = mz_width_opt / (std_dev_in_fwhm * 1e6);
+    double rt_sigma = opts.rt_width / std_dev_in_fwhm;
+    double mz_ppm_sigma = opts.mz_width / (std_dev_in_fwhm * 1e6);
     Size rt_len = map.getNrSpectra();
-    // XXX why rename centre_idx to mid_win?
-    int mid_win = centre_idx;
-    double lo_tol = 1.0 - mz_sigma_opt * mz_ppm_sigma;
-    double hi_tol = 1.0 + mz_sigma_opt * mz_ppm_sigma;
-    int rt_offset = mid_win - half_window;
+    double lower_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
+    double upper_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
+    int rt_offset = centre_idx - half_window;
 
-    // XXX mz_mu_vect seems like a bad name
-    MSSpectrum<> mz_mu_vect = map.getSpectrum(mid_win);
+    MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
 
     // Length of all vectors (= # windows)
-    size_t mz_windows = mz_mu_vect.size();
+    size_t mz_windows = centre_row_points.size();
 
-    // Low peak tolerances
-    double_vect points_lo_lo;
-    double_vect points_lo_hi;
-    // High peak tolerances
-    double_vect points_hi_lo;
-    double_vect points_hi_hi;
+    // Low (natural ion) peak tolerances
+    double_vect lower_bound_nat;
+    double_vect upper_bound_nat;
+    // High (isotope ion) peak tolerances
+    double_vect lower_bound_iso;
+    double_vect upper_bound_iso;
 
     // total data per rt,mz centre
     double_vect nAB;
 
-    double_2d data_lo;
-    double_2d data_hi;
-    double_2d shape_lo;
-    double_2d shape_hi;
-    double_2d RT_data_lo;
-    double_2d RT_data_hi;
-    double_2d MZ_data_lo;
-    double_2d MZ_data_hi;
-    double_2d MZ_shape_lo;
-    double_2d MZ_shape_hi;
-    double_2d RT_shape_lo;
-    double_2d RT_shape_hi;
+    double_2d data_nat;
+    double_2d data_iso;
+    double_2d shape_nat;
+    double_2d shape_iso;
 
     // Calculate tolerances for the lo and hi peak for each central MZ
     MSSpectrum<>::Iterator it;
-    for (it = mz_mu_vect.begin(); it != mz_mu_vect.end(); ++it)
+    for (it = centre_row_points.begin(); it != centre_row_points.end(); ++it)
     {
-	double this_mz = it->getMZ();
-        points_lo_lo.push_back(this_mz * lo_tol);
-        points_lo_hi.push_back(this_mz * hi_tol);
-        points_hi_lo.push_back((this_mz + mz_delta_opt) * lo_tol);
-        points_hi_hi.push_back((this_mz + mz_delta_opt) * hi_tol);
+        double this_mz = it->getMZ();
+        lower_bound_nat.push_back(this_mz * lower_tol);
+        upper_bound_nat.push_back(this_mz * upper_tol);
+        lower_bound_iso.push_back((this_mz + mz_delta_opt) * lower_tol);
+        upper_bound_iso.push_back((this_mz + mz_delta_opt) * upper_tol);
 
         double_vect data;
-        data_lo.push_back(data);
-        data_hi.push_back(data);
-        shape_lo.push_back(data);
-        shape_hi.push_back(data);
-        RT_data_lo.push_back(data);
-        RT_data_hi.push_back(data);
-        MZ_data_lo.push_back(data);
-        MZ_data_hi.push_back(data);
-        MZ_shape_lo.push_back(data);
-        MZ_shape_hi.push_back(data);
-        RT_shape_lo.push_back(data);
-        RT_shape_hi.push_back(data);
+        data_nat.push_back(data);
+        data_iso.push_back(data);
+        shape_nat.push_back(data);
+        shape_iso.push_back(data);
     }
 
-    // XXX Can't we compute this once outside the function?
+    // XXX This should be calculated once, then used as look-up
     std::vector<double> rt_shape;
 
     // Calculate Gaussian shape in the RT direction
-    size_t n = 0;
-    double RT_mean = 0.0;
-    double RT_sd = 0.0;
     for (int i = 0; i < (2 * half_window) + 1; ++i)
     {
         double pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
         double fit = exp(pt) / (rt_sigma * root2pi);
         rt_shape.push_back(fit);
-
-        // online mean and variance
-        n += 1;
-        double delta = fit - RT_mean;    // prior
-        RT_mean += delta/n;    // posterior
-        RT_sd += delta*(fit - RT_mean);
-    }
-    // Final calc for RT_sd
-    if (n > 1)    // is already = 0.0 otherwise
-    {
-        RT_sd /= (n - 1);
-        RT_sd = sqrt(RT_sd);
     }
 
     // Iterate over the spectra in the window
-    for (int rowi = mid_win - half_window; rowi <= mid_win + half_window; ++rowi)
+    for (int rowi = centre_idx - half_window; rowi <= centre_idx + half_window; ++rowi)
     {
-        double rt_lo = rt_shape[rowi - rt_offset];
-        double rt_hi = rt_lo * intensity_ratio_opt;
+        double rt_shape_nat = rt_shape[rowi - rt_offset];
+        double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
 
-	MSSpectrum<> rowi_spectrum;
-        // check in scan bounds
+        MSSpectrum<> rowi_spectrum;
+        // window can go outside start and end of scans, so check bounds
         if (rowi >= 0 && rowi < rt_len)
-	{
-       	    rowi_spectrum = map.getSpectrum(rowi);
+        {
+            rowi_spectrum = map.getSpectrum(rowi);
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
             if (!rowi_spectrum.isSorted()) throw std::runtime_error ("Spectrum not sorted");
-	}
-        // handle case outside limits later
 
-        // Iterate over the points in the central spectrum
-        for (size_t mzi = 0; mzi < mz_windows; ++mzi)
-	{
-            // Get the tolerances and value for this point
-            double lo_tol_lo = points_lo_lo[mzi];
-            double lo_tol_hi = points_lo_hi[mzi];
-            double hi_tol_lo = points_hi_lo[mzi];
-            double hi_tol_hi = points_hi_hi[mzi];
-            double centre = mz_mu_vect[mzi].getMZ();
-            double sigma = centre * mz_ppm_sigma;
-
-            // Check if spectrum within bounds of the file...
-            if (rowi >= 0 && rowi < rt_len)
-	    {
+            // Iterate over the points in the central spectrum
+            for (size_t mzi = 0; mzi < mz_windows; ++mzi)
+            {
+                // Get the tolerances and value for this point
+                double lower_tol_nat = lower_bound_nat[mzi];
+                double upper_tol_nat = upper_bound_nat[mzi];
+                double lower_tol_iso = lower_bound_iso[mzi];
+                double upper_tol_iso = upper_bound_iso[mzi];
+                double centre = centre_row_points[mzi].getMZ();
+                double sigma = centre * mz_ppm_sigma;
+    
                 // Select points within tolerance for current spectrum
-
-/* AI: ignore for testing
-                Size lo_index;
-                Size hi_index;
-                get_bounds(rowi_spectrum, lo_tol_lo, lo_tol_hi, lo_index, hi_index);
-                if (lo_index != -1 && hi_index != -1 && lo_index <= hi_index)
-*/
-
-                // Want lower bound
-                Size lo_index = Size(rowi_spectrum.MZBegin(lo_tol_lo) - rowi_spectrum.begin());
-                Size hi_index = Size(rowi_spectrum.MZBegin(lo_tol_hi) - rowi_spectrum.begin());
-
+    
+                // Want index of bounds
+                Size lower_index = Size(rowi_spectrum.MZBegin(lower_tol_nat) - rowi_spectrum.begin());
+                Size upper_index = Size(rowi_spectrum.MZBegin(upper_tol_nat) - rowi_spectrum.begin());
+    
                 // Check if points found...
-                if (lo_index <= hi_index)
-		{
-                    n = 0;
-                    double MZ_mean = 0.0;
-                    double MZ_sd = 0.0;
-                    double_vect data;
+                if (lower_index <= upper_index)
+                {
                     // Calculate Gaussian value for each found MZ
-                    for (Size index = lo_index; index <= hi_index; ++index)
-		    {
-			Peak1D peak = rowi_spectrum[index];
-			double mz = peak.getMZ();
-		        double intensity = peak.getIntensity();
-
+                    for (Size index = lower_index; index <= upper_index; ++index)
+                    {
+                        Peak1D peak = rowi_spectrum[index];
+                        double mz = peak.getMZ();
+                        double intensity = peak.getIntensity();
+    
                         // just in case
-                        if (mz < lo_tol_lo || mz > lo_tol_hi) continue;
-
-                        // online mean and variance
-                        n += 1;
-                        double delta = mz - MZ_mean;    // prior
-                        MZ_mean += delta/n;    // posterior
-                        MZ_sd += delta*(mz - MZ_mean);
-                        
+                        if (mz < lower_tol_nat || mz > upper_tol_nat) continue;
+    
                         // calc mz fit
-			mz = (mz - centre) / sigma;
+                        mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         double fit = exp(mz) / (sigma * root2pi);
-
-                        // row data
-                        data.push_back(intensity);
-
-                        data_lo[mzi].push_back(intensity);
-                        shape_lo[mzi].push_back(fit * rt_lo);
-
-                        // Store RT projections with normalisation
-                        // calculate (intensity - RT_mean * fit) / (RT_sd * fit)
-                        // = (intensity/fit - RT_mean)/RT_sd
-                        intensity /= fit;
-                        intensity -= RT_mean;
-                        if (RT_sd > 0.0) intensity /= RT_sd;
-                        else intensity = 0.0;
-
-                        // collect for window based calculations later
-                        RT_data_lo[mzi].push_back(intensity);
-                        MZ_shape_lo[mzi].push_back(fit);
-                        RT_shape_lo[mzi].push_back(rt_lo);
+    
+                        data_nat[mzi].push_back(intensity);
+                        shape_nat[mzi].push_back(fit * rt_shape_nat);
                     }
-
-                    // Final calc for MZ_sd
-                    if (n > 1)    // is already = 0.0 otherwise
-                    {
-                        MZ_sd /= (n - 1);
-                        MZ_sd = sqrt(MZ_sd);
-                    }
-
-                    // Now store MZ projections with normalisation
-                    for (const auto& amp : data)
-		    {
-                        // rescale = (intensity/fit - RT_mean)/RT_sd
-                        double intensity = amp / rt_lo;
-                        intensity -= MZ_mean;
-                        if (MZ_sd > 0.0) intensity /= MZ_sd;
-                        else intensity = 0.0;
-                        MZ_data_lo[mzi].push_back(intensity);
-                    }
-
                 }
-            }
 
-            // Increment centre to hi peak
-            centre += mz_delta_opt;
-            sigma = centre * mz_ppm_sigma;
+                // Increment centre to isotope peak
+                centre += mz_delta_opt;
+                sigma = centre * mz_ppm_sigma;
 
-            // Check if spectrum within bounds of the file...
-            if (rowi >= 0 && rowi < rt_len)
-	    {
                 // Select points within tolerance for current spectrum
-
-/* AI: ignore for testing
-                Size lo_index = -1;
-                Size hi_index = -1;
-                get_bounds(rowi_spectrum, hi_tol_lo, hi_tol_hi, lo_index, hi_index);
-                if (lo_index != -1 && hi_index != -1 && lo_index <= hi_index)
-*/
-
-               Size lo_index = Size(rowi_spectrum.MZBegin(hi_tol_lo) - rowi_spectrum.begin());
-               Size hi_index = Size(rowi_spectrum.MZBegin(hi_tol_hi) - rowi_spectrum.begin());
+                lower_index = Size(rowi_spectrum.MZBegin(lower_tol_iso) - rowi_spectrum.begin());
+                upper_index = Size(rowi_spectrum.MZBegin(upper_tol_iso) - rowi_spectrum.begin());
 
                 // Check if points found...
-                if (lo_index <= hi_index)
-		{
-                    n = 0;
-                    double MZ_mean = 0.0;
-                    double MZ_sd = 0.0;
-                    double_vect data;
+                if (lower_index <= upper_index)
+                {
                     // Calculate Gaussian value for each found MZ
-                    for (Size index = lo_index; index <= hi_index; ++index)
-		    {
-			Peak1D peak = rowi_spectrum[index];
-			double mz = peak.getMZ();
-		        double intensity = peak.getIntensity();
+                    for (Size index = lower_index; index <= upper_index; ++index)
+                    {
+                        Peak1D peak = rowi_spectrum[index];
+                        double mz = peak.getMZ();
+                        double intensity = peak.getIntensity();
 
                         // just in case
-                        if (mz < hi_tol_lo || mz > hi_tol_hi) continue;
-
-                        // online mean and variance
-                        n += 1;
-                        double delta = mz - MZ_mean;    // prior
-                        MZ_mean += delta/n;    // posterior
-                        MZ_sd += delta*(mz - MZ_mean);
+                        if (mz < lower_tol_iso || mz > upper_tol_iso) continue;
 
                         // calc mz fit
-			mz = (mz - centre) / sigma;
+                        mz = (mz - centre) / sigma;
                         mz = -0.5 * mz * mz;
                         double fit = exp(mz) / (sigma * root2pi);
 
-                        // row data
-                        data.push_back(intensity);
-
-                        data_hi[mzi].push_back(intensity);
-                        shape_hi[mzi].push_back(fit * rt_hi);
-
-                        // Store RT projections with normalisation
-                        // calculate (intensity - RT_mean * fit) / (RT_sd * fit)
-                        // = (intensity/fit - RT_mean)/RT_sd
-                        intensity /= fit;
-                        intensity -= RT_mean;
-                        if (RT_sd > 0.0) intensity /= RT_sd;
-                        else intensity = 0.0;
-
-                        // collect for window based calculations later
-                        RT_data_hi[mzi].push_back(intensity);
-                        MZ_shape_hi[mzi].push_back(fit);
-                        RT_shape_hi[mzi].push_back(rt_hi);
-                    }
-
-                    // Final calc for MZ_sd
-                    if (n > 1)    // is already = 0.0 otherwise
-                    {
-                        MZ_sd /= (n - 1);
-                        MZ_sd = sqrt(MZ_sd);
-                    }
-
-                    // Now store MZ projections with normalisation
-                    for (const auto& amp : data)
-		    {
-                        // rescale = (intensity/fit - RT_mean)/RT_sd
-                        double intensity = amp / rt_hi;
-                        intensity -= MZ_mean;
-                        if (MZ_sd > 0.0) intensity /= MZ_sd;
-                        else intensity = 0.0;
-                        MZ_data_hi[mzi].push_back(intensity);
+                        data_iso[mzi].push_back(intensity);
+                        shape_iso[mzi].push_back(fit * rt_shape_iso);
                     }
                 }
             }
@@ -404,19 +204,15 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     // Ignore regions with insufficient number of samples
     // If any region is ignored, set all to empty
     for (size_t i = 0; i < mz_windows; ++i) {
-        if (data_lo[i].size() < min_sample_opt ||
-                       data_hi[i].size() < min_sample_opt) {
-            data_lo[i] = {};
-            shape_lo[i] = {};
-            RT_data_lo[i]  = {};
-            MZ_data_lo[i]  = {};
-            MZ_shape_lo[i] = {};
-            RT_shape_lo[i] = {};
+        if (data_nat[i].size() < min_sample_opt ||
+                       data_iso[i].size() < min_sample_opt) {
+            data_nat[i] = {};
+            shape_nat[i] = {};
             nAB.push_back(0);
         }
         else
         {
-            nAB.push_back(data_lo[i].size() + data_hi[i].size());
+            nAB.push_back(data_nat[i].size() + data_iso[i].size());
         }
     }
 
@@ -442,10 +238,10 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     double_vect EYa;    // E(Ya)
     double_vect EYb;    // E(Yb)
 
-    EXa = reduce_2D_vect(data_lo, mean_vector);
-    EXb = reduce_2D_vect(data_hi, mean_vector);
-    EYa = reduce_2D_vect(shape_lo, mean_vector);
-    EYb = reduce_2D_vect(shape_hi, mean_vector);
+    EXa = reduce_2D_vect(data_nat, mean_vector);
+    EXb = reduce_2D_vect(data_iso, mean_vector);
+    EYa = reduce_2D_vect(shape_nat, mean_vector);
+    EYb = reduce_2D_vect(shape_iso, mean_vector);
 
     // Combined mean is mean of means
     double_vect EXab;    // E(Xab) =  E(E(Xa), E(Xb))
@@ -468,10 +264,10 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     double_2d CYb;    // (Yb - E(Yab))
 
     // Centre data in regions relative to combined means
-    CXa = apply_vect_func(data_lo, EXab, shift_vector);
-    CXb = apply_vect_func(data_hi, EXab, shift_vector);
-    CYa = apply_vect_func(shape_lo, EYab, shift_vector);
-    CYb = apply_vect_func(shape_hi, EYab, shift_vector);
+    CXa = apply_vect_func(data_nat, EXab, shift_vector);
+    CXb = apply_vect_func(data_iso, EXab, shift_vector);
+    CYa = apply_vect_func(shape_nat, EYab, shift_vector);
+    CYb = apply_vect_func(shape_iso, EYab, shift_vector);
 
     // Square vectors
     double_2d CXa2;    // (Xa - E(Xab))^2 --> C(Xa)^2
@@ -532,7 +328,7 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     // (Yb - E(Ya_)) = -E(Ya_)
 
     // Centre data in regions relative to combined means
-    CYa_ = apply_vect_func(shape_lo, EYa_, shift_vector);
+    CYa_ = apply_vect_func(shape_nat, EYa_, shift_vector);
 
     // Square vectors
     double_2d CYa_2;    // (Ya - E(Ya_))^2
@@ -581,7 +377,7 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     // (Ya - E(Y_b)) = -E(Y_b)
 
     // Centre data in regions relative to combined means
-    CY_b = apply_vect_func(shape_hi, EY_b, shift_vector);
+    CY_b = apply_vect_func(shape_iso, EY_b, shift_vector);
 
     // Square vectors
     double_2d CY_b2;    // (Yb - E(Y_b))^2
@@ -732,37 +528,7 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
 
     // Package return values
     //double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
-    double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
+//    double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
 
-    return score;
-}
-
-/*! Scores are output in CSV format with the following fields: retention time,
- * mz, intensity, minimum score, correlAB, correlA0, correlB0, correl1r.
- *
- * @param scores 2D vector of scores returned by score_spectra.
- * @param raw_data Spectrum pointer to the raw central vector.
- * @param out_stream Stream to write output too.
- * @param opts User defined Options object.
- */
-void write_scores(double_2d scores, MSSpectrum<> raw_data, std::ofstream& out_stream)
-{
-    // Get central spectrum retention time
-    double rt = raw_data.getRT();
-
-    // Write output
-    for (size_t idx = 0; idx < raw_data.size(); ++idx)
-    {
-        double mz  = raw_data[idx].getMZ();
-        double amp = raw_data[idx].getIntensity();
-        double ms  = scores[0][idx];
-        double AB  = scores[1][idx];
-        double A0  = scores[2][idx];
-        double B0  = scores[3][idx];
-        double r1  = scores[4][idx];
-
-        out_stream << rt << ", " << mz << ", " << amp << ", "
-                   << ms << ", " << AB << ", " << A0 << ", "
-                   << B0 << ", " << r1 << std::endl;
-    }
+    return min_score;
 }
