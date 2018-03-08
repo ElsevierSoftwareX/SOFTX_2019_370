@@ -19,8 +19,8 @@ int main(int argc, char** argv)
    MzMLFile mzml;
 
    // load data from an indexed MzML file
-   MSExperiment<> input_map;
-   MSExperiment<> output_map;
+   MSExperiment input_map;
+   MSExperiment output_map;
 
    //imzml.load(opts.in_file, input_map);
    mzml.load(opts.in_file, input_map);

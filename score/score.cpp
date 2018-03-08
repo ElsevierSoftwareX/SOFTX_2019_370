@@ -13,7 +13,7 @@ using namespace std;
 mutex output_spectrum_lock;
 
 // Worker function for scoring a block of spectra. This is executed by a thread. 
-void score_worker(MSExperiment<> &input_map, MSExperiment<> &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
+void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
 {
    double_2d score;
    for (int n = low_spectra; n < high_spectra; n++)
@@ -100,7 +100,7 @@ void get_bounds(MSSpectrum<> &spectrum, double low_mass, double high_mass, Size 
  */
 
 double_2d
-score_spectra(MSExperiment<> &map, int centre_idx, int half_window, Options opts)
+score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
     double rt_width_opt = opts.rt_width;
