@@ -11,7 +11,6 @@ HiTIME-CPP bundles two programs:
   * `hitime score`: takes an [mzML](https://en.wikipedia.org/wiki/Mass_spectrometry_data_format#mzML) file as input and produces an mzML file as output. Intentsity values in the input file which correspond to the lower mass in a twin-ion peak are retained and scored highly in the output, all other intensities are downweighted towards zero.
   * `hitime max`: takes the mzML output from `hitime score` and detects local maxima intensities, these should occur at the center of the lower mass in each twin ion pair. 
 
-
 ## License
 
 HiTIME is released as open source software under the terms of the [3-Clause BSD License](https://opensource.org/licenses/BSD-3-Clause).
@@ -28,12 +27,20 @@ docker pull bjpop/hitime
 
 Docker can be installed on all modern operating systems. Please review the Docker [installation instructions](https://docs.docker.com/engine/installation/) for more information.
 
-## Building HiTIME CPP from source 
+## Building HiTIME-CPP from source 
 
 HiTIME-CPP can be build from source by following the instructions in the `notes` folder:
 
  * Mac OS X: `notes/build.osx.sh`
  * Linux: `notes/build.linux.sh`
+
+## Builiding HiTIME-CPP using Docker
+
+Run this command in the top-level directory of the source tree:
+
+```
+docker build -t bjpop/hitime .
+```
 
 ## Example usage 
 
