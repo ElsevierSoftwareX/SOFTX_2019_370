@@ -15,9 +15,22 @@ cat << UsageMessage
 ${program_name}: detect twin ion signals in Mass Spectrometry data 
 
 Usage:
-    ${program_name} [-h] (score|max) -i input.mzML -o output.mzML 
+    ${program_name} [-h] (score|max) -i input.mzML -o output.mzML [-- optional mode-specific arguments]
 
-XXX description here
+This is a wrapper for the HiTIME-CPP docker container.
+
+You must choose a mode, either score or max.
+
+Both modes read and write mzML files.
+
+The score mode re-scales the peaks in the input file based on their similarity to
+an ideal twin ion peak.
+
+The max mode computes a local maxima for peaks within a defined window. 
+
+Example usage:
+
+   ./hitime-docker.sh score -i data/testing.mzML -o data/scored.mzML -- -j 2
 
 UsageMessage
 }

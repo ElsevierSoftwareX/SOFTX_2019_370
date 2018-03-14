@@ -42,14 +42,15 @@ Run this command in the top-level directory of the source tree:
 docker build -t bjpop/hitime .
 ```
 
-## Example usage 
+## Example docker usage 
+
+We provide a convenient wrapper script to run the HiTIME-CPP docker container.
 
 Test data is included in the `data` folder within the repository. Running the following command
-should produce meaningful output saved in `results.mzML`. The example below assumes you are
-running HiTIME-CPP via the docker container:
+should produce meaningful output saved in `results.mzML`. 
 
 ```
-docker run bjpop/hitime score -i testing.mzML -o results.mzML
+./hitime-docker.sh score -i data/testing.mzML -o data/results.mzML
 ```
 
 You might see some warnings in the output which complain about the format the of input `testing.mzML` file. You can
