@@ -2,6 +2,7 @@
 #include <OpenMS/KERNEL/Peak1D.h>
 #include <mutex>
 #include <iostream>
+#include <map>
 #include "vector.h"
 #include "options.h"
 #include "constants.h"
@@ -11,29 +12,60 @@ using namespace OpenMS;
 using namespace std;
 
 mutex output_spectrum_lock;
+mutex next_spectrum_lock;
+mutex input_spectrum_lock;
+
+MSSpectrum<> read_spectrum(int spectrum_id, OnDiscPeakMap &input_map)
+{
+   input_spectrum_lock.lock();
+   MSSpectrum<> input_spectrum = input_map.getSpectrum(spectrum_id);
+   input_spectrum_lock.unlock();
+   return input_spectrum;
+}
+
+void write_spectrum(MSSpectrum<> spectrum, MSExperiment &output_map)
+{
+   // Writing to the output_map must be synchronised between threads, with only one thread
+   // allowed to write at a time.
+   output_spectrum_lock.lock();
+   output_map.addSpectrum(spectrum);
+   output_spectrum_lock.unlock();
+}
+
+int get_next_spectrum_todo(int *current_spectrum)
+{
+   int this_spectrum;
+   next_spectrum_lock.lock();
+   this_spectrum = *current_spectrum;
+   (*current_spectrum)++;
+   next_spectrum_lock.unlock();
+   return this_spectrum; 
+}
 
 // Worker function for scoring a block of spectra. This is executed by a thread. 
-void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
+void score_worker(OnDiscPeakMap &input_map, MSExperiment &output_map, InputSpectrumCache &input_spectrum_cache, int half_window, Options opts, int *current_spectrum, int num_spectra, int thread_count)
 {
    double_vect score;
-   for (int n = low_spectra; n < high_spectra; n++)
+   int this_spectrum;
+
+   this_spectrum = get_next_spectrum_todo(current_spectrum); 
+
+   while (this_spectrum < num_spectra)
    {
-       score = score_spectra(input_map, n, half_window, opts);
+       cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum << endl;
 
-       MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
+       score = score_spectra(input_map, this_spectrum, half_window, opts);
+       MSSpectrum<> input_spectrum = read_spectrum(this_spectrum, input_map);
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
-
-       // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
        {
            output_spectrum[index].setIntensity(score[index]);
        }
-       // Writing to the output_map must be synchronised between threads, with only one thread
-       // allowed to write at a time.
-       unique_lock<mutex> lck {output_spectrum_lock};
-       output_map.addSpectrum(output_spectrum);
-       output_spectrum_lock.unlock();
+
+       write_spectrum(output_spectrum, output_map);
+       this_spectrum = get_next_spectrum_todo(current_spectrum); 
    }
+
 }
 
 
@@ -50,7 +82,8 @@ void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_wi
  */
 
 double_vect
-score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
+//score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
+score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts)
 {
     // Calculate constant values
     double mz_delta_opt = opts.mz_delta;
@@ -63,7 +96,8 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     double upper_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
-    MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
+    //MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
+    MSSpectrum<> centre_row_points = read_spectrum(centre_idx, map);
 
     // Length of all vectors (= # windows)
     size_t mz_windows = centre_row_points.size();
@@ -122,7 +156,8 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
         // window can go outside start and end of scans, so check bounds
         if (rowi >= 0 && rowi < rt_len)
         {
-            rowi_spectrum = map.getSpectrum(rowi);
+            //rowi_spectrum = map.getSpectrum(rowi);
+            rowi_spectrum = read_spectrum(rowi, map);
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
             if (!rowi_spectrum.isSorted()) throw std::runtime_error ("Spectrum not sorted");

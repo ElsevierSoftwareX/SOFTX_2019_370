@@ -5,6 +5,7 @@
 #include "vector.h"
 #include "score.h"
 
+#include <map>
 #include <iostream>
 #include <iterator>
 using namespace std;
@@ -15,45 +16,29 @@ int main(int argc, char** argv)
    // Read user options
    Options opts(argc, argv);
 
-   //IndexedMzMLFileLoader imzml;
-   MzMLFile mzml;
+   IndexedMzMLFileLoader mzml;
 
    // load data from an indexed MzML file
-   MSExperiment input_map;
+   OnDiscPeakMap input_map;
    MSExperiment output_map;
 
-   //imzml.load(opts.in_file, input_map);
+   InputSpectrumCache input_spctrum_cache;
+
    mzml.load(opts.in_file, input_map);
 
-   // Calculate number of spectra for each window
    int half_window = ceil(opts.rt_sigma * opts.rt_width / std_dev_in_fwhm);
 
    int num_spectra = input_map.getNrSpectra();
-   int spectra_per_thread = num_spectra / opts.num_threads;
    vector<thread> threads(opts.num_threads);
 
-   int low_spectrum = 0;
-   int high_spectrum = spectra_per_thread;
+   int current_spectrum = 0;
 
-   //cout << "Num threads: " << opts.num_threads << endl;
-   //cout << "Spectra per thread: " << spectra_per_thread << endl;
+   cout << "Num threads: " << opts.num_threads << endl;
+   cout << "Num spectra: " << num_spectra << endl;
 
    for (int thread_count = 0; thread_count < opts.num_threads; thread_count++)
    {
-      //cout << thread_count << " " << low_spectrum << " " << high_spectrum << endl;
-      threads[thread_count] = thread {score_worker, std::ref(input_map), std::ref(output_map), half_window, opts, low_spectrum, high_spectrum};
-      // score_worker (input_map, output_map, half_window, opts, low_spectrum, high_spectrum);
-      low_spectrum += spectra_per_thread;
-
-      // The high spectrum is special for the last thread.
-      if (thread_count == opts.num_threads - 1)
-      {
-          high_spectrum = num_spectra - 1;
-      }
-      else
-      {
-          high_spectrum += spectra_per_thread;
-      }
+      threads[thread_count] = thread {score_worker, std::ref(input_map), std::ref(output_map), std::ref(input_spctrum_cache), half_window, opts, &current_spectrum, num_spectra, thread_count};
    }
 
    // Wait for all the threads to complete
@@ -63,11 +48,7 @@ int main(int argc, char** argv)
    }
 
    // Write the output scored mzml file
-   //imzml.store(opts.out_file, output_map);
    mzml.store(opts.out_file, output_map);
-
-   // Close ouput stream
-   // outfile.close();
 
    return 0;
 }

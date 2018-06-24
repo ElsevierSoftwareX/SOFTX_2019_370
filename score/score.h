@@ -1,6 +1,8 @@
 #include <OpenMS/KERNEL/OnDiscMSExperiment.h>
 using namespace OpenMS;
 
-void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_window, Options opts, int low_spectra, int high_spectra);
+typedef std::map<int, MSSpectrum<>> InputSpectrumCache;
 
-double_vect score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts);
+void score_worker(OnDiscPeakMap &input_map, MSExperiment &output_map, InputSpectrumCache &input_spectrum_cache, int half_window, Options opts, int *current_spectra, int num_spectra, int thread_count);
+
+double_vect score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts);
