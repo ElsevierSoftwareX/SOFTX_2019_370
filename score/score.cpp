@@ -3,6 +3,7 @@
 #include <mutex>
 #include <iostream>
 #include <map>
+#include <thread>
 #include "vector.h"
 #include "options.h"
 #include "constants.h"
@@ -15,7 +16,43 @@ mutex output_spectrum_lock;
 mutex next_spectrum_lock;
 mutex input_spectrum_lock;
 
-MSSpectrum<> read_spectrum(int spectrum_id, OnDiscPeakMap &input_map)
+
+Scorer::Scorer(Options *o)
+{
+   opts = o;
+   current_spectrum = 0;
+
+   IndexedMzMLFileLoader mzml;
+   // load data from an indexed MzML file
+   //OnDiscPeakMap imap;
+   //MSExperiment output_map;
+   InputSpectrumCache input_spctrum_cache;
+
+   mzml.load(opts->in_file, input_map);
+
+   half_window = ceil(opts->rt_sigma * opts->rt_width / std_dev_in_fwhm);
+   num_spectra = input_map.getNrSpectra();
+
+   vector<thread> threads(opts->num_threads);
+
+   cout << "Num threads: " << opts->num_threads << endl;
+   cout << "Num spectra: " << num_spectra << endl;
+
+   for (int thread_count = 0; thread_count < opts->num_threads; thread_count++)
+   {
+      threads[thread_count] = thread(&Scorer::score_worker, this, thread_count);
+    
+   }
+
+   for (int thread_count = 0; thread_count < opts->num_threads; thread_count++)
+   {
+       threads[thread_count].join();
+   }
+
+   mzml.store(opts->out_file, output_map);
+}
+
+MSSpectrum<> Scorer::read_spectrum(int spectrum_id)
 {
    input_spectrum_lock.lock();
    MSSpectrum<> input_spectrum = input_map.getSpectrum(spectrum_id);
@@ -23,7 +60,7 @@ MSSpectrum<> read_spectrum(int spectrum_id, OnDiscPeakMap &input_map)
    return input_spectrum;
 }
 
-void write_spectrum(MSSpectrum<> spectrum, MSExperiment &output_map)
+void Scorer::write_spectrum(MSSpectrum<> spectrum)
 {
    // Writing to the output_map must be synchronised between threads, with only one thread
    // allowed to write at a time.
@@ -32,38 +69,39 @@ void write_spectrum(MSSpectrum<> spectrum, MSExperiment &output_map)
    output_spectrum_lock.unlock();
 }
 
-int get_next_spectrum_todo(int *current_spectrum)
+int Scorer::get_next_spectrum_todo(void)
 {
    int this_spectrum;
    next_spectrum_lock.lock();
-   this_spectrum = *current_spectrum;
-   (*current_spectrum)++;
+   this_spectrum = current_spectrum;
+   current_spectrum++;
    next_spectrum_lock.unlock();
    return this_spectrum; 
 }
 
-// Worker function for scoring a block of spectra. This is executed by a thread. 
-void score_worker(OnDiscPeakMap &input_map, MSExperiment &output_map, InputSpectrumCache &input_spectrum_cache, int half_window, Options opts, int *current_spectrum, int num_spectra, int thread_count)
+void Scorer::score_worker(int thread_count)
 {
    double_vect score;
-   int this_spectrum;
+   int this_spectrum_id;
 
-   this_spectrum = get_next_spectrum_todo(current_spectrum); 
+   this_spectrum_id = get_next_spectrum_todo(); 
 
-   while (this_spectrum < num_spectra)
+   while (this_spectrum_id < num_spectra)
    {
-       cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum << endl;
+       cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
 
-       score = score_spectra(input_map, this_spectrum, half_window, opts);
-       MSSpectrum<> input_spectrum = read_spectrum(this_spectrum, input_map);
+       score = score_spectra(this_spectrum_id);
+       MSSpectrum<> input_spectrum = read_spectrum(this_spectrum_id);
+       
        MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
-       for (int index = 0; index < input_spectrum.size(); ++index)
+       for (int index = 0; index < input_spectrum.size(); index++)
        {
            output_spectrum[index].setIntensity(score[index]);
        }
 
-       write_spectrum(output_spectrum, output_map);
-       this_spectrum = get_next_spectrum_todo(current_spectrum); 
+       write_spectrum(output_spectrum);
+       
+       this_spectrum_id = get_next_spectrum_todo(); 
    }
 
 }
@@ -83,21 +121,23 @@ void score_worker(OnDiscPeakMap &input_map, MSExperiment &output_map, InputSpect
 
 double_vect
 //score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
-score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts)
+//score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts)
+Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
-    double mz_delta_opt = opts.mz_delta;
-    double min_sample_opt = opts.min_sample;
-    double intensity_ratio_opt = opts.intensity_ratio;
-    double rt_sigma = opts.rt_width / std_dev_in_fwhm;
-    double mz_ppm_sigma = opts.mz_width / (std_dev_in_fwhm * 1e6);
-    Size rt_len = map.getNrSpectra();
-    double lower_tol = 1.0 - opts.mz_sigma * mz_ppm_sigma;
-    double upper_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
+    double mz_delta_opt = opts->mz_delta;
+    double min_sample_opt = opts->min_sample;
+    double intensity_ratio_opt = opts->intensity_ratio;
+    double rt_sigma = opts->rt_width / std_dev_in_fwhm;
+    double mz_ppm_sigma = opts->mz_width / (std_dev_in_fwhm * 1e6);
+    // XXX check that this is ok
+    Size rt_len = input_map.getNrSpectra();
+    double lower_tol = 1.0 - opts->mz_sigma * mz_ppm_sigma;
+    double upper_tol = 1.0 + opts->mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
     //MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
-    MSSpectrum<> centre_row_points = read_spectrum(centre_idx, map);
+    MSSpectrum<> centre_row_points = read_spectrum(centre_idx);
 
     // Length of all vectors (= # windows)
     size_t mz_windows = centre_row_points.size();
@@ -157,7 +197,7 @@ score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts)
         if (rowi >= 0 && rowi < rt_len)
         {
             //rowi_spectrum = map.getSpectrum(rowi);
-            rowi_spectrum = read_spectrum(rowi, map);
+            rowi_spectrum = read_spectrum(rowi);
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
             if (!rowi_spectrum.isSorted()) throw std::runtime_error ("Spectrum not sorted");

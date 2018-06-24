@@ -1,3 +1,6 @@
+#ifndef HITIME_OPTIONS_H
+#define HITIME_OPTIONS_H
+
 #include <unistd.h>
 #include <boost/program_options.hpp>
 
@@ -19,3 +22,5 @@ class Options {
 
         Options(int argc, char *argv[]);
 };
+
+#endif

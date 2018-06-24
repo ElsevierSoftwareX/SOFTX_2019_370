@@ -1,3 +1,6 @@
+#ifndef HITIME_VECTOR_H
+#define HITIME_VECTOR_H
+
 #include <vector>
 
 //! Type definition for a standard vector of doubles
@@ -134,3 +137,4 @@ std::vector<T> apply_vect_func(std::vector<T> vect, F func)
     return applied;
 }
 
+#endif
