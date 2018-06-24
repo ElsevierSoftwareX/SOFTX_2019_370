@@ -18,6 +18,10 @@ set(my_sources
 
 ## find OpenMS configuration and register target "OpenMS" (our library)
 find_package(OpenMS)
+find_package(Qt5 REQUIRED
+    Core 
+    Network 
+)
 ## if the above fails you can try calling cmake with -D OpenMS_DIR=/path/to/OpenMS/
 ## or modify the find_package() call accordingly
 ## find_package(OpenMS PATHS "</path/to/OpenMS//")

@@ -56,6 +56,7 @@ cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=SEQA
 cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=WILDMAGIC $HITIME_BASE/openms/contrib
 cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=GLPK $HITIME_BASE/openms/contrib
 cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=EIGEN $HITIME_BASE/openms/contrib
+cmake -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D BUILD_TYPE=COINOR $HITIME_BASE/openms/contrib
 
 echo "configuring OPENMS"
 
@@ -63,7 +64,8 @@ cd $HITIME_BASE/openms
 git clone https://github.com/OpenMS/OpenMS.git
 mkdir openms_build
 cd openms_build
-cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" ../OpenMS
+#cmake -DCMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" ../OpenMS
+cmake -DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix qt)" -DOPENMS_CONTRIB_LIBS="$HITIME_BASE/contrib-build" -DWITH_GUI=Off ../OpenMS
 
 echo "building OPENMS"
 
@@ -76,9 +78,10 @@ cd $HITIME_BASE
 git clone https://github.com/bjpop/HiTIME-CPP
 #switch to the branch that you want
 cd HiTIME-CPP
-git checkout -b threads origin/local_maxima
+#git checkout -b threads origin/local_maxima
 
 cd $HITIME_BASE/HiTIME-CPP/score
 
-cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" .
+#cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;/usr;/usr/local" .
+cmake -D OpenMS_DIR=$HITIME_BASE/openms/openms_build/ -D CMAKE_PREFIX_PATH="$HITIME_BASE/openms/contrib-build;$(brew --prefix);$(brew --prefix qt5)" .
 make

@@ -16,12 +16,17 @@ mutex output_spectrum_lock;
 void score_worker(MSExperiment &input_map, MSExperiment &output_map, int half_window, Options opts, int low_spectra, int high_spectra)
 {
    double_vect score;
+   MSSpectrum input_spectrum; 
+   MSSpectrum output_spectrum;
+
    for (int n = low_spectra; n < high_spectra; n++)
    {
        score = score_spectra(input_map, n, half_window, opts);
 
-       MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
-       MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
+       //MSSpectrum<> input_spectrum = input_map.getSpectrum(n);
+       input_spectrum = input_map.getSpectrum(n);
+       //MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
+       output_spectrum = MSSpectrum(input_spectrum);
 
        // Copy the computed score into the output intensity
        for (int index = 0; index < input_spectrum.size(); ++index)
@@ -63,7 +68,10 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     double upper_tol = 1.0 + opts.mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
-    MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
+    //MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
+    //MSSpectrum centre_row_points;
+    //centre_row_points = map.getSpectrum(centre_idx);
+    MSSpectrum centre_row_points = map.getSpectrum(centre_idx);
 
     // Length of all vectors (= # windows)
     size_t mz_windows = centre_row_points.size();
@@ -84,7 +92,8 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
     double_2d shape_iso;
 
     // Calculate tolerances for the lo and hi peak for each central MZ
-    MSSpectrum<>::Iterator it;
+    //MSSpectrum<>::Iterator it;
+    MSSpectrum::Iterator it;
     for (it = centre_row_points.begin(); it != centre_row_points.end(); ++it)
     {
         double this_mz = it->getMZ();
@@ -118,7 +127,8 @@ score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
         double rt_shape_nat = rt_shape[rowi - rt_offset];
         double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
 
-        MSSpectrum<> rowi_spectrum;
+        //MSSpectrum<> rowi_spectrum;
+        MSSpectrum rowi_spectrum;
         // window can go outside start and end of scans, so check bounds
         if (rowi >= 0 && rowi < rt_len)
         {
