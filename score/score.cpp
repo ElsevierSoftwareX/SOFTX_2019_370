@@ -17,39 +17,48 @@ mutex next_spectrum_lock;
 mutex input_spectrum_lock;
 
 
-Scorer::Scorer(Options *o)
+Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma, double ppm,
+               double mz_width, double mz_sigma, double mz_delta, double min_sample, int num_threads,
+               string in_file, string out_file)
+   : debug(debug)
+   , intensity_ratio(intensity_ratio)
+   , rt_width(rt_width)
+   , rt_sigma(rt_sigma)
+   , ppm(ppm)
+   , mz_width(mz_width)
+   , mz_sigma(mz_sigma)
+   , mz_delta(mz_delta)
+   , min_sample(min_sample)
+   , num_threads(num_threads)
+   , in_file(in_file)
+   , out_file(out_file)
+   , current_spectrum{0}
 {
-   opts = o;
-   current_spectrum = 0;
 
    IndexedMzMLFileLoader mzml;
-   // load data from an indexed MzML file
-   //OnDiscPeakMap imap;
-   //MSExperiment output_map;
-   InputSpectrumCache input_spctrum_cache;
 
-   mzml.load(opts->in_file, input_map);
+   mzml.load(in_file, input_map);
 
-   half_window = ceil(opts->rt_sigma * opts->rt_width / std_dev_in_fwhm);
+   half_window = ceil(rt_sigma * rt_width / std_dev_in_fwhm);
    num_spectra = input_map.getNrSpectra();
 
-   vector<thread> threads(opts->num_threads);
+   vector<thread> threads(num_threads);
 
-   cout << "Num threads: " << opts->num_threads << endl;
+   cout << "Num threads: " << num_threads << endl;
    cout << "Num spectra: " << num_spectra << endl;
 
-   for (int thread_count = 0; thread_count < opts->num_threads; thread_count++)
+   for (int thread_count = 0; thread_count < num_threads; thread_count++)
    {
       threads[thread_count] = thread(&Scorer::score_worker, this, thread_count);
     
    }
 
-   for (int thread_count = 0; thread_count < opts->num_threads; thread_count++)
+   for (int thread_count = 0; thread_count < num_threads; thread_count++)
    {
        threads[thread_count].join();
    }
 
-   mzml.store(opts->out_file, output_map);
+   mzml.store(out_file, output_map);
 }
 
 MSSpectrum<> Scorer::read_spectrum(int spectrum_id)
@@ -125,15 +134,15 @@ double_vect
 Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
-    double mz_delta_opt = opts->mz_delta;
-    double min_sample_opt = opts->min_sample;
-    double intensity_ratio_opt = opts->intensity_ratio;
-    double rt_sigma = opts->rt_width / std_dev_in_fwhm;
-    double mz_ppm_sigma = opts->mz_width / (std_dev_in_fwhm * 1e6);
+    double mz_delta_opt = mz_delta;
+    double min_sample_opt = min_sample;
+    double intensity_ratio_opt = intensity_ratio;
+    double rt_sigma = rt_width / std_dev_in_fwhm;
+    double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
     // XXX check that this is ok
     Size rt_len = input_map.getNrSpectra();
-    double lower_tol = 1.0 - opts->mz_sigma * mz_ppm_sigma;
-    double upper_tol = 1.0 + opts->mz_sigma * mz_ppm_sigma;
+    double lower_tol = 1.0 - mz_sigma * mz_ppm_sigma;
+    double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
     //MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);

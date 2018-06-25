@@ -1,3 +1,6 @@
+#ifndef HITIME_CONSTANTS_H
+#define HITIME_CONSTANTS_H
+
 #include <math.h>
 
 //! Convert standard deviation to FWHM
@@ -24,3 +27,5 @@ const float default_min_sample = default_rt_width * default_rt_sigma / std_dev_i
 const double root2pi = sqrt(2.0 * M_PI);
 // The name of the program
 const std::string program_name = "HiTIME";
+
+#endif
