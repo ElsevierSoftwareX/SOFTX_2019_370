@@ -13,6 +13,7 @@ set(my_sources
 	vector.cpp
 	score.cpp
 	options.cpp
+	lru_cache.hpp
 )
 
 

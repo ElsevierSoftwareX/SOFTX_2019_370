@@ -2,19 +2,35 @@
 #define HITIME_SCORE_H
 
 #include <OpenMS/KERNEL/OnDiscMSExperiment.h>
+#include <OpenMS/FORMAT/DATAACCESS/MSDataWritingConsumer.h>
+#include <queue>
 #include "options.h"
 #include "vector.h"
+#include "lru_cache.hpp"
+
 using namespace OpenMS;
 using namespace std;
 
-typedef std::map<int, MSSpectrum<>> InputSpectrumCache;
+struct IndexSpectrumOrder 
+{
+   bool operator()(pair<int, PeakSpectrum> const& a, pair<int, PeakSpectrum> const& b) const
+   {
+       return a.first > b.first;
+   }
+};
+
+typedef shared_ptr<PeakSpectrum> PeakSpectrumPtr;
+typedef cache::lru_cache<Int, PeakSpectrumPtr> SpectrumLRUCache;
+typedef pair<int, PeakSpectrum> IndexSpectrum;
+typedef priority_queue<IndexSpectrum, vector<IndexSpectrum>, IndexSpectrumOrder> SpectrumQueue;
 
 class Scorer 
 {
 private:
    // attributes
    unsigned int num_spectra;
-   int current_spectrum;
+   int current_spectrum_id;
+   int next_output_spectrum_id;
    int half_window;
    bool debug;
    double intensity_ratio;
@@ -29,13 +45,14 @@ private:
    string in_file;
    string out_file;
    OnDiscPeakMap input_map;
-   MSExperiment output_map;
-   InputSpectrumCache input_spectrum_cache;
-
+   PlainMSDataWritingConsumer spectrum_writer;
+   SpectrumLRUCache input_spectrum_cache;
+   SpectrumQueue output_spectrum_queue;
+   
    // methods
    int get_next_spectrum_todo(void);
-   void write_spectrum(MSSpectrum<> spectrum);
-   MSSpectrum<> read_spectrum(int spectrum_id);
+   void put_spectrum(int spectrum_id, PeakSpectrum spectrum);
+   PeakSpectrumPtr get_spectrum(int spectrum_id);
    double_vect score_spectra(int centre_idx);
 
 public:

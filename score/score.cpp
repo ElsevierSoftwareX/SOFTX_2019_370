@@ -7,7 +7,11 @@
 #include "vector.h"
 #include "options.h"
 #include "constants.h"
+#include "lru_cache.hpp"
 #include "score.h"
+
+// input cache size
+#define CACHE_SIZE 30
 
 using namespace OpenMS;
 using namespace std;
@@ -32,7 +36,10 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
    , num_threads(num_threads)
    , in_file(in_file)
    , out_file(out_file)
-   , current_spectrum{0}
+   , input_spectrum_cache(CACHE_SIZE)
+   , spectrum_writer(out_file)
+   , current_spectrum_id{0}
+   , next_output_spectrum_id{0}
 {
 
    IndexedMzMLFileLoader mzml;
@@ -57,24 +64,71 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
    {
        threads[thread_count].join();
    }
-
-   mzml.store(out_file, output_map);
 }
 
-MSSpectrum<> Scorer::read_spectrum(int spectrum_id)
+/*
+PeakSpectrumPtr Scorer::get_spectrum(int spectrum_id)
 {
+   PeakSpectrumPtr spectrum_ptr;
+
    input_spectrum_lock.lock();
-   MSSpectrum<> input_spectrum = input_map.getSpectrum(spectrum_id);
+   spectrum_ptr = make_shared<PeakSpectrum>(input_map.getSpectrum(spectrum_id));
    input_spectrum_lock.unlock();
-   return input_spectrum;
+   return spectrum_ptr;
+}
+*/
+PeakSpectrumPtr Scorer::get_spectrum(int spectrum_id)
+{
+   PeakSpectrumPtr spectrum_ptr;
+
+   input_spectrum_lock.lock();
+   if (input_spectrum_cache.exists(spectrum_id))
+   {
+      spectrum_ptr = input_spectrum_cache.get(spectrum_id);
+   }
+   else
+   {
+      spectrum_ptr = make_shared<PeakSpectrum>(input_map.getSpectrum(spectrum_id));
+      input_spectrum_cache.put(spectrum_id, spectrum_ptr);
+   }
+   input_spectrum_lock.unlock();
+   return spectrum_ptr;
 }
 
-void Scorer::write_spectrum(MSSpectrum<> spectrum)
+void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
 {
-   // Writing to the output_map must be synchronised between threads, with only one thread
-   // allowed to write at a time.
    output_spectrum_lock.lock();
-   output_map.addSpectrum(spectrum);
+
+   if (spectrum_id == next_output_spectrum_id)
+   {
+      // this is the next spectrum to output
+      cout << spectrum_id << endl;
+      spectrum_writer.consumeSpectrum(spectrum);
+      next_output_spectrum_id++;
+
+      // try to output more spectra
+      while(output_spectrum_queue.size() > 0)
+      {
+         IndexSpectrum index_spectrum = output_spectrum_queue.top();
+         if (index_spectrum.first == next_output_spectrum_id)
+         {
+            spectrum_writer.consumeSpectrum(index_spectrum.second);
+            cout << index_spectrum.first << endl;
+            output_spectrum_queue.pop();
+            next_output_spectrum_id++;
+         }
+         else
+         {
+            break;
+         }
+      }
+   }
+   else
+   {
+      // push this spectrum into the queue to write out later
+      output_spectrum_queue.push(pair<int, PeakSpectrum>(spectrum_id, spectrum));
+   } 
+
    output_spectrum_lock.unlock();
 }
 
@@ -82,8 +136,8 @@ int Scorer::get_next_spectrum_todo(void)
 {
    int this_spectrum;
    next_spectrum_lock.lock();
-   this_spectrum = current_spectrum;
-   current_spectrum++;
+   this_spectrum = current_spectrum_id;
+   current_spectrum_id++;
    next_spectrum_lock.unlock();
    return this_spectrum; 
 }
@@ -97,18 +151,19 @@ void Scorer::score_worker(int thread_count)
 
    while (this_spectrum_id < num_spectra)
    {
-       cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+       //cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
 
-       score = score_spectra(this_spectrum_id);
-       MSSpectrum<> input_spectrum = read_spectrum(this_spectrum_id);
+       //score = score_spectra(this_spectrum_id);
+       PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
-       MSSpectrum<> output_spectrum = MSSpectrum<Peak1D>(input_spectrum);
-       for (int index = 0; index < input_spectrum.size(); index++)
+       PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
+       for (int index = 0; index < input_spectrum->size(); index++)
        {
-           output_spectrum[index].setIntensity(score[index]);
+           //output_spectrum[index].setIntensity(score[index]);
+           output_spectrum[index].setIntensity(42);
        }
 
-       write_spectrum(output_spectrum);
+       put_spectrum(this_spectrum_id, output_spectrum);
        
        this_spectrum_id = get_next_spectrum_todo(); 
    }
@@ -128,10 +183,7 @@ void Scorer::score_worker(int thread_count)
  * @return Vector of score at each MZ in central spectrum.
  */
 
-double_vect
-//score_spectra(MSExperiment &map, int centre_idx, int half_window, Options opts)
-//score_spectra(OnDiscPeakMap &map, int centre_idx, int half_window, Options opts)
-Scorer::score_spectra(int centre_idx)
+double_vect Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
     double mz_delta_opt = mz_delta;
@@ -139,17 +191,15 @@ Scorer::score_spectra(int centre_idx)
     double intensity_ratio_opt = intensity_ratio;
     double rt_sigma = rt_width / std_dev_in_fwhm;
     double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
-    // XXX check that this is ok
     Size rt_len = input_map.getNrSpectra();
     double lower_tol = 1.0 - mz_sigma * mz_ppm_sigma;
     double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
-    //MSSpectrum<> centre_row_points = map.getSpectrum(centre_idx);
-    MSSpectrum<> centre_row_points = read_spectrum(centre_idx);
+    PeakSpectrumPtr centre_row_points = get_spectrum(centre_idx);
 
     // Length of all vectors (= # windows)
-    size_t mz_windows = centre_row_points.size();
+    size_t mz_windows = centre_row_points->size();
 
     // Low (natural ion) peak tolerances
     double_vect lower_bound_nat;
@@ -167,8 +217,8 @@ Scorer::score_spectra(int centre_idx)
     double_2d shape_iso;
 
     // Calculate tolerances for the lo and hi peak for each central MZ
-    MSSpectrum<>::Iterator it;
-    for (it = centre_row_points.begin(); it != centre_row_points.end(); ++it)
+    PeakSpectrum::Iterator it;
+    for (it = centre_row_points->begin(); it != centre_row_points->end(); ++it)
     {
         double this_mz = it->getMZ();
         lower_bound_nat.push_back(this_mz * lower_tol);
@@ -201,15 +251,15 @@ Scorer::score_spectra(int centre_idx)
         double rt_shape_nat = rt_shape[rowi - rt_offset];
         double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
 
-        MSSpectrum<> rowi_spectrum;
+        PeakSpectrumPtr rowi_spectrum;
         // window can go outside start and end of scans, so check bounds
         if (rowi >= 0 && rowi < rt_len)
         {
-            //rowi_spectrum = map.getSpectrum(rowi);
-            rowi_spectrum = read_spectrum(rowi);
+            rowi_spectrum = get_spectrum(rowi);
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
-            if (!rowi_spectrum.isSorted()) throw std::runtime_error ("Spectrum not sorted");
+            // XXX maybe we should provide an option to avoid this for performance reasons?
+            if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
 
             // Iterate over the points in the central spectrum
             for (size_t mzi = 0; mzi < mz_windows; ++mzi)
@@ -219,14 +269,14 @@ Scorer::score_spectra(int centre_idx)
                 double upper_tol_nat = upper_bound_nat[mzi];
                 double lower_tol_iso = lower_bound_iso[mzi];
                 double upper_tol_iso = upper_bound_iso[mzi];
-                double centre = centre_row_points[mzi].getMZ();
+                double centre = (*centre_row_points)[mzi].getMZ();
                 double sigma = centre * mz_ppm_sigma;
     
                 // Select points within tolerance for current spectrum
     
                 // Want index of bounds
-                Size lower_index = Size(rowi_spectrum.MZBegin(lower_tol_nat) - rowi_spectrum.begin());
-                Size upper_index = Size(rowi_spectrum.MZBegin(upper_tol_nat) - rowi_spectrum.begin());
+                Size lower_index = Size(rowi_spectrum->MZBegin(lower_tol_nat) - rowi_spectrum->begin());
+                Size upper_index = Size(rowi_spectrum->MZBegin(upper_tol_nat) - rowi_spectrum->begin());
     
                 // Check if points found...
                 if (lower_index <= upper_index)
@@ -234,7 +284,7 @@ Scorer::score_spectra(int centre_idx)
                     // Calculate Gaussian value for each found MZ
                     for (Size index = lower_index; index <= upper_index; ++index)
                     {
-                        Peak1D peak = rowi_spectrum[index];
+                        Peak1D peak = (*rowi_spectrum)[index];
                         double mz = peak.getMZ();
                         double intensity = peak.getIntensity();
     
@@ -256,8 +306,8 @@ Scorer::score_spectra(int centre_idx)
                 sigma = centre * mz_ppm_sigma;
 
                 // Select points within tolerance for current spectrum
-                lower_index = Size(rowi_spectrum.MZBegin(lower_tol_iso) - rowi_spectrum.begin());
-                upper_index = Size(rowi_spectrum.MZBegin(upper_tol_iso) - rowi_spectrum.begin());
+                lower_index = Size(rowi_spectrum->MZBegin(lower_tol_iso) - rowi_spectrum->begin());
+                upper_index = Size(rowi_spectrum->MZBegin(upper_tol_iso) - rowi_spectrum->begin());
 
                 // Check if points found...
                 if (lower_index <= upper_index)
@@ -265,7 +315,7 @@ Scorer::score_spectra(int centre_idx)
                     // Calculate Gaussian value for each found MZ
                     for (Size index = lower_index; index <= upper_index; ++index)
                     {
-                        Peak1D peak = rowi_spectrum[index];
+                        Peak1D peak = (*rowi_spectrum)[index];
                         double mz = peak.getMZ();
                         double intensity = peak.getIntensity();
 
@@ -611,8 +661,8 @@ Scorer::score_spectra(int centre_idx)
     }
 
     // Package return values
-    //double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
-//    double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
+    // double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
+    // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
 
     return min_score;
 }
