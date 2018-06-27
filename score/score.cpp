@@ -102,7 +102,7 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
    if (spectrum_id == next_output_spectrum_id)
    {
       // this is the next spectrum to output
-      cout << spectrum_id << endl;
+      //cout << spectrum_id << endl;
       spectrum_writer.consumeSpectrum(spectrum);
       next_output_spectrum_id++;
 
@@ -113,7 +113,7 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
          if (index_spectrum.first == next_output_spectrum_id)
          {
             spectrum_writer.consumeSpectrum(index_spectrum.second);
-            cout << index_spectrum.first << endl;
+            //cout << index_spectrum.first << endl;
             output_spectrum_queue.pop();
             next_output_spectrum_id++;
          }
@@ -151,16 +151,16 @@ void Scorer::score_worker(int thread_count)
 
    while (this_spectrum_id < num_spectra)
    {
-       //cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+       cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
 
-       //score = score_spectra(this_spectrum_id);
+       score = score_spectra(this_spectrum_id);
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
        PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
        for (int index = 0; index < input_spectrum->size(); index++)
        {
-           //output_spectrum[index].setIntensity(score[index]);
-           output_spectrum[index].setIntensity(42);
+           output_spectrum[index].setIntensity(score[index]);
+           //output_spectrum[index].setIntensity(42);
        }
 
        put_spectrum(this_spectrum_id, output_spectrum);
