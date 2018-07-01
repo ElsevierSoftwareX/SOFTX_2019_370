@@ -151,9 +151,9 @@ void Scorer::score_worker(int thread_count)
 
    while (this_spectrum_id < num_spectra)
    {
-       if ((this_spectrum_id % 50) == 0) {
+//       if ((this_spectrum_id % 50) == 0) {
            cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
-       }
+//       }
 
        score = score_spectra(this_spectrum_id);
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
@@ -245,10 +245,10 @@ double_vect Scorer::score_spectra(int centre_idx)
     for (int rowi = 0; rowi < local_rows; ++rowi)
     {
         // window can go outside start and end of scans, so check bounds
-        if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
+        if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
         {
             PeakSpectrumPtr rowi_spectrum;
-            rowi_spectrum = get_spectrum(rowi  - rt_offset);
+            rowi_spectrum = get_spectrum(rowi  + rt_offset);
             Size elements = rowi_spectrum->size();
 
             row_elements[rowi] = elements;
@@ -264,13 +264,14 @@ double_vect Scorer::score_spectra(int centre_idx)
 
     double mz_vals[local_rows][max_elements];
     double amp_vals[local_rows][max_elements];
+
     for (int rowi = 0; rowi < local_rows; ++rowi)
     {
         // window can go outside start and end of scans, so check bounds
-        if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
+        if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
         {
             PeakSpectrumPtr rowi_spectrum;
-            rowi_spectrum = get_spectrum(rowi - rt_offset);
+            rowi_spectrum = get_spectrum(rowi + rt_offset);
             Size elements = rowi_spectrum->size();
 
             //*** TODO: Is there an accessor method to all mz in one go?
@@ -283,6 +284,7 @@ double_vect Scorer::score_spectra(int centre_idx)
                 Peak1D peak = (*rowi_spectrum)[index];
                 double mz = peak.getMZ();
                 double intensity = peak.getIntensity();
+
                 mz_vals[rowi][index] = mz;
                 amp_vals[rowi][index] = intensity;
 
@@ -320,9 +322,9 @@ double_vect Scorer::score_spectra(int centre_idx)
         for (int rowi = 0; rowi < local_rows; ++rowi)
         {
             // window can go outside start and end of scans, so check bounds
-            if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
+            if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
             {
-                double rt_shape_nat = rt_shape[rowi - rt_offset];
+                double rt_shape_nat = rt_shape[rowi + rt_offset];
                 double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
 
                 // Select points within tolerance for current spectrum
@@ -338,6 +340,9 @@ double_vect Scorer::score_spectra(int centre_idx)
                                         -
                                         mz_vals[rowi]);
 
+if (centre_idx == 534) {
+    cout << rowi << ", " << it - centre_row_points->begin() << ", " << lower_index << ", " << upper_index << endl;
+}
                 // Check if points found...
                 if (lower_index <= upper_index) {
                     // Calculate Gaussian value for each found MZ
