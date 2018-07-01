@@ -159,7 +159,7 @@ void Scorer::score_worker(int thread_count)
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
        PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
-       for (int index = 0; index < input_spectrum->size(); index++)
+       for (Size index = 0; index < input_spectrum->size(); index++)
        {
            output_spectrum[index].setIntensity(score[index]);
            //output_spectrum[index].setIntensity(42);
@@ -215,7 +215,7 @@ double_vect Scorer::score_spectra(int centre_idx)
     PeakSpectrumPtr centre_row_points = get_spectrum(centre_idx);
 
     // Length of all vectors (= # windows)
-    size_t mz_windows = centre_row_points->size();
+    Size mz_windows = centre_row_points->size();
 
     double_vect min_score_vect;
     min_score_vect.reserve(mz_windows);
@@ -235,13 +235,68 @@ double_vect Scorer::score_spectra(int centre_idx)
     double centre_iso = 0.0;
     double sigma_iso = 0.0;
 
+/*** TEST: Collect all row data before processing data ***/
+    int local_rows = (2 * half_window) + 1;
+    Size max_elements = 0;
+    Size row_elements[local_rows];
+
+    // find longest row
+    // Iterate over the spectra in the window
+    for (int rowi = 0; rowi < local_rows; ++rowi)
+    {
+        // window can go outside start and end of scans, so check bounds
+        if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
+        {
+            PeakSpectrumPtr rowi_spectrum;
+            rowi_spectrum = get_spectrum(rowi  - rt_offset);
+            Size elements = rowi_spectrum->size();
+
+            row_elements[rowi] = elements;
+
+            // Could handle by sorting, but this shouldn't happen, so want to
+            // know if it does
+            // XXX maybe we should provide an option to avoid this for performance reasons?
+            if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
+
+            if (elements > max_elements) max_elements = elements;
+        }
+    }
+
+    double mz_vals[local_rows][max_elements];
+    double amp_vals[local_rows][max_elements];
+    for (int rowi = 0; rowi < local_rows; ++rowi)
+    {
+        // window can go outside start and end of scans, so check bounds
+        if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
+        {
+            PeakSpectrumPtr rowi_spectrum;
+            rowi_spectrum = get_spectrum(rowi - rt_offset);
+            Size elements = rowi_spectrum->size();
+
+            //*** TODO: Is there an accessor method to all mz in one go?
+            //*** NOTE: collecting all data this way is still fast
+            //*** 250MB file in 15sec
+
+            // Calculate Gaussian value for each found MZ
+            for (Size index = 0; index <= elements; ++index)
+            {
+                Peak1D peak = (*rowi_spectrum)[index];
+                double mz = peak.getMZ();
+                double intensity = peak.getIntensity();
+                mz_vals[rowi][index] = mz;
+                amp_vals[rowi][index] = intensity;
+
+            }
+        }
+    }
+
+/*** Now main loop per single mz ***/
+    // Calculate tolerances for the lo and hi peak for each central MZ
     double_vect data_nat;
     double_vect data_iso;
     double_vect shape_nat;
     double_vect shape_iso;
 
-/*** Now main loop per single mz ***/
-    // Calculate tolerances for the lo and hi peak for each central MZ
     PeakSpectrum::Iterator it;
     for (it = centre_row_points->begin(); it != centre_row_points->end(); ++it)
     {
@@ -262,36 +317,34 @@ double_vect Scorer::score_spectra(int centre_idx)
         shape_iso.clear();
 
         // Iterate over the spectra in the window
-        for (int rowi = centre_idx - half_window; rowi <= centre_idx + half_window; ++rowi)
+        for (int rowi = 0; rowi < local_rows; ++rowi)
         {
             // window can go outside start and end of scans, so check bounds
-            if (rowi >= 0 && rowi < rt_len)
+            if (rowi - rt_offset >= 0 && rowi - rt_offset < rt_len)
             {
                 double rt_shape_nat = rt_shape[rowi - rt_offset];
                 double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
 
-                PeakSpectrumPtr rowi_spectrum;
-                rowi_spectrum = get_spectrum(rowi);
-                // Could handle by sorting, but this shouldn't happen, so want to
-                // know if it does
-                // XXX maybe we should provide an option to avoid this for performance reasons?
-                if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
-
                 // Select points within tolerance for current spectrum
-
                 // Want index of bounds
-                Size lower_index = Size(rowi_spectrum->MZBegin(lower_bound_nat) - rowi_spectrum->begin());
-                Size upper_index = Size(rowi_spectrum->MZBegin(upper_bound_nat) - rowi_spectrum->begin());
+                Size lower_index = Size(std::lower_bound(mz_vals[rowi],
+                                            mz_vals[rowi] + row_elements[rowi],
+                                            lower_bound_nat)
+                                        -
+                                        mz_vals[rowi]);
+                Size upper_index = Size(std::lower_bound(mz_vals[rowi],
+                                            mz_vals[rowi] + row_elements[rowi],
+                                            upper_bound_nat)
+                                        -
+                                        mz_vals[rowi]);
 
                 // Check if points found...
-                if (lower_index <= upper_index)
-                {
+                if (lower_index <= upper_index) {
                     // Calculate Gaussian value for each found MZ
                     for (Size index = lower_index; index <= upper_index; ++index)
                     {
-                        Peak1D peak = (*rowi_spectrum)[index];
-                        double mz = peak.getMZ();
-                        double intensity = peak.getIntensity();
+                        double mz = mz_vals[rowi][index];
+                        double intensity = amp_vals[rowi][index];
 
                         // just in case
                         if (mz < lower_bound_nat || mz > upper_bound_nat) continue;
@@ -307,8 +360,16 @@ double_vect Scorer::score_spectra(int centre_idx)
                 }
 
                 // Select points within tolerance for current spectrum
-                lower_index = Size(rowi_spectrum->MZBegin(lower_bound_iso) - rowi_spectrum->begin());
-                upper_index = Size(rowi_spectrum->MZBegin(upper_bound_iso) - rowi_spectrum->begin());
+                lower_index = Size(std::lower_bound(mz_vals[rowi],
+                                            mz_vals[rowi] + row_elements[rowi],
+                                            lower_bound_iso)
+                                        -
+                                        mz_vals[rowi]);
+                upper_index = Size(std::lower_bound(mz_vals[rowi],
+                                            mz_vals[rowi] + row_elements[rowi],
+                                            upper_bound_iso)
+                                        -
+                                        mz_vals[rowi]);
 
                 // Check if points found...
                 if (lower_index <= upper_index)
@@ -316,9 +377,8 @@ double_vect Scorer::score_spectra(int centre_idx)
                     // Calculate Gaussian value for each found MZ
                     for (Size index = lower_index; index <= upper_index; ++index)
                     {
-                        Peak1D peak = (*rowi_spectrum)[index];
-                        double mz = peak.getMZ();
-                        double intensity = peak.getIntensity();
+                        double mz = mz_vals[rowi][index];
+                        double intensity = amp_vals[rowi][index];
 
                         // just in case
                         if (mz < lower_bound_iso || mz > upper_bound_iso) continue;
@@ -655,6 +715,7 @@ double_vect Scorer::score_spectra(int centre_idx)
 //**     // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
 //** 
 //** //        min_score_vect.push_back(min_score);
+
         min_score_vect.push_back(42);
     } 
     return min_score_vect;
