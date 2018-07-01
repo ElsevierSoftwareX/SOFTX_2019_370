@@ -152,7 +152,7 @@ void Scorer::score_worker(int thread_count)
    while (this_spectrum_id < num_spectra)
    {
 //       if ((this_spectrum_id % 50) == 0) {
-           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+//           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
 //       }
 
        score = score_spectra(this_spectrum_id);
@@ -237,10 +237,9 @@ double_vect Scorer::score_spectra(int centre_idx)
 
 /*** TEST: Collect all row data before processing data ***/
     int local_rows = (2 * half_window) + 1;
-    Size max_elements = 0;
-    Size row_elements[local_rows];
+    vector<double> mz_vals[local_rows];
+    vector<double> amp_vals[local_rows];
 
-    // find longest row
     // Iterate over the spectra in the window
     for (int rowi = 0; rowi < local_rows; ++rowi)
     {
@@ -251,43 +250,27 @@ double_vect Scorer::score_spectra(int centre_idx)
             rowi_spectrum = get_spectrum(rowi  + rt_offset);
             Size elements = rowi_spectrum->size();
 
-            row_elements[rowi] = elements;
+            mz_vals[rowi].reserve(elements);
+            amp_vals[rowi].reserve(elements);
 
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
             // XXX maybe we should provide an option to avoid this for performance reasons?
             if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
 
-            if (elements > max_elements) max_elements = elements;
-        }
-    }
-
-    double mz_vals[local_rows][max_elements];
-    double amp_vals[local_rows][max_elements];
-
-    for (int rowi = 0; rowi < local_rows; ++rowi)
-    {
-        // window can go outside start and end of scans, so check bounds
-        if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
-        {
-            PeakSpectrumPtr rowi_spectrum;
-            rowi_spectrum = get_spectrum(rowi + rt_offset);
-            Size elements = rowi_spectrum->size();
-
             //*** TODO: Is there an accessor method to all mz in one go?
             //*** NOTE: collecting all data this way is still fast
             //*** 250MB file in 15sec
 
             // Calculate Gaussian value for each found MZ
-            for (Size index = 0; index <= elements; ++index)
+            for (Size index = 0; index < elements; ++index)
             {
                 Peak1D peak = (*rowi_spectrum)[index];
                 double mz = peak.getMZ();
                 double intensity = peak.getIntensity();
 
-                mz_vals[rowi][index] = mz;
-                amp_vals[rowi][index] = intensity;
-
+                mz_vals[rowi].push_back(mz);
+                amp_vals[rowi].push_back(intensity);
             }
         }
     }
@@ -329,16 +312,17 @@ double_vect Scorer::score_spectra(int centre_idx)
 
                 // Select points within tolerance for current spectrum
                 // Want index of bounds
-                Size lower_index = Size(std::lower_bound(mz_vals[rowi],
-                                            mz_vals[rowi] + row_elements[rowi],
+                // Need to convert iterater to index
+                Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                            mz_vals[rowi].end(),
                                             lower_bound_nat)
                                         -
-                                        mz_vals[rowi]);
-                Size upper_index = Size(std::lower_bound(mz_vals[rowi],
-                                            mz_vals[rowi] + row_elements[rowi],
+                                        mz_vals[rowi].begin());
+                Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                            mz_vals[rowi].end(),
                                             upper_bound_nat)
                                         -
-                                        mz_vals[rowi]);
+                                        mz_vals[rowi].begin());
 
 if (centre_idx == 534) {
     cout << rowi << ", " << it - centre_row_points->begin() << ", " << lower_index << ", " << upper_index << endl;
@@ -346,10 +330,12 @@ if (centre_idx == 534) {
                 // Check if points found...
                 if (lower_index <= upper_index) {
                     // Calculate Gaussian value for each found MZ
-                    for (Size index = lower_index; index <= upper_index; ++index)
+                    for (Size index = lower_index;
+                                    index <= upper_index &&
+                                    index < mz_vals[rowi].size(); ++index)
                     {
-                        double mz = mz_vals[rowi][index];
-                        double intensity = amp_vals[rowi][index];
+                        double mz = mz_vals[rowi].at(index);
+                        double intensity = amp_vals[rowi].at(index);
 
                         // just in case
                         if (mz < lower_bound_nat || mz > upper_bound_nat) continue;
@@ -365,25 +351,27 @@ if (centre_idx == 534) {
                 }
 
                 // Select points within tolerance for current spectrum
-                lower_index = Size(std::lower_bound(mz_vals[rowi],
-                                            mz_vals[rowi] + row_elements[rowi],
+                lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                            mz_vals[rowi].end(),
                                             lower_bound_iso)
                                         -
-                                        mz_vals[rowi]);
-                upper_index = Size(std::lower_bound(mz_vals[rowi],
-                                            mz_vals[rowi] + row_elements[rowi],
+                                        mz_vals[rowi].begin());
+                upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                            mz_vals[rowi].end(),
                                             upper_bound_iso)
                                         -
-                                        mz_vals[rowi]);
+                                        mz_vals[rowi].begin());
 
                 // Check if points found...
                 if (lower_index <= upper_index)
                 {
                     // Calculate Gaussian value for each found MZ
-                    for (Size index = lower_index; index <= upper_index; ++index)
+                    for (Size index = lower_index;
+                                    index <= upper_index &&
+                                    index < mz_vals[rowi].size(); ++index)
                     {
-                        double mz = mz_vals[rowi][index];
-                        double intensity = amp_vals[rowi][index];
+                        double mz = mz_vals[rowi].at(index);
+                        double intensity = amp_vals[rowi].at(index);
 
                         // just in case
                         if (mz < lower_bound_iso || mz > upper_bound_iso) continue;
