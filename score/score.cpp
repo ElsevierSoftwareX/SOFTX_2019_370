@@ -324,9 +324,6 @@ double_vect Scorer::score_spectra(int centre_idx)
                                         -
                                         mz_vals[rowi].begin());
 
-if (centre_idx == 534) {
-    cout << rowi << ", " << it - centre_row_points->begin() << ", " << lower_index << ", " << upper_index << endl;
-}
                 // Check if points found...
                 if (lower_index <= upper_index) {
                     // Calculate Gaussian value for each found MZ
@@ -388,328 +385,329 @@ if (centre_idx == 534) {
             }
         }
 
-//**     // Ignore regions with insufficient number of samples
-//**     // If any region is ignored, set all to empty
-//**         if (data_nat.size() < min_sample_opt ||
-//**                        data_iso.size() < min_sample_opt) {
-//**             data_nat = {};
-//**             shape_nat = {};
-//**             nAB = 0;
-//**         }
-//**         else
-//**         {
-//**             nAB = data_nat.size() + data_iso.size();
-//**         }
-//** 
-//**     /*
-//**      * Competing models
-//**      * Low ion window, High ion window
-//**      * Empty low ion window, flat high ion window
-//**      */
-//** 
-//**     /* Formulation
-//**      * Correlation based on expectations in each region
-//**      * Low ion region, a
-//**      * High ion region, b
-//**      * Correlation is
-//**      * Covariance = E(E((Xa - E(Xab))(Ya - E(Yab))), E((Xb - E(Xab))(Yb -E(Yab))))
-//**      * Data Variance = E(E((Xa - E(Xab))^2), E((Xb - E(Xab))^2))
-//**      * Model Variance = E(E((Ya - E(Yab))^2), E((Yb - E(Yab))^2))
-//**      */
-//** 
-//**     // Region means
-//**     double EXa;    // E(Xa) 
-//**     double EXb;    // E(Xb)
-//**     double EYa;    // E(Ya)
-//**     double EYb;    // E(Yb)
-//** 
-//**     EXa = mean_vector(data_nat);
-//**     EXb = mean_vector(data_iso);
-//**     EYa = mean_vector(shape_nat);
-//**     EYb = mean_vector(shape_iso);
-//** 
-//**     // Combined mean is mean of means
-//**     double EXab;    // E(Xab) =  E(E(Xa), E(Xb))
-//**     double EYab;    // E(Yab) =  E(E(Ya), E(Yb))
-//**     EXab = mean_scalars(EXa, EXb);
-//**     EYab = mean_scalars(EYa, EYb);
-//** 
-//**     //// FOR TESTING
-//**     // low correlation
-//**     //EXab = EXa;
-//**     //EYab = EYa;
-//**     // high correlation
-//**     //EXab = EXb;
-//**     //EYab = EYb;
-//** 
-//**     // Centre data in regions relative to combined means
-//**     double_vect CXa;    // (Xa - E(Xab)) --> C(Xa)
-//**     double_vect CXb;    // (Xb - E(Xab))
-//**     double_vect CYa;    // (Ya - E(Yab))
-//**     double_vect CYb;    // (Yb - E(Yab))
-//** 
-//**     // Centre data in regions relative to combined means
-//**     CXa = shift_vector(data_nat, EXab);
-//**     CXb = shift_vector(data_iso, EXab);
-//**     CYa = shift_vector(shape_nat, EYab);
-//**     CYb = shift_vector(shape_iso, EYab);
-//** 
-//**     // Square vectors
-//**     double_vect CXa2;    // (Xa - E(Xab))^2 --> C(Xa)^2
-//**     double_vect CYa2;    // (Ya - E(Yab))^2
-//** 
-//**     double_vect CXb2;    // (Xb - E(Xab))^2
-//**     double_vect CYb2;    // (Yb - E(Yab))^2
-//** 
-//**     CXa2 = square_vector(CXa);
-//**     CXb2 = square_vector(CXb);
-//**     CYa2 = square_vector(CYa);
-//**     CYb2 = square_vector(CYb);
-//** 
-//**     // Products
-//**     double_vect CXaCYa;    // (Xa - E(Xab))(Ya - E(Yab))
-//**     double_vect CXbCYb;    // (Xb - E(Xab))(Yb - E(Yab))
-//** 
-//**     CXaCYa = mult_vectors(CXa, CYa);
-//**     CXbCYb = mult_vectors(CXb, CYb);
-//** 
-//**     // region expected values
-//**     double ECXaCYa;    // E((Xa - E(Xab))(Ya - E(Yab)))
-//**     double ECXa2;    // E((Xa - E(Xab))^2)
-//**     double ECYa2;    // E((Ya - E(Yab))^2)
-//** 
-//**     double ECXbCYb;    // E((Xb - E(Xab))(Yb - E(Yab)))
-//**     double ECXb2;    // E((Xb - E(Xab))^2)
-//**     double ECYb2;    // E((Yb - E(Yab))^2)
-//** 
-//**     ECXaCYa = mean_vector(CXaCYa);
-//**     ECXbCYb = mean_vector(CXbCYb);
-//**     ECXa2 = mean_vector(CXa2);
-//**     ECXb2 = mean_vector(CXb2);
-//**     ECYa2 = mean_vector(CYa2);
-//**     ECYb2 = mean_vector(CYb2);
-//** 
-//**     // Variance, Covariance
-//**     double cov_Xab;
-//**     double var_Xab;
-//**     double var_Yab;
-//** 
-//**     cov_Xab = mean_scalars(ECXaCYa, ECXbCYb);
-//**     var_Xab = mean_scalars(ECXa2, ECXb2);
-//**     var_Yab = mean_scalars(ECYa2, ECYb2);
-//** 
-//**     /* Alternate models */
-//**     // low region and high region modelled as flat
-//**     // Region means
-//**     // For high region modelled as all zero, Y_
-//**     // E(Yb) --> E(Y_) = 0 if model region b as all zero
-//** 
-//**     // Combined mean is mean of means
-//**     double EYa_;    // E(Ya_) =  E(E(Ya), E(Y_)) = 1/2 E(Ya)
-//**     EYa_ = 0.5 * EYa;
-//** 
-//**     // Centre data in regions relative to combined means
-//**     double_vect CYa_;    // (Ya - E(Ya_))
-//**     // (Yb - E(Ya_)) = -E(Ya_)
-//** 
-//**     // Centre data in regions relative to combined means
-//**     CYa_ = shift_vector(shape_nat, EYa_);
-//** 
-//**     // Square vectors
-//**     double_vect CYa_2;    // (Ya - E(Ya_))^2
-//**     // (Yb - E(Ya_))^2 = E(Ya_)^2
-//** 
-//**     CYa_2 = square_vector(CYa_);
-//** 
-//**     // Products
-//**     double_vect CXaCYa_;    // (Xa - E(Xab))(Ya - E(Ya_))
-//**     // (Xb - E(Xab))(Yb - E(Ya_)) --> -E(Ya_)*(Xb - E(Xab))
-//** 
-//**     CXaCYa_ = mult_vectors(CXa, CYa_);
-//** 
-//**     // region expected values
-//**     double ECXaCYaEa_;    // E((Xa - E(Xab))(Ya - E(Ya_)))
-//**     double ECYaEa_2;    // E((Ya - E(Ya_))^2)
-//** 
-//**     double ECXbCYbEa_;    // E((Xb - E(Xab))(Yb - E(Ya_))) = -E(Ya_)*E(Xb - E(Xab))
-//**     double ECYbEa_2;    // E((Yb - E(Ya_))^2) = E(Ya_)^2
-//** 
-//**     ECXaCYaEa_ = mean_vector(CXaCYa_);
-//**     
-//**     ECXbCYbEa_ = mean_vector(CXb);    // E(Xb - E(Xab))
-//**     ECXbCYbEa_ = mult_scalars(ECXbCYbEa_, EYa_);  // E(Ya_)*E(Xb - E(Xab))
-//**     ECXbCYbEa_ = -ECXbCYbEa_;
-//** 
-//**     ECYaEa_2 = mean_vector(CYa_2);
-//**     ECYbEa_2 = mult_scalars(EYa_, EYa_);  // E(Ya_)^2
-//** 
-//**     // Variance, Covariance
-//**     double cov_Xa_;
-//**     double var_Ya_;
-//** 
-//**     cov_Xa_ = mean_scalars(ECXaCYaEa_, ECXbCYbEa_);
-//**     var_Ya_ = mean_scalars(ECYaEa_2, ECYbEa_2);
-//** 
-//**     // For low region modelled as all zero, Y_
-//**     // E(Ya) --> E(Y_) = 0 if model region a as all zero
-//** 
-//**     // Combined mean is mean of means
-//**     double EY_b;    // E(Y_b) =  E(E(Y_), E(Yb)) = 1/2 E(Yb)
-//**     EY_b = 0.5 * EYb;
-//** 
-//**     // Centre data in regions relative to combined means
-//**     double_vect CY_b;    // (Yb - E(Y_b))
-//**     // (Ya - E(Y_b)) = -E(Y_b)
-//** 
-//**     // Centre data in regions relative to combined means
-//**     CY_b = shift_vector(shape_iso, EY_b);
-//** 
-//**     // Square vectors
-//**     double_vect CY_b2;    // (Yb - E(Y_b))^2
-//**     // (Ya - E(Y_b))^2 = E(Y_b)^2
-//** 
-//**     CY_b2 = square_vector(CY_b);
-//** 
-//**     // Products
-//**     // (Xa - E(Xab))(Ya - E(Y_a)) --> -E(Y_a)*(Xa - E(Xab))
-//**     double_vect CXbCY_b;    // (Xb - E(Xab))(Yb - E(Y_b))
-//** 
-//**     CXbCY_b = mult_vectors(CXb, CY_b);
-//** 
-//**     // region expected values
-//**     double ECXbCYbE_b;    // E((Xb - E(Xab))(Yb - E(Y_b)))
-//**     double ECYbE_b2;    // E((Yb - E(Y_b))^2)
-//** 
-//**     double ECXaCYaE_b;    // E((Xa - E(Xab))(Ya - E(Y_b))) = -E(Y_b)*E(Xa - E(Xab))
-//**     double ECYaE_b2;    // E((Ya - E(Y_b))^2) = E(Y_b)^2
-//** 
-//**     ECXbCYbE_b = mean_vector(CXbCY_b);
-//**     ECXbCYbE_b = mean_vector(CXbCY_b);
-//**     
-//**     ECXaCYaE_b = mean_vector(CXa);    // E(Xa - E(Xab))
-//**     ECXaCYaE_b = mult_scalars(ECXaCYaE_b, EY_b);  // E(Y_b)*E(Xa - E(Xab))
-//**     ECXaCYaE_b = -ECXaCYaE_b;
-//** 
-//**     ECYbE_b2 = mean_vector(CY_b2);
-//**     ECYaE_b2 = mult_scalars(EY_b, EY_b);  // E(Y_b)^2
-//** 
-//**     // Variance, Covariance
-//**     double cov_X_b;
-//**     double var_Y_b;
-//** 
-//**     cov_X_b = mean_scalars(ECXaCYaE_b, ECXbCYbE_b);
-//**     var_Y_b = mean_scalars(ECYaE_b2, ECYbE_b2);
-//** 
-//**     // Correlations
-//**     double correl_XabYab;
-//**     double correl_XabYa_;
-//**     double correl_XabY_b;
-//**     correl_XabYab = std::max({cov_Xab / std::sqrt(var_Xab * var_Yab), 0.0});
-//**     correl_XabYa_ = std::max({cov_Xa_ / std::sqrt(var_Xab * var_Ya_), 0.0});
-//**     correl_XabY_b = std::max({cov_X_b / std::sqrt(var_Xab * var_Y_b), 0.0});
-//** 
-//**     /* correlations between models */
-//**     // Yab, Ya_ covariance...
-//**     // Products
-//**     double_vect CYaCYa_;    // (Ya - E(Yab))(Ya - E(Ya_))
-//**     // (Yb - E(Yab))(Yb - E(Ya_)) --> -E(Ya_)*(Yb - E(Yab))
-//** 
-//**     CYaCYa_ = mult_vectors(CYa, CYa_);
-//** 
-//**     // region expected values
-//**     double ECYaCYaEa_;    // E((Ya - E(Yab))(Ya - E(Ya_)))
-//**     double ECYbCYbEa_;    // E((Yb - E(Yab))(Yb - E(Ya_))) = -E(Ya_)*E(Yb - E(Yab))
-//** 
-//**     ECYaCYaEa_ = mean_vector(CYaCYa_);
-//**     ECYbCYbEa_ = mean_vector(CYa);    // E(Ya - E(Yab))
-//**     ECYbCYbEa_ = mult_scalars(ECYbCYbEa_, EYa_);  // E(Ya_)*E(Ya - E(Yab))
-//**     ECYbCYbEa_ = -ECYbCYbEa_;  // -E(Ya_)*E(Ya - E(Yab))
-//** 
-//**     // Variance, Covariance
-//**     double cov_YabYa_;
-//**     cov_YabYa_ = mean_scalars(ECYaCYaEa_, ECYbCYbEa_);
-//** 
-//**     // Yab, Ya_ correlation
-//**     double correl_YabYa_;
-//**     correl_YabYa_ = std::max({cov_YabYa_ / std::sqrt(var_Yab * var_Ya_), 0.0});
-//** 
-//**     // Yab, Y_b covariance...
-//**     // Products
-//**     double_vect CYbCY_b;    // (Yb - E(Yab))(Yb - E(Y_b))
-//**     // (Ya - E(Yab))(Ya - E(Y_b)) --> -E(Y_b)*(Ya - E(Yab))
-//** 
-//**     CYbCY_b = mult_vectors(CYb, CY_b);
-//** 
-//**     // region expected values
-//**     double ECYbCYbE_b;    // E((Yb - E(Yab))(Yb - E(Y_b)))
-//**     double ECYaCYaE_b;    // E((Ya - E(Yab))(Ya - E(Y_b))) = -E(Y_b)*E(Ya - E(Yab))
-//** 
-//**     ECYbCYbE_b = mean_vector(CYbCY_b);
-//**     ECYaCYaE_b = mean_vector(CYb);    // E(Yb - E(Yab))
-//**     ECYaCYaE_b = mult_scalars(ECYaCYaE_b, EY_b);  // E(Y_b)*E(Yb - E(Yab))
-//**     ECYaCYaE_b = -ECYaCYaE_b;  // -E(Y_b)*E(Yb - E(Yab))
-//** 
-//**     // Variance, Covariance
-//**     double cov_YabY_b;
-//** 
-//**     cov_YabY_b = mean_scalars(ECYaCYaE_b, ECYbCYbE_b);
-//** 
-//**     // Yab, Y_b correlation
-//**     double correl_YabY_b;
-//**     correl_YabY_b = std::max({cov_YabY_b / std::sqrt(var_Yab * var_Y_b), 0.0});
-//** 
-//**     // Compare correlations
-//**     double rm2ABA0;
-//**     double rm2AB0B;
-//**     //double_vect rm2AB1r;
-//** 
-//**     // Calculate rm values between correlations
-//**     rm2ABA0 = 0.5 * (correl_XabYab * correl_XabYab + correl_XabYa_ * correl_XabYa_);
-//**     rm2AB0B = 0.5 * (correl_XabYab * correl_XabYab + correl_XabY_b * correl_XabY_b);
-//**     //rm2AB1r = rm_vectors(correlAB, correl1r);
-//** 
-//**     double fABA0;
-//**     double fAB0B;
-//**     //double_vect fAB1r;
-//** 
-//**     // Calculate f values between correlation and rm
-//**     fABA0 = (1.0 - correl_XabYa_) / (2.0 * (1.0 - rm2ABA0));
-//**     fAB0B = (1.0 - correl_XabY_b) / (2.0 * (1.0 - rm2AB0B));
-//**     //fAB1r = f_vectors(correlAB1r, rm2AB1r);
-//** 
-//**     double hABA0;
-//**     double hAB0B;
-//**     //double_vect hAB1r;
-//** 
-//**     // Calculate h values between f and rm
-//**     hABA0 = (1.0 - fABA0 * rm2ABA0) / (1.0 - rm2ABA0);
-//**     hAB0B = (1.0 - fAB0B * rm2AB0B) / (1.0 - rm2AB0B);
-//**     //hAB1r = h_vectors(fAB1r, rm2AB1r);
-//** 
-//**     // Subtract 3 and square root
-//**     nAB = std::sqrt(nAB - 3.0);
-//** 
-//**     double zABA0;
-//**     double zAB0B;
-//**     //double_vect zAB1r;
-//** 
-//**     // Calculate z scores
-//**     zABA0 = (std::atanh(correl_XabYab) - std::atanh(correl_XabYa_)) * nAB / (2.0 * (1.0 - correl_YabYa_) * hABA0);
-//**     zAB0B = (std::atanh(correl_XabYab) - std::atanh(correl_XabY_b)) * nAB / (2.0 * (1.0 - correl_YabY_b) * hAB0B);
-//**     //zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
-//** 
-//**     double min_score;
-//** 
-//**     // Find the minimum scores, bounded at zero
-//**     min_score = std::max({0.0, std::min({zABA0, zAB0B})});
-//** 
-//**     // Package return values
-//**     // double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
-//**     // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
-//** 
-//** //        min_score_vect.push_back(min_score);
+        // Ignore regions with insufficient number of samples
+        // If any region is ignored, set all to empty
+        if (data_nat.size() < min_sample_opt ||
+                       data_iso.size() < min_sample_opt)
+        {
+            data_nat.clear();
+            shape_nat.clear();
+            data_iso.clear();
+            shape_iso.clear();
+            nAB = 0;
+        }
+        else
+        {
+            nAB = data_nat.size() + data_iso.size();
+        }
 
-        min_score_vect.push_back(42);
+        /*
+         * Competing models
+         * Low ion window, High ion window
+         * Empty low ion window, flat high ion window
+         */
+
+        /* Formulation
+         * Correlation based on expectations in each region
+         * Low ion region, a
+         * High ion region, b
+         * Correlation is
+         * Covariance = E(E((Xa - E(Xab))(Ya - E(Yab))), E((Xb - E(Xab))(Yb -E(Yab))))
+         * Data Variance = E(E((Xa - E(Xab))^2), E((Xb - E(Xab))^2))
+         * Model Variance = E(E((Ya - E(Yab))^2), E((Yb - E(Yab))^2))
+         */
+
+        // Region means
+        double EXa;    // E(Xa) 
+        double EXb;    // E(Xb)
+        double EYa;    // E(Ya)
+        double EYb;    // E(Yb)
+
+        EXa = mean_vector(data_nat);
+        EXb = mean_vector(data_iso);
+        EYa = mean_vector(shape_nat);
+        EYb = mean_vector(shape_iso);
+
+        // Combined mean is mean of means
+        double EXab;    // E(Xab) =  E(E(Xa), E(Xb))
+        double EYab;    // E(Yab) =  E(E(Ya), E(Yb))
+        EXab = mean_scalars(EXa, EXb);
+        EYab = mean_scalars(EYa, EYb);
+
+        //// FOR TESTING
+        // low correlation
+        //EXab = EXa;
+        //EYab = EYa;
+        // high correlation
+        //EXab = EXb;
+        //EYab = EYb;
+
+        // Centre data in regions relative to combined means
+        double_vect CXa;    // (Xa - E(Xab)) --> C(Xa)
+        double_vect CXb;    // (Xb - E(Xab))
+        double_vect CYa;    // (Ya - E(Yab))
+        double_vect CYb;    // (Yb - E(Yab))
+
+        // Centre data in regions relative to combined means
+        CXa = shift_vector(data_nat, EXab);
+        CXb = shift_vector(data_iso, EXab);
+        CYa = shift_vector(shape_nat, EYab);
+        CYb = shift_vector(shape_iso, EYab);
+
+        // Square vectors
+        double_vect CXa2;    // (Xa - E(Xab))^2 --> C(Xa)^2
+        double_vect CYa2;    // (Ya - E(Yab))^2
+
+        double_vect CXb2;    // (Xb - E(Xab))^2
+        double_vect CYb2;    // (Yb - E(Yab))^2
+
+        CXa2 = square_vector(CXa);
+        CXb2 = square_vector(CXb);
+        CYa2 = square_vector(CYa);
+        CYb2 = square_vector(CYb);
+
+        // Products
+        double_vect CXaCYa;    // (Xa - E(Xab))(Ya - E(Yab))
+        double_vect CXbCYb;    // (Xb - E(Xab))(Yb - E(Yab))
+
+        CXaCYa = mult_vectors(CXa, CYa);
+        CXbCYb = mult_vectors(CXb, CYb);
+
+        // region expected values
+        double ECXaCYa;    // E((Xa - E(Xab))(Ya - E(Yab)))
+        double ECXa2;    // E((Xa - E(Xab))^2)
+        double ECYa2;    // E((Ya - E(Yab))^2)
+
+        double ECXbCYb;    // E((Xb - E(Xab))(Yb - E(Yab)))
+        double ECXb2;    // E((Xb - E(Xab))^2)
+        double ECYb2;    // E((Yb - E(Yab))^2)
+
+        ECXaCYa = mean_vector(CXaCYa);
+        ECXbCYb = mean_vector(CXbCYb);
+        ECXa2 = mean_vector(CXa2);
+        ECXb2 = mean_vector(CXb2);
+        ECYa2 = mean_vector(CYa2);
+        ECYb2 = mean_vector(CYb2);
+
+        // Variance, Covariance
+        double cov_Xab;
+        double var_Xab;
+        double var_Yab;
+
+        cov_Xab = mean_scalars(ECXaCYa, ECXbCYb);
+        var_Xab = mean_scalars(ECXa2, ECXb2);
+        var_Yab = mean_scalars(ECYa2, ECYb2);
+
+        /* Alternate models */
+        // low region and high region modelled as flat
+        // Region means
+        // For high region modelled as all zero, Y_
+        // E(Yb) --> E(Y_) = 0 if model region b as all zero
+
+        // Combined mean is mean of means
+        double EYa_;    // E(Ya_) =  E(E(Ya), E(Y_)) = 1/2 E(Ya)
+        EYa_ = 0.5 * EYa;
+
+        // Centre data in regions relative to combined means
+        double_vect CYa_;    // (Ya - E(Ya_))
+        // (Yb - E(Ya_)) = -E(Ya_)
+    
+        // Centre data in regions relative to combined means
+        CYa_ = shift_vector(shape_nat, EYa_);
+    
+        // Square vectors
+        double_vect CYa_2;    // (Ya - E(Ya_))^2
+        // (Yb - E(Ya_))^2 = E(Ya_)^2
+    
+        CYa_2 = square_vector(CYa_);
+    
+        // Products
+        double_vect CXaCYa_;    // (Xa - E(Xab))(Ya - E(Ya_))
+        // (Xb - E(Xab))(Yb - E(Ya_)) --> -E(Ya_)*(Xb - E(Xab))
+    
+        CXaCYa_ = mult_vectors(CXa, CYa_);
+    
+        // region expected values
+        double ECXaCYaEa_;    // E((Xa - E(Xab))(Ya - E(Ya_)))
+        double ECYaEa_2;    // E((Ya - E(Ya_))^2)
+    
+        double ECXbCYbEa_;    // E((Xb - E(Xab))(Yb - E(Ya_))) = -E(Ya_)*E(Xb - E(Xab))
+        double ECYbEa_2;    // E((Yb - E(Ya_))^2) = E(Ya_)^2
+    
+        ECXaCYaEa_ = mean_vector(CXaCYa_);
+        
+        ECXbCYbEa_ = mean_vector(CXb);    // E(Xb - E(Xab))
+        ECXbCYbEa_ = mult_scalars(ECXbCYbEa_, EYa_);  // E(Ya_)*E(Xb - E(Xab))
+        ECXbCYbEa_ = -ECXbCYbEa_;
+    
+        ECYaEa_2 = mean_vector(CYa_2);
+        ECYbEa_2 = mult_scalars(EYa_, EYa_);  // E(Ya_)^2
+    
+        // Variance, Covariance
+        double cov_Xa_;
+        double var_Ya_;
+    
+        cov_Xa_ = mean_scalars(ECXaCYaEa_, ECXbCYbEa_);
+        var_Ya_ = mean_scalars(ECYaEa_2, ECYbEa_2);
+    
+        // For low region modelled as all zero, Y_
+        // E(Ya) --> E(Y_) = 0 if model region a as all zero
+    
+        // Combined mean is mean of means
+        double EY_b;    // E(Y_b) =  E(E(Y_), E(Yb)) = 1/2 E(Yb)
+        EY_b = 0.5 * EYb;
+    
+        // Centre data in regions relative to combined means
+        double_vect CY_b;    // (Yb - E(Y_b))
+        // (Ya - E(Y_b)) = -E(Y_b)
+    
+        // Centre data in regions relative to combined means
+        CY_b = shift_vector(shape_iso, EY_b);
+    
+        // Square vectors
+        double_vect CY_b2;    // (Yb - E(Y_b))^2
+        // (Ya - E(Y_b))^2 = E(Y_b)^2
+    
+        CY_b2 = square_vector(CY_b);
+    
+        // Products
+        // (Xa - E(Xab))(Ya - E(Y_a)) --> -E(Y_a)*(Xa - E(Xab))
+        double_vect CXbCY_b;    // (Xb - E(Xab))(Yb - E(Y_b))
+    
+        CXbCY_b = mult_vectors(CXb, CY_b);
+    
+        // region expected values
+        double ECXbCYbE_b;    // E((Xb - E(Xab))(Yb - E(Y_b)))
+        double ECYbE_b2;    // E((Yb - E(Y_b))^2)
+    
+        double ECXaCYaE_b;    // E((Xa - E(Xab))(Ya - E(Y_b))) = -E(Y_b)*E(Xa - E(Xab))
+        double ECYaE_b2;    // E((Ya - E(Y_b))^2) = E(Y_b)^2
+    
+        ECXbCYbE_b = mean_vector(CXbCY_b);
+        ECXbCYbE_b = mean_vector(CXbCY_b);
+        
+        ECXaCYaE_b = mean_vector(CXa);    // E(Xa - E(Xab))
+        ECXaCYaE_b = mult_scalars(ECXaCYaE_b, EY_b);  // E(Y_b)*E(Xa - E(Xab))
+        ECXaCYaE_b = -ECXaCYaE_b;
+    
+        ECYbE_b2 = mean_vector(CY_b2);
+        ECYaE_b2 = mult_scalars(EY_b, EY_b);  // E(Y_b)^2
+    
+        // Variance, Covariance
+        double cov_X_b;
+        double var_Y_b;
+    
+        cov_X_b = mean_scalars(ECXaCYaE_b, ECXbCYbE_b);
+        var_Y_b = mean_scalars(ECYaE_b2, ECYbE_b2);
+    
+        // Correlations
+        double correl_XabYab;
+        double correl_XabYa_;
+        double correl_XabY_b;
+        correl_XabYab = std::max({cov_Xab / std::sqrt(var_Xab * var_Yab), 0.0});
+        correl_XabYa_ = std::max({cov_Xa_ / std::sqrt(var_Xab * var_Ya_), 0.0});
+        correl_XabY_b = std::max({cov_X_b / std::sqrt(var_Xab * var_Y_b), 0.0});
+    
+        /* correlations between models */
+        // Yab, Ya_ covariance...
+        // Products
+        double_vect CYaCYa_;    // (Ya - E(Yab))(Ya - E(Ya_))
+        // (Yb - E(Yab))(Yb - E(Ya_)) --> -E(Ya_)*(Yb - E(Yab))
+    
+        CYaCYa_ = mult_vectors(CYa, CYa_);
+    
+        // region expected values
+        double ECYaCYaEa_;    // E((Ya - E(Yab))(Ya - E(Ya_)))
+        double ECYbCYbEa_;    // E((Yb - E(Yab))(Yb - E(Ya_))) = -E(Ya_)*E(Yb - E(Yab))
+    
+        ECYaCYaEa_ = mean_vector(CYaCYa_);
+        ECYbCYbEa_ = mean_vector(CYa);    // E(Ya - E(Yab))
+        ECYbCYbEa_ = mult_scalars(ECYbCYbEa_, EYa_);  // E(Ya_)*E(Ya - E(Yab))
+        ECYbCYbEa_ = -ECYbCYbEa_;  // -E(Ya_)*E(Ya - E(Yab))
+    
+        // Variance, Covariance
+        double cov_YabYa_;
+        cov_YabYa_ = mean_scalars(ECYaCYaEa_, ECYbCYbEa_);
+    
+        // Yab, Ya_ correlation
+        double correl_YabYa_;
+        correl_YabYa_ = std::max({cov_YabYa_ / std::sqrt(var_Yab * var_Ya_), 0.0});
+    
+        // Yab, Y_b covariance...
+        // Products
+        double_vect CYbCY_b;    // (Yb - E(Yab))(Yb - E(Y_b))
+        // (Ya - E(Yab))(Ya - E(Y_b)) --> -E(Y_b)*(Ya - E(Yab))
+    
+        CYbCY_b = mult_vectors(CYb, CY_b);
+    
+        // region expected values
+        double ECYbCYbE_b;    // E((Yb - E(Yab))(Yb - E(Y_b)))
+        double ECYaCYaE_b;    // E((Ya - E(Yab))(Ya - E(Y_b))) = -E(Y_b)*E(Ya - E(Yab))
+    
+        ECYbCYbE_b = mean_vector(CYbCY_b);
+        ECYaCYaE_b = mean_vector(CYb);    // E(Yb - E(Yab))
+        ECYaCYaE_b = mult_scalars(ECYaCYaE_b, EY_b);  // E(Y_b)*E(Yb - E(Yab))
+        ECYaCYaE_b = -ECYaCYaE_b;  // -E(Y_b)*E(Yb - E(Yab))
+    
+        // Variance, Covariance
+        double cov_YabY_b;
+    
+        cov_YabY_b = mean_scalars(ECYaCYaE_b, ECYbCYbE_b);
+    
+        // Yab, Y_b correlation
+        double correl_YabY_b;
+        correl_YabY_b = std::max({cov_YabY_b / std::sqrt(var_Yab * var_Y_b), 0.0});
+    
+        // Compare correlations
+        double rm2ABA0;
+        double rm2AB0B;
+        //double_vect rm2AB1r;
+    
+        // Calculate rm values between correlations
+        rm2ABA0 = 0.5 * (correl_XabYab * correl_XabYab + correl_XabYa_ * correl_XabYa_);
+        rm2AB0B = 0.5 * (correl_XabYab * correl_XabYab + correl_XabY_b * correl_XabY_b);
+        //rm2AB1r = rm_vectors(correlAB, correl1r);
+    
+        double fABA0;
+        double fAB0B;
+        //double_vect fAB1r;
+    
+        // Calculate f values between correlation and rm
+        fABA0 = (1.0 - correl_XabYa_) / (2.0 * (1.0 - rm2ABA0));
+        fAB0B = (1.0 - correl_XabY_b) / (2.0 * (1.0 - rm2AB0B));
+        //fAB1r = f_vectors(correlAB1r, rm2AB1r);
+    
+        double hABA0;
+        double hAB0B;
+        //double_vect hAB1r;
+    
+        // Calculate h values between f and rm
+        hABA0 = (1.0 - fABA0 * rm2ABA0) / (1.0 - rm2ABA0);
+        hAB0B = (1.0 - fAB0B * rm2AB0B) / (1.0 - rm2AB0B);
+        //hAB1r = h_vectors(fAB1r, rm2AB1r);
+    
+        // Subtract 3 and square root
+        nAB = std::sqrt(nAB - 3.0);
+    
+        double zABA0;
+        double zAB0B;
+        //double_vect zAB1r;
+    
+        // Calculate z scores
+        zABA0 = (std::atanh(correl_XabYab) - std::atanh(correl_XabYa_)) * nAB / (2.0 * (1.0 - correl_YabYa_) * hABA0);
+        zAB0B = (std::atanh(correl_XabYab) - std::atanh(correl_XabY_b)) * nAB / (2.0 * (1.0 - correl_YabY_b) * hAB0B);
+        //zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
+    
+        double min_score;
+    
+        // Find the minimum scores, bounded at zero
+        min_score = std::max({0.0, std::min({zABA0, zAB0B})});
+    
+        // Package return values
+        // double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
+        // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
+    
+        min_score_vect.push_back(min_score);
     } 
     return min_score_vect;
 }
