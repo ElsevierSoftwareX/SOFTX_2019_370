@@ -152,14 +152,14 @@ void Scorer::score_worker(int thread_count)
    while (this_spectrum_id < num_spectra)
    {
 //       if ((this_spectrum_id % 50) == 0) {
-//           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
 //       }
 
        score = score_spectra(this_spectrum_id);
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
        PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
-       for (Size index = 0; index < input_spectrum->size(); index++)
+       for (int index = 0; index < input_spectrum->size(); index++)
        {
            output_spectrum[index].setIntensity(score[index]);
            //output_spectrum[index].setIntensity(42);
@@ -188,28 +188,27 @@ void Scorer::score_worker(int thread_count)
 double_vect Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
-    double mz_delta_opt = mz_delta;
-    double min_sample_opt = min_sample;
-    double intensity_ratio_opt = intensity_ratio;
     double rt_sigma = rt_width / std_dev_in_fwhm;
     double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
     Size rt_len = input_map.getNrSpectra();
+    Size local_rows = (2 * half_window) + 1;
     double lower_tol = 1.0 - mz_sigma * mz_ppm_sigma;
     double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
-    int rt_offset = centre_idx - half_window;
+    Size rt_offset = centre_idx - half_window;
 
     // XXX This should be calculated once, then used as look-up
     // Spacing should also be based on scan intervals
     // (curently assumed fixed spacing)
-    std::vector<double> rt_shape;
+    double_vect rt_shape;
+    rt_shape.resize(local_rows);
 
     // Calculate Gaussian shape in the RT direction
-    for (int i = 0; i < (2 * half_window) + 1; ++i)
+    for (Size i = 0; i < local_rows; ++i)
     {
         double pt = (i - half_window) / rt_sigma;
         pt = -0.5 * pt * pt;
         double fit = exp(pt) / (rt_sigma * root2pi);
-        rt_shape.push_back(fit);
+        rt_shape[i] = fit;
     }
 
     PeakSpectrumPtr centre_row_points = get_spectrum(centre_idx);
@@ -235,23 +234,24 @@ double_vect Scorer::score_spectra(int centre_idx)
     double centre_iso = 0.0;
     double sigma_iso = 0.0;
 
-/*** TEST: Collect all row data before processing data ***/
-    int local_rows = (2 * half_window) + 1;
-    vector<double> mz_vals[local_rows];
-    vector<double> amp_vals[local_rows];
+    // NOTE: much faster to collect all local row data 1st
+    double_2d mz_vals;
+    double_2d amp_vals;
+    mz_vals.resize(local_rows);
+    amp_vals.resize(local_rows);
 
     // Iterate over the spectra in the window
-    for (int rowi = 0; rowi < local_rows; ++rowi)
+    for (Size rowi = 0; rowi < local_rows; ++rowi)
     {
         // window can go outside start and end of scans, so check bounds
         if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
         {
             PeakSpectrumPtr rowi_spectrum;
-            rowi_spectrum = get_spectrum(rowi  + rt_offset);
+            rowi_spectrum = get_spectrum(rowi + rt_offset);
             Size elements = rowi_spectrum->size();
 
-            mz_vals[rowi].reserve(elements);
-            amp_vals[rowi].reserve(elements);
+            mz_vals[rowi].resize(elements);
+            amp_vals[rowi].resize(elements);
 
             // Could handle by sorting, but this shouldn't happen, so want to
             // know if it does
@@ -269,13 +269,17 @@ double_vect Scorer::score_spectra(int centre_idx)
                 double mz = peak.getMZ();
                 double intensity = peak.getIntensity();
 
-                mz_vals[rowi].push_back(mz);
-                amp_vals[rowi].push_back(intensity);
+                mz_vals[rowi][index] = mz;
+                amp_vals[rowi][index] = intensity;
             }
+        }
+        else
+        {
+            mz_vals[rowi].clear();
+            amp_vals[rowi].clear();
         }
     }
 
-/*** Now main loop per single mz ***/
     // Calculate tolerances for the lo and hi peak for each central MZ
     double_vect data_nat;
     double_vect data_iso;
@@ -288,27 +292,28 @@ double_vect Scorer::score_spectra(int centre_idx)
         centre = it->getMZ();
         sigma = centre * mz_ppm_sigma;
 
-        centre_iso = centre + mz_delta_opt;
+        centre_iso = centre + mz_delta;
         sigma_iso = centre_iso * mz_ppm_sigma;
 
         lower_bound_nat = centre * lower_tol;
         upper_bound_nat = centre * upper_tol;
-        lower_bound_iso = (centre + mz_delta_opt) * lower_tol;
-        upper_bound_iso = (centre + mz_delta_opt) * upper_tol;
+        lower_bound_iso = centre_iso * lower_tol;
+        upper_bound_iso = centre_iso * upper_tol;
 
+        // reset index back to start
         data_nat.clear();
         data_iso.clear();
         shape_nat.clear();
         shape_iso.clear();
 
         // Iterate over the spectra in the window
-        for (int rowi = 0; rowi < local_rows; ++rowi)
+        for (Size rowi = 0; rowi < local_rows; ++rowi)
         {
             // window can go outside start and end of scans, so check bounds
             if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
             {
                 double rt_shape_nat = rt_shape[rowi + rt_offset];
-                double rt_shape_iso = rt_shape_nat * intensity_ratio_opt;
+                double rt_shape_iso = rt_shape_nat * intensity_ratio;
 
                 // Select points within tolerance for current spectrum
                 // Want index of bounds
@@ -318,33 +323,31 @@ double_vect Scorer::score_spectra(int centre_idx)
                                             lower_bound_nat)
                                         -
                                         mz_vals[rowi].begin());
+                if (lower_index < 0) lower_index = 0;
                 Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
                                             mz_vals[rowi].end(),
                                             upper_bound_nat)
                                         -
                                         mz_vals[rowi].begin());
+                // this test should also stop lookup in empty rows
+                if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
 
-                // Check if points found...
-                if (lower_index <= upper_index) {
-                    // Calculate Gaussian value for each found MZ
-                    for (Size index = lower_index;
-                                    index <= upper_index &&
-                                    index < mz_vals[rowi].size(); ++index)
-                    {
-                        double mz = mz_vals[rowi].at(index);
-                        double intensity = amp_vals[rowi].at(index);
+                // Calculate Gaussian value for each found MZ
+                for (Size index = lower_index; index <= upper_index; ++index)
+                {
+                    double mz = mz_vals[rowi][index];
+                    double intensity = amp_vals[rowi][index];
 
-                        // just in case
-                        if (mz < lower_bound_nat || mz > upper_bound_nat) continue;
+                    // just in case
+                    if (mz < lower_bound_nat || mz > upper_bound_nat) continue;
 
-                        // calc mz fit
-                        mz = (mz - centre) / sigma;
-                        mz = -0.5 * mz * mz;
-                        double fit = exp(mz) / (sigma * root2pi);
+                    // calc mz fit
+                    mz = (mz - centre) / sigma;
+                    mz = -0.5 * mz * mz;
+                    double fit = exp(mz) / (sigma * root2pi);
 
-                        data_nat.push_back(intensity);
-                        shape_nat.push_back(fit * rt_shape_nat);
-                    }
+                    data_nat.push_back(intensity);
+                    shape_nat.push_back(fit * rt_shape_nat);
                 }
 
                 // Select points within tolerance for current spectrum
@@ -353,42 +356,37 @@ double_vect Scorer::score_spectra(int centre_idx)
                                             lower_bound_iso)
                                         -
                                         mz_vals[rowi].begin());
+                if (lower_index < 0) lower_index = 0;
                 upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
                                             mz_vals[rowi].end(),
                                             upper_bound_iso)
                                         -
                                         mz_vals[rowi].begin());
+                if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
 
-                // Check if points found...
-                if (lower_index <= upper_index)
+                // Calculate Gaussian value for each found MZ
+                for (Size index = lower_index; index <= upper_index; ++index)
                 {
-                    // Calculate Gaussian value for each found MZ
-                    for (Size index = lower_index;
-                                    index <= upper_index &&
-                                    index < mz_vals[rowi].size(); ++index)
-                    {
-                        double mz = mz_vals[rowi].at(index);
-                        double intensity = amp_vals[rowi].at(index);
+                    double mz = mz_vals[rowi][index];
+                    double intensity = amp_vals[rowi][index];
 
-                        // just in case
-                        if (mz < lower_bound_iso || mz > upper_bound_iso) continue;
+                    // just in case
+                    if (mz < lower_bound_iso || mz > upper_bound_iso) continue;
 
-                        // calc mz fit
-                        mz = (mz - centre_iso) / sigma_iso;
-                        mz = -0.5 * mz * mz;
-                        double fit = exp(mz) / (sigma_iso * root2pi);
+                    // calc mz fit
+                    mz = (mz - centre_iso) / sigma_iso;
+                    mz = -0.5 * mz * mz;
+                    double fit = exp(mz) / (sigma_iso * root2pi);
 
-                        data_iso.push_back(intensity);
-                        shape_iso.push_back(fit * rt_shape_iso);
-                    }
+                    data_iso.push_back(intensity);
+                    shape_iso.push_back(fit * rt_shape_iso);
                 }
             }
         }
 
         // Ignore regions with insufficient number of samples
         // If any region is ignored, set all to empty
-        if (data_nat.size() < min_sample_opt ||
-                       data_iso.size() < min_sample_opt)
+        if (data_nat.size() < min_sample || data_iso.size() < min_sample)
         {
             data_nat.clear();
             shape_nat.clear();
@@ -708,6 +706,7 @@ double_vect Scorer::score_spectra(int centre_idx)
         // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
     
         min_score_vect.push_back(min_score);
+        min_score_vect.push_back(42);
     } 
     return min_score_vect;
 }
