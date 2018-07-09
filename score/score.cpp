@@ -188,16 +188,10 @@ void Scorer::collect_local_rows(Size rt_offset, Size rt_len,
             mz_vals[rowi].resize(elements);
             amp_vals[rowi].resize(elements);
 
-            // Could handle by sorting, but this shouldn't happen, so want to
-            // know if it does
+            // This shouldn't happen, so want to but want know if it does
             // XXX maybe we should provide an option to avoid this for performance reasons?
             if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
 
-            //*** TODO: Is there an accessor method to all mz in one go?
-            //*** NOTE: collecting all data this way is still fast
-            //*** 250MB file in 15sec
-
-            // Calculate Gaussian value for each found MZ
             for (Size index = 0; index < elements; ++index)
             {
                 Peak1D peak = (*rowi_spectrum)[index];
@@ -216,7 +210,6 @@ void Scorer::collect_local_rows(Size rt_offset, Size rt_len,
     }
 }
 
-
 void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
                double_vect & rt_shape,
                double centre, double sigma,
@@ -230,11 +223,11 @@ void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
             // window can go outside start and end of scans, so check bounds
             if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
             {
-                double rt_shape_i = rt_shape[rowi + rt_offset] * scale;
+                double rt_shape_i = rt_shape[rowi] * scale;
 
                 // Select points within tolerance for current spectrum
                 // Want index of bounds
-                // Need to convert iterater to index
+                // Need to convert iterator to index
                 Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
                                             mz_vals[rowi].end(),
                                             lower_bound_mz)
@@ -270,6 +263,92 @@ void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
         }
 }
 
+double combined_correlation(double_vect &data_nat, double_vect &data_iso,
+                double_vect &shape_nat, double_vect &shape_iso)
+{
+    // Region means
+    // E(Xa) 
+    // E(Xb)
+    // E(Ya)
+    // E(Yb)
+    double EXa = mean_vector(data_nat);
+    double EXb = mean_vector(data_iso);
+    double EYa = mean_vector(shape_nat);
+    double EYb = mean_vector(shape_iso);
+
+    // Combined mean is mean of means
+    // E(Xab) =  E(E(Xa), E(Xb))
+    // E(Yab) =  E(E(Ya), E(Yb))
+    double EXab = 0.5 * (EXa + EXb);
+    double EYab = 0.5 * (EYa + EYb);
+
+    // Centre data in regions relative to combined means
+    double_vect CXa (data_nat);    // (Xa - E(Xab)) --> C(Xa)
+    double_vect CXb (data_iso);    // (Xb - E(Xab))
+    double_vect CYa (shape_nat);    // (Ya - E(Yab))
+    double_vect CYb (shape_iso);    // (Yb - E(Yab))
+
+    // Centre data in regions relative to combined means
+    for (auto& val : CXa) val -= EXab;
+    for (auto& val : CXb) val -= EXab;
+    for (auto& val : CYa) val -= EYab;
+    for (auto& val : CYb) val -= EYab;
+
+    // region expected values
+    // E((Xa - E(Xab))(Ya - E(Yab)))
+    // E((Xa - E(Xab))^2)
+    // E((Ya - E(Yab))^2)
+
+    // E((Xb - E(Xab))(Yb - E(Yab)))
+    // E((Xb - E(Xab))^2)
+    // E((Yb - E(Yab))^2)
+
+    double ECXaCYa = inner_product(CXa.begin(), CXa.end(), CYa.begin(), 0.0);
+    double ECXbCYb = inner_product(CXb.begin(), CXb.end(), CYb.begin(), 0.0);
+    double ECXa2 = inner_product(CXa.begin(), CXa.end(), CXa.begin(), 0.0);
+    double ECXb2 = inner_product(CXb.begin(), CXb.end(), CXb.begin(), 0.0);
+    double ECYa2 = inner_product(CYa.begin(), CYa.end(), CYa.begin(), 0.0);
+    double ECYb2 = inner_product(CYb.begin(), CYb.end(), CYb.begin(), 0.0);
+
+    double cov_Xab = 0.5 * (ECXaCYa + ECXbCYb);
+    double var_Xab = 0.5 * (ECXa2 + ECXb2);
+    double var_Yab = 0.5 * (ECYa2 + ECYb2);
+
+    double correl = cov_Xab / std::sqrt(var_Xab * var_Yab);
+    if (std::isnan(correl) or std::isinf(correl)) correl = 0.0;
+
+    return correl;
+}
+
+/*
+ * Calculate Meng's Z-score
+ * Meng, Rubin, & Rosenthal (1992),
+ * Comparing Correlated Correlation Coefficients,
+ * Psychological Bulletin 111(1), 172-175.
+ */
+double Scorer::mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
+{
+        // Calculate rm values between correlations
+        double rm2 = 0.5 * (rhoXY * rhoXY + rhoXZ * rhoXZ);
+    
+        // Calculate f values between correlation and rm
+        double f = (1.0 - rhoYZ) / (2.0 * (1.0 - rm2));
+        if (std::isinf(f) or f > 1.0) f = 1.0;
+    
+        // Calculate h values between f and rm
+        double h = (1.0 - f * rm2) / (1.0 - rm2);
+    
+        // Calculate z scores
+        double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) *
+               std::sqrt( (samples - 3.0) / (2.0 * (1.0 - rhoYZ) * h) );
+        if (std::isnan(z) or std::isinf(z) or z < 0.0) z = 0.0;
+
+        // only return Z score if lower confidence interval > 0
+        // TODO: make CONFIDENCE a parameter
+        double CONFIDENCE = 1.96;  // 5% error
+
+        return z;
+}
 
 /*! Calculate correlation scores for each MZ point in a central spectrum of
  * a data window.
@@ -286,7 +365,7 @@ void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
 double_vect Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
-    double rt_sigma = rt_width / std_dev_in_fwhm;
+    double local_rt_sigma = rt_width / std_dev_in_fwhm;
     double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
     Size rt_len = input_map.getNrSpectra();
     Size local_rows = (2 * half_window) + 1;
@@ -297,15 +376,15 @@ double_vect Scorer::score_spectra(int centre_idx)
     // XXX This should be calculated once, then used as look-up
     // Spacing should also be based on scan intervals
     // (curently assumed fixed spacing)
-    double_vect rt_shape;
-    rt_shape.resize(local_rows);
+    double_vect rt_shape (local_rows);
+//    rt_shape.resize(local_rows);
 
     // Calculate Gaussian shape in the RT direction
     for (Size i = 0; i < local_rows; ++i)
     {
-        double pt = (i - half_window) / rt_sigma;
+        double pt = (i - half_window) / local_rt_sigma;
         pt = -0.5 * pt * pt;
-        double fit = exp(pt) / (rt_sigma * root2pi);
+        double fit = exp(pt) / (local_rt_sigma * root2pi);
         rt_shape[i] = fit;
     }
 
@@ -333,52 +412,11 @@ double_vect Scorer::score_spectra(int centre_idx)
     double sigma_iso = 0.0;
 
     // NOTE: much faster to collect all local row data 1st
-    double_2d mz_vals;
-    double_2d amp_vals;
-    mz_vals.resize(local_rows);
-    amp_vals.resize(local_rows);
+    double_2d mz_vals (local_rows);
+    double_2d amp_vals (local_rows);
 
     // collect all row data
     collect_local_rows(rt_offset, rt_len, mz_vals, amp_vals);
-//    // Iterate over the spectra in the window
-//    for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
-//    {
-//        // window can go outside start and end of scans, so check bounds
-//        if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
-//        {
-//            PeakSpectrumPtr rowi_spectrum;
-//            rowi_spectrum = get_spectrum(rowi + rt_offset);
-//            Size elements = rowi_spectrum->size();
-//
-//            mz_vals[rowi].resize(elements);
-//            amp_vals[rowi].resize(elements);
-//
-//            // Could handle by sorting, but this shouldn't happen, so want to
-//            // know if it does
-//            // XXX maybe we should provide an option to avoid this for performance reasons?
-//            if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
-//
-//            //*** TODO: Is there an accessor method to all mz in one go?
-//            //*** NOTE: collecting all data this way is still fast
-//            //*** 250MB file in 15sec
-//
-//            // Calculate Gaussian value for each found MZ
-//            for (Size index = 0; index < elements; ++index)
-//            {
-//                Peak1D peak = (*rowi_spectrum)[index];
-//                double mz = peak.getMZ();
-//                double intensity = peak.getIntensity();
-//
-//                mz_vals[rowi][index] = mz;
-//                amp_vals[rowi][index] = intensity;
-//            }
-//        }
-//        else
-//        {
-//            mz_vals[rowi].clear();
-//            amp_vals[rowi].clear();
-//        }
-//    }
 
     // Calculate tolerances for the lo and hi peak for each central MZ
     double_vect data_nat;
@@ -412,83 +450,6 @@ double_vect Scorer::score_spectra(int centre_idx)
         collect_window_data(rt_offset, rt_len, intensity_ratio, rt_shape,
                         centre_iso, sigma_iso, mz_vals, amp_vals,
                         lower_bound_iso, upper_bound_iso, data_iso, shape_iso);
-//        // Iterate over the spectra in the window
-//        for (Size rowi = 0; rowi < local_rows; ++rowi)
-//        {
-//            // window can go outside start and end of scans, so check bounds
-//            if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
-//            {
-//                double rt_shape_nat = rt_shape[rowi + rt_offset];
-//                double rt_shape_iso = rt_shape_nat * intensity_ratio;
-//
-//                // Select points within tolerance for current spectrum
-//                // Want index of bounds
-//                // Need to convert iterater to index
-//                Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-//                                            mz_vals[rowi].end(),
-//                                            lower_bound_nat)
-//                                        -
-//                                        mz_vals[rowi].begin());
-//                if (lower_index < 0) lower_index = 0;
-//                Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-//                                            mz_vals[rowi].end(),
-//                                            upper_bound_nat)
-//                                        -
-//                                        mz_vals[rowi].begin());
-//                // this test should also stop lookup in empty rows
-//                if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
-//
-//                // Calculate Gaussian value for each found MZ
-//                for (Size index = lower_index; index <= upper_index; ++index)
-//                {
-//                    double mz = mz_vals[rowi][index];
-//                    double intensity = amp_vals[rowi][index];
-//
-//                    // just in case
-//                    if (mz < lower_bound_nat || mz > upper_bound_nat) continue;
-//
-//                    // calc mz fit
-//                    mz = (mz - centre) / sigma;
-//                    mz = -0.5 * mz * mz;
-//                    double fit = exp(mz) / (sigma * root2pi);
-//
-//                    data_nat.push_back(intensity);
-//                    shape_nat.push_back(fit * rt_shape_nat);
-//                }
-//
-//                // Select points within tolerance for current spectrum
-//                lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-//                                            mz_vals[rowi].end(),
-//                                            lower_bound_iso)
-//                                        -
-//                                        mz_vals[rowi].begin());
-//                if (lower_index < 0) lower_index = 0;
-//                upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-//                                            mz_vals[rowi].end(),
-//                                            upper_bound_iso)
-//                                        -
-//                                        mz_vals[rowi].begin());
-//                if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
-//
-//                // Calculate Gaussian value for each found MZ
-//                for (Size index = lower_index; index <= upper_index; ++index)
-//                {
-//                    double mz = mz_vals[rowi][index];
-//                    double intensity = amp_vals[rowi][index];
-//
-//                    // just in case
-//                    if (mz < lower_bound_iso || mz > upper_bound_iso) continue;
-//
-//                    // calc mz fit
-//                    mz = (mz - centre_iso) / sigma_iso;
-//                    mz = -0.5 * mz * mz;
-//                    double fit = exp(mz) / (sigma_iso * root2pi);
-//
-//                    data_iso.push_back(intensity);
-//                    shape_iso.push_back(fit * rt_shape_iso);
-//                }
-//            }
-//        }
 
         // Ignore regions with insufficient number of samples
         // If any region is ignored, set all to empty
@@ -521,294 +482,31 @@ double_vect Scorer::score_spectra(int centre_idx)
          * Model Variance = E(E((Ya - E(Yab))^2), E((Yb - E(Yab))^2))
          */
 
-        // Region means
-        double EXa;    // E(Xa) 
-        double EXb;    // E(Xb)
-        double EYa;    // E(Ya)
-        double EYb;    // E(Yb)
-
-        EXa = mean_vector(data_nat);
-        EXb = mean_vector(data_iso);
-        EYa = mean_vector(shape_nat);
-        EYb = mean_vector(shape_iso);
-
-        // Combined mean is mean of means
-        double EXab;    // E(Xab) =  E(E(Xa), E(Xb))
-        double EYab;    // E(Yab) =  E(E(Ya), E(Yb))
-        EXab = mean_scalars(EXa, EXb);
-        EYab = mean_scalars(EYa, EYb);
-
-        //// FOR TESTING
-        // low correlation
-        //EXab = EXa;
-        //EYab = EYa;
-        // high correlation
-        //EXab = EXb;
-        //EYab = EYb;
-
-        // Centre data in regions relative to combined means
-        double_vect CXa;    // (Xa - E(Xab)) --> C(Xa)
-        double_vect CXb;    // (Xb - E(Xab))
-        double_vect CYa;    // (Ya - E(Yab))
-        double_vect CYb;    // (Yb - E(Yab))
-
-        // Centre data in regions relative to combined means
-        CXa = shift_vector(data_nat, EXab);
-        CXb = shift_vector(data_iso, EXab);
-        CYa = shift_vector(shape_nat, EYab);
-        CYb = shift_vector(shape_iso, EYab);
-
-        // Square vectors
-        double_vect CXa2;    // (Xa - E(Xab))^2 --> C(Xa)^2
-        double_vect CYa2;    // (Ya - E(Yab))^2
-
-        double_vect CXb2;    // (Xb - E(Xab))^2
-        double_vect CYb2;    // (Yb - E(Yab))^2
-
-        CXa2 = square_vector(CXa);
-        CXb2 = square_vector(CXb);
-        CYa2 = square_vector(CYa);
-        CYb2 = square_vector(CYb);
-
-        // Products
-        double_vect CXaCYa;    // (Xa - E(Xab))(Ya - E(Yab))
-        double_vect CXbCYb;    // (Xb - E(Xab))(Yb - E(Yab))
-
-        CXaCYa = mult_vectors(CXa, CYa);
-        CXbCYb = mult_vectors(CXb, CYb);
-
-        // region expected values
-        double ECXaCYa;    // E((Xa - E(Xab))(Ya - E(Yab)))
-        double ECXa2;    // E((Xa - E(Xab))^2)
-        double ECYa2;    // E((Ya - E(Yab))^2)
-
-        double ECXbCYb;    // E((Xb - E(Xab))(Yb - E(Yab)))
-        double ECXb2;    // E((Xb - E(Xab))^2)
-        double ECYb2;    // E((Yb - E(Yab))^2)
-
-        ECXaCYa = mean_vector(CXaCYa);
-        ECXbCYb = mean_vector(CXbCYb);
-        ECXa2 = mean_vector(CXa2);
-        ECXb2 = mean_vector(CXb2);
-        ECYa2 = mean_vector(CYa2);
-        ECYb2 = mean_vector(CYb2);
-
-        // Variance, Covariance
-        double cov_Xab;
-        double var_Xab;
-        double var_Yab;
-
-        cov_Xab = mean_scalars(ECXaCYa, ECXbCYb);
-        var_Xab = mean_scalars(ECXa2, ECXb2);
-        var_Yab = mean_scalars(ECYa2, ECYb2);
-
         /* Alternate models */
         // low region and high region modelled as flat
-        // Region means
-        // For high region modelled as all zero, Y_
-        // E(Yb) --> E(Y_) = 0 if model region b as all zero
 
-        // Combined mean is mean of means
-        double EYa_;    // E(Ya_) =  E(E(Ya), E(Y_)) = 1/2 E(Ya)
-        EYa_ = 0.5 * EYa;
-
-        // Centre data in regions relative to combined means
-        double_vect CYa_;    // (Ya - E(Ya_))
-        // (Yb - E(Ya_)) = -E(Ya_)
-    
-        // Centre data in regions relative to combined means
-        CYa_ = shift_vector(shape_nat, EYa_);
-    
-        // Square vectors
-        double_vect CYa_2;    // (Ya - E(Ya_))^2
-        // (Yb - E(Ya_))^2 = E(Ya_)^2
-    
-        CYa_2 = square_vector(CYa_);
-    
-        // Products
-        double_vect CXaCYa_;    // (Xa - E(Xab))(Ya - E(Ya_))
-        // (Xb - E(Xab))(Yb - E(Ya_)) --> -E(Ya_)*(Xb - E(Xab))
-    
-        CXaCYa_ = mult_vectors(CXa, CYa_);
-    
-        // region expected values
-        double ECXaCYaEa_;    // E((Xa - E(Xab))(Ya - E(Ya_)))
-        double ECYaEa_2;    // E((Ya - E(Ya_))^2)
-    
-        double ECXbCYbEa_;    // E((Xb - E(Xab))(Yb - E(Ya_))) = -E(Ya_)*E(Xb - E(Xab))
-        double ECYbEa_2;    // E((Yb - E(Ya_))^2) = E(Ya_)^2
-    
-        ECXaCYaEa_ = mean_vector(CXaCYa_);
-        
-        ECXbCYbEa_ = mean_vector(CXb);    // E(Xb - E(Xab))
-        ECXbCYbEa_ = mult_scalars(ECXbCYbEa_, EYa_);  // E(Ya_)*E(Xb - E(Xab))
-        ECXbCYbEa_ = -ECXbCYbEa_;
-    
-        ECYaEa_2 = mean_vector(CYa_2);
-        ECYbEa_2 = mult_scalars(EYa_, EYa_);  // E(Ya_)^2
-    
-        // Variance, Covariance
-        double cov_Xa_;
-        double var_Ya_;
-    
-        cov_Xa_ = mean_scalars(ECXaCYaEa_, ECXbCYbEa_);
-        var_Ya_ = mean_scalars(ECYaEa_2, ECYbEa_2);
-    
-        // For low region modelled as all zero, Y_
-        // E(Ya) --> E(Y_) = 0 if model region a as all zero
-    
-        // Combined mean is mean of means
-        double EY_b;    // E(Y_b) =  E(E(Y_), E(Yb)) = 1/2 E(Yb)
-        EY_b = 0.5 * EYb;
-    
-        // Centre data in regions relative to combined means
-        double_vect CY_b;    // (Yb - E(Y_b))
-        // (Ya - E(Y_b)) = -E(Y_b)
-    
-        // Centre data in regions relative to combined means
-        CY_b = shift_vector(shape_iso, EY_b);
-    
-        // Square vectors
-        double_vect CY_b2;    // (Yb - E(Y_b))^2
-        // (Ya - E(Y_b))^2 = E(Y_b)^2
-    
-        CY_b2 = square_vector(CY_b);
-    
-        // Products
-        // (Xa - E(Xab))(Ya - E(Y_a)) --> -E(Y_a)*(Xa - E(Xab))
-        double_vect CXbCY_b;    // (Xb - E(Xab))(Yb - E(Y_b))
-    
-        CXbCY_b = mult_vectors(CXb, CY_b);
-    
-        // region expected values
-        double ECXbCYbE_b;    // E((Xb - E(Xab))(Yb - E(Y_b)))
-        double ECYbE_b2;    // E((Yb - E(Y_b))^2)
-    
-        double ECXaCYaE_b;    // E((Xa - E(Xab))(Ya - E(Y_b))) = -E(Y_b)*E(Xa - E(Xab))
-        double ECYaE_b2;    // E((Ya - E(Y_b))^2) = E(Y_b)^2
-    
-        ECXbCYbE_b = mean_vector(CXbCY_b);
-
-        ECXaCYaE_b = mean_vector(CXa);    // E(Xa - E(Xab))
-        ECXaCYaE_b = mult_scalars(ECXaCYaE_b, EY_b);  // E(Y_b)*E(Xa - E(Xab))
-        ECXaCYaE_b = -ECXaCYaE_b;
-    
-        ECYbE_b2 = mean_vector(CY_b2);
-        ECYaE_b2 = mult_scalars(EY_b, EY_b);  // E(Y_b)^2
-    
-        // Variance, Covariance
-        double cov_X_b;
-        double var_Y_b;
-    
-        cov_X_b = mean_scalars(ECXaCYaE_b, ECXbCYbE_b);
-        var_Y_b = mean_scalars(ECYaE_b2, ECYbE_b2);
-    
         // Correlations
-        double correl_XabYab;
-        double correl_XabYa_;
-        double correl_XabY_b;
-        correl_XabYab = std::max({cov_Xab / std::sqrt(var_Xab * var_Yab), 0.0});
-        correl_XabYa_ = std::max({cov_Xa_ / std::sqrt(var_Xab * var_Ya_), 0.0});
-        correl_XabY_b = std::max({cov_X_b / std::sqrt(var_Xab * var_Y_b), 0.0});
-    
-        /* correlations between models */
+        double correl_XabYab = combined_correlation(data_nat, data_iso, shape_nat, shape_iso);
+
+        double_vect shape_flat (shape_iso.size(), 0.0);
+        double correl_XabYa_ = combined_correlation(data_nat, data_iso, shape_nat, shape_flat);
+
         // Yab, Ya_ covariance...
-        // Products
-        double_vect CYaCYa_;    // (Ya - E(Yab))(Ya - E(Ya_))
-        // (Yb - E(Yab))(Yb - E(Ya_)) --> -E(Ya_)*(Yb - E(Yab))
-    
-        CYaCYa_ = mult_vectors(CYa, CYa_);
-    
-        // region expected values
-        double ECYaCYaEa_;    // E((Ya - E(Yab))(Ya - E(Ya_)))
-        double ECYbCYbEa_;    // E((Yb - E(Yab))(Yb - E(Ya_))) = -E(Ya_)*E(Yb - E(Yab))
-    
-        ECYaCYaEa_ = mean_vector(CYaCYa_);
-        ECYbCYbEa_ = mean_vector(CYa);    // E(Ya - E(Yab))
-        ECYbCYbEa_ = mult_scalars(ECYbCYbEa_, EYa_);  // E(Ya_)*E(Ya - E(Yab))
-        ECYbCYbEa_ = -ECYbCYbEa_;  // -E(Ya_)*E(Ya - E(Yab))
-    
-        // Variance, Covariance
-        double cov_YabYa_;
-        cov_YabYa_ = mean_scalars(ECYaCYaEa_, ECYbCYbEa_);
-    
-        // Yab, Ya_ correlation
-        double correl_YabYa_;
-        correl_YabYa_ = std::max({cov_YabYa_ / std::sqrt(var_Yab * var_Ya_), 0.0});
-    
+        double correl_YabYa_ = combined_correlation(shape_nat, shape_iso, shape_nat, shape_flat);
+
+        shape_flat.clear();
+        shape_flat.resize(shape_nat.size(), 0.0);
+        double correl_XabY_b = combined_correlation(data_nat, data_iso, shape_flat, shape_iso);
+
         // Yab, Y_b covariance...
-        // Products
-        double_vect CYbCY_b;    // (Yb - E(Yab))(Yb - E(Y_b))
-        // (Ya - E(Yab))(Ya - E(Y_b)) --> -E(Y_b)*(Ya - E(Yab))
-    
-        CYbCY_b = mult_vectors(CYb, CY_b);
-    
-        // region expected values
-        double ECYbCYbE_b;    // E((Yb - E(Yab))(Yb - E(Y_b)))
-        double ECYaCYaE_b;    // E((Ya - E(Yab))(Ya - E(Y_b))) = -E(Y_b)*E(Ya - E(Yab))
-    
-        ECYbCYbE_b = mean_vector(CYbCY_b);
-        ECYaCYaE_b = mean_vector(CYb);    // E(Yb - E(Yab))
-        ECYaCYaE_b = mult_scalars(ECYaCYaE_b, EY_b);  // E(Y_b)*E(Yb - E(Yab))
-        ECYaCYaE_b = -ECYaCYaE_b;  // -E(Y_b)*E(Yb - E(Yab))
-    
-        // Variance, Covariance
-        double cov_YabY_b;
-    
-        cov_YabY_b = mean_scalars(ECYaCYaE_b, ECYbCYbE_b);
-    
-        // Yab, Y_b correlation
-        double correl_YabY_b;
-        correl_YabY_b = std::max({cov_YabY_b / std::sqrt(var_Yab * var_Y_b), 0.0});
-    
-        // Compare correlations
-        double rm2ABA0;
-        double rm2AB0B;
-        //double_vect rm2AB1r;
-    
-        // Calculate rm values between correlations
-        rm2ABA0 = 0.5 * (correl_XabYab * correl_XabYab + correl_XabYa_ * correl_XabYa_);
-        rm2AB0B = 0.5 * (correl_XabYab * correl_XabYab + correl_XabY_b * correl_XabY_b);
-        //rm2AB1r = rm_vectors(correlAB, correl1r);
-    
-        double fABA0;
-        double fAB0B;
-        //double_vect fAB1r;
-    
-        // Calculate f values between correlation and rm
-        fABA0 = (1.0 - correl_XabYa_) / (2.0 * (1.0 - rm2ABA0));
-        fAB0B = (1.0 - correl_XabY_b) / (2.0 * (1.0 - rm2AB0B));
-        //fAB1r = f_vectors(correlAB1r, rm2AB1r);
-    
-        double hABA0;
-        double hAB0B;
-        //double_vect hAB1r;
-    
-        // Calculate h values between f and rm
-        hABA0 = (1.0 - fABA0 * rm2ABA0) / (1.0 - rm2ABA0);
-        hAB0B = (1.0 - fAB0B * rm2AB0B) / (1.0 - rm2AB0B);
-        //hAB1r = h_vectors(fAB1r, rm2AB1r);
-    
-        // Subtract 3 and square root
-        nAB = std::sqrt(nAB - 3.0);
-    
-        double zABA0;
-        double zAB0B;
-        //double_vect zAB1r;
-    
+        double correl_YabY_b = combined_correlation(shape_nat, shape_iso, shape_flat, shape_iso);
+
         // Calculate z scores
-        zABA0 = (std::atanh(correl_XabYab) - std::atanh(correl_XabYa_)) * nAB / (2.0 * (1.0 - correl_YabYa_) * hABA0);
-        zAB0B = (std::atanh(correl_XabYab) - std::atanh(correl_XabY_b)) * nAB / (2.0 * (1.0 - correl_YabY_b) * hAB0B);
-        //zAB1r = z_vectors(correlAB, correl1r, nAB, correlAB1r, hAB1r);
-    
-        double min_score;
+        double zABA0 = mengZ(correl_XabYab, correl_XabYa_, correl_YabYa_, nAB);
+        double zAB0B = mengZ(correl_XabYab, correl_XabY_b, correl_YabY_b, nAB);
     
         // Find the minimum scores, bounded at zero
-        min_score = std::max({0.0, std::min({zABA0, zAB0B})});
-    
-        // Package return values
-        // double_2d score = {min_score, correlAB, correlA0, correlB0, correl1r};
-        // double_2d score = {min_score, {0.0}, {0.0}, {0.0}, {0.0}};
+        double min_score = std::max({0.0, std::min({zABA0, zAB0B})});
     
         min_score_vect.push_back(min_score);
     } 

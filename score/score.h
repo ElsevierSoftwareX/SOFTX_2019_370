@@ -58,6 +58,7 @@ private:
    void collect_window_data(OpenMS::Size, OpenMS::Size, double,
                   double_vect&, double, double, double_2d&, double_2d&,
                   double, double, double_vect&, double_vect&);
+   double mengZ(double rhoXY, double rhoXZ, double rhoYZ, OpenMS::Size samples);
 
 public:
    Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma,
