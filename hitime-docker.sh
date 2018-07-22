@@ -86,6 +86,4 @@ output_dir=$(absolute_filepath $( dirname "${output_filepath}" ))
 input_filename=$( basename "${input_filepath}" )
 output_filename=$( basename "${output_filepath}" )
 
-echo exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
-
-#exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
+exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}

@@ -16,6 +16,9 @@ set(my_sources
         vector.cpp
 )
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 ## find OpenMS configuration and register target "OpenMS" (our library)
 find_package(OpenMS)
 ## if the above fails you can try calling cmake with -D OpenMS_DIR=/path/to/OpenMS/
@@ -58,7 +61,7 @@ if (OpenMS_FOUND)
   foreach(i ${my_executables})
     add_executable(${i} ${i}.cpp)
     ## link executables against OpenMS
-	target_link_libraries(${i} OpenMS my_custom_lib)
+	target_link_libraries(${i} Threads::Threads OpenMS my_custom_lib)
   endforeach(i)
 
   # Release uses optimisation, debug does not
