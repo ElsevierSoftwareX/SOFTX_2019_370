@@ -7,11 +7,12 @@
 #include "vector.h"
 #include "options.h"
 #include "constants.h"
-#include "lru_cache.hpp"
+#include "lru_cache.h"
 #include "score.h"
 
 // input cache size
-#define CACHE_SIZE 30
+// #define CACHE_SIZE 30
+#define CACHE_SIZE 1000 
 
 using namespace OpenMS;
 using namespace std;

@@ -1,10 +1,9 @@
-#include <boost/program_options.hpp>
 #include <iostream>
 #include <iterator>
 #include "constants.h"
 #include "options.h"
+#include "cxxopts.h"
 
-namespace po = boost::program_options;
 using namespace std;
 
 Options::Options(int argc, char* argv[])
@@ -21,6 +20,7 @@ Options::Options(int argc, char* argv[])
     out_file = "";
     debug = false;
     num_threads = 1;
+    int num_args;
 
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
     string rtwidth_str = "Full width at half maximum for retention time in number of scans. Defaults to " + to_string(default_rt_width);
@@ -31,99 +31,87 @@ Options::Options(int argc, char* argv[])
     string mzdelta_str = "M/Z delta for doublets. Defaults to " + to_string(default_mz_delta);
     string minsample_str = "Minimum number of data points required in each sample region. Defaults to " + to_string(default_min_sample);
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
+    string desc = "Detect twin ion signal in Mass Spectrometry data";
 
-    po::options_description desc(program_name + " allowed options");
-    desc.add_options()
-        ("help,h", "Show this help information.")
-        ("iratio,a", po::value<double>(), iratio_str.c_str())
-        ("rtwidth,r", po::value<double>(), rtwidth_str.c_str())
-        ("rtwindow,t", po::value<double>(), rtwindow_str.c_str())
-        ("ppm,p", po::value<double>(), ppm_str.c_str())
-        ("mzwidth,m", po::value<double>(), mzwidth_str.c_str())
-        ("mzwindow,z", po::value<double>(), mzsigma_str.c_str())
-        ("mzdelta,d", po::value<double>(), mzdelta_str.c_str())
-        ("mindata,n", po::value<int>(), minsample_str.c_str())
-        ("debug", "Generate debugging output")
-        ("threads,j", po::value<int>(), threads_str.c_str())
-        ("infile,i", po::value<string>()->required(), "Input mzML file")
-        ("outfile,o", po::value<string>()->required(), "Output mzML file");
+    try {
+        cxxopts::Options options("HiTIME-CPP", desc);
+        options.add_options()
+            ("h,help", "Show this help information.")
+            ("a,iratio", iratio_str, cxxopts::value<double>())
+            ("r,rtwidth", rtwidth_str, cxxopts::value<double>())
+            ("t,rtwindow", rtwindow_str, cxxopts::value<double>())
+            ("p,ppm", ppm_str, cxxopts::value<double>())
+            ("m,mzwidth", mzwidth_str, cxxopts::value<double>())
+            ("z,mzwindow", mzsigma_str, cxxopts::value<double>())
+            ("d,mzdelta", mzdelta_str, cxxopts::value<double>())
+            ("n,mindata", minsample_str, cxxopts::value<int>())
+            ("debug", "Generate debugging output")
+            ("j,threads", threads_str, cxxopts::value<int>())
+            ("i,infile", "Input mzML file", cxxopts::value<string>())
+            ("o,outfile", "Output mzML file", cxxopts::value<string>());
 
-    if (argc <= 1)
-    {
-        cout << program_name << " insufficient command line arguments." << endl;
-        cout << desc << "\n";
-        exit(0);
-    }
+        num_args = argc;
+        auto result = options.parse(argc, argv);
 
-    po::variables_map vm;
-
-    try
-    {
-       po::store(po::parse_command_line(argc, argv, desc), vm);
-
-       if (vm.count("help"))
-       {
-          cout << desc << "\n";
-          exit(0);
-       }
-       po::notify(vm); // throws on error, so do after help in case
-                       // there are any problems
-     }
-     catch(boost::program_options::required_option& e)
-     {
-          std::cerr << program_name << " ERROR: " << e.what() << std::endl << std::endl;
-          exit(-1);
-     }
-     catch(boost::program_options::error& e)
-     {
-          std::cerr << program_name << " ERROR: " << e.what() << std::endl << std::endl;
-          exit(-1);
-     }
-
-    if (vm.count("help")) {
-        cout << desc << "\n";
-        exit(0);
-    }
-    if (vm.count("iratio")) {
-        intensity_ratio = vm["iratio"].as<double>();
-    }
-    if (vm.count("rtwidth")) {
-        rt_width = vm["rtwidth"].as<double>();
-    }
-    if (vm.count("rtwindow")) {
-        rt_sigma = vm["rtwindow"].as<double>();
-    }
-    if (vm.count("ppm")) {
-        ppm = vm["ppm"].as<double>();
-    }
-    if (vm.count("mzwidth")) {
-        mz_width = vm["mzwidth"].as<double>();
-    }
-    if (vm.count("mzwindow")) {
-        mz_sigma = vm["mzwindow"].as<double>();
-    }
-    if (vm.count("mzdelta")) {
-        mz_delta = vm["mzdelta"].as<double>();
-    }
-    if (vm.count("mindata")) {
-        min_sample = vm["mindata"].as<double>();
-    }
-    if (vm.count("infile")) {
-        in_file = vm["infile"].as<string>();
-    }
-    if (vm.count("outfile")) {
-        out_file = vm["outfile"].as<string>();
-    }
-    if (vm.count("debug")) {
-        debug = true;
-    }
-    if (vm.count("threads")) {
-        int requested_threads = vm["threads"].as<int>();
-        if (requested_threads < 1)
+        if (num_args <= 1)
         {
-            cerr << program_name << " ERROR: number of requested threads may not be less than 1";
-            exit(-1);
+            cout << program_name << " insufficient command line arguments." << endl;
+            cout << options.help() << endl;
+            exit(0);
         }
-        num_threads = requested_threads;
+
+        if (result.count("help")) {
+            cout << options.help() << endl;
+            exit(0);
+        }
+
+        if (result.count("iratio")) {
+            intensity_ratio = result["iratio"].as<double>();
+        }
+        if (result.count("rtwidth")) {
+            rt_width = result["rtwidth"].as<double>();
+        }
+        if (result.count("rtwindow")) {
+            rt_sigma = result["rtwindow"].as<double>();
+        }
+        if (result.count("ppm")) {
+            ppm = result["ppm"].as<double>();
+        }
+        if (result.count("mzwidth")) {
+            mz_width = result["mzwidth"].as<double>();
+        }
+        if (result.count("mzwindow")) {
+            mz_sigma = result["mzwindow"].as<double>();
+        }
+        if (result.count("mzdelta")) {
+            mz_delta = result["mzdelta"].as<double>();
+        }
+        if (result.count("mindata")) {
+            min_sample = result["mindata"].as<double>();
+        }
+        if (result.count("infile")) {
+            in_file = result["infile"].as<string>();
+        }
+        if (result.count("outfile")) {
+            out_file = result["outfile"].as<string>();
+        }
+        if (result.count("debug")) {
+            debug = true;
+        }
+        if (result.count("threads")) {
+            int requested_threads = result["threads"].as<int>();
+            if (requested_threads < 1)
+            {
+                cerr << program_name << " ERROR: number of requested threads may not be less than 1";
+                exit(-1);
+            }
+            num_threads = requested_threads;
+        }
+    }
+
+    catch (const cxxopts::OptionException& e)
+    {
+        std::cout << "error parsing options: " << e.what() << std::endl;
+        exit(1);
     }
 }

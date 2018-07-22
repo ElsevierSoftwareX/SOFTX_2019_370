@@ -6,7 +6,7 @@
 #include <queue>
 #include "options.h"
 #include "vector.h"
-#include "lru_cache.hpp"
+#include "lru_cache.h"
 
 using namespace OpenMS;
 using namespace std;

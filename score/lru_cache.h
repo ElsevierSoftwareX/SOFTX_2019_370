@@ -8,8 +8,8 @@
 // Licensed under BSD 3 Clause
 // Downloaded from https://github.com/lamerman/cpp-lru-cache
 
-#ifndef _LRUCACHE_HPP_INCLUDED_
-#define	_LRUCACHE_HPP_INCLUDED_
+#ifndef HITIME_LRUCACHE_H
+#define	HITIME_LRUCACHE_H
 
 #include <unordered_map>
 #include <list>
@@ -71,5 +71,4 @@ private:
 
 } // namespace cache
 
-#endif	/* _LRUCACHE_HPP_INCLUDED_ */
-
+#endif

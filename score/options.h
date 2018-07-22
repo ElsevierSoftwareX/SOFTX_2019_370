@@ -2,7 +2,7 @@
 #define HITIME_OPTIONS_H
 
 #include <unistd.h>
-#include <boost/program_options.hpp>
+#include <string>
 
 class Options {
 

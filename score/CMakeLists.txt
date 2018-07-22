@@ -55,21 +55,22 @@ if (OpenMS_FOUND)
   ## library with additional classes from above
   add_library(my_custom_lib STATIC ${my_sources})
 
-  set(Boost_USE_STATIC_LIBS OFF) 
-  set(Boost_USE_MULTITHREADED ON)  
-  set(Boost_USE_STATIC_RUNTIME OFF) 
-  find_package(Boost COMPONENTS program_options REQUIRED) 
+  #set(Boost_USE_STATIC_LIBS OFF) 
+  #set(Boost_USE_MULTITHREADED ON)  
+  #set(Boost_USE_STATIC_RUNTIME OFF) 
+  #find_package(Boost COMPONENTS program_options REQUIRED) 
 
-  if(Boost_FOUND)
-      include_directories(${Boost_INCLUDE_DIRS}) 
+  #if(Boost_FOUND)
+  #    include_directories(${Boost_INCLUDE_DIRS}) 
       #target_link_libraries(progname ${Boost_LIBRARIES})
-  endif()
+      #endif()
 
   ## add targets for the executables
   foreach(i ${my_executables})
     add_executable(${i} ${i}.cpp)
     ## link executables against OpenMS
-	target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES})
+    #target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES})
+	target_link_libraries(${i} OpenMS my_custom_lib)
   endforeach(i)
 
   # Release uses optimisation, debug does not
