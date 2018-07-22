@@ -4,8 +4,6 @@ set -e
 program_name="hitime-docker.sh"
 input_filepath=""
 output_filepath=""
-# this should be one of "score" or "max"
-mode=""
 remaining_args=""
 
 # Help message for using the program.
@@ -15,22 +13,16 @@ cat << UsageMessage
 ${program_name}: detect twin ion signals in Mass Spectrometry data 
 
 Usage:
-    ${program_name} [-h] (score|max) -i input.mzML -o output.mzML [-- optional mode-specific arguments]
+    ${program_name} [-h] -i input.mzML -o output.mzML [-- optional arguments]
 
 This is a wrapper for the HiTIME-CPP docker container.
-
-You must choose a mode, either score or max.
-
-Both modes read and write mzML files.
 
 The score mode re-scales the peaks in the input file based on their similarity to
 an ideal twin ion peak.
 
-The max mode computes a local maxima for peaks within a defined window. 
-
 Example usage:
 
-   ./hitime-docker.sh score -i data/testing.mzML -o data/scored.mzML -- -j 2
+   ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -j 2
 
 UsageMessage
 }
@@ -55,14 +47,6 @@ function parse_args {
         show_help
         exit 2 
     fi
-
-    if [ "$1" = 'score' ]; then
-        shift 1
-        mode='score'
-    elif [ "$1" = 'max' ]; then
-        shift 1
-        mode='max'
-    fi 
 
     local OPTIND opt
 
@@ -89,10 +73,6 @@ function parse_args {
 
     remaining_args=$@
 
-    if [[ -z ${mode} ]]; then
-        exit_with_error "mode not specified, must be one of 'score' or 'max', use -h for help" 2
-    fi
-
     if [[ -z ${input_filepath} ]]; then
         exit_with_error "input file not specified: -i <filename>, use -h for help" 2
     fi
@@ -110,4 +90,4 @@ output_dir=$(absolute_filepath $( dirname "${output_filepath}" ))
 input_filename=$( basename "${input_filepath}" )
 output_filename=$( basename "${output_filepath}" )
 
-exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime ${mode} -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
+exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" score/hitime-score -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
