@@ -10,12 +10,11 @@ set(my_executables
 ## list all classes here, which are required by your executables
 ## (all these classes will be linked into a library)
 set(my_sources
-	vector.cpp
-	score.cpp
-	options.cpp
-	lru_cache.hpp
+        hitime-score.cpp
+        options.cpp
+        score.cpp
+        vector.cpp
 )
-
 
 ## find OpenMS configuration and register target "OpenMS" (our library)
 find_package(OpenMS)
@@ -55,21 +54,10 @@ if (OpenMS_FOUND)
   ## library with additional classes from above
   add_library(my_custom_lib STATIC ${my_sources})
 
-  #set(Boost_USE_STATIC_LIBS OFF) 
-  #set(Boost_USE_MULTITHREADED ON)  
-  #set(Boost_USE_STATIC_RUNTIME OFF) 
-  #find_package(Boost COMPONENTS program_options REQUIRED) 
-
-  #if(Boost_FOUND)
-  #    include_directories(${Boost_INCLUDE_DIRS}) 
-      #target_link_libraries(progname ${Boost_LIBRARIES})
-      #endif()
-
   ## add targets for the executables
   foreach(i ${my_executables})
     add_executable(${i} ${i}.cpp)
     ## link executables against OpenMS
-    #target_link_libraries(${i} OpenMS my_custom_lib ${Boost_LIBRARIES})
 	target_link_libraries(${i} OpenMS my_custom_lib)
   endforeach(i)
 
