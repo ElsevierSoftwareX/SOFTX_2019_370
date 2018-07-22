@@ -52,8 +52,8 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
 
    vector<thread> threads(num_threads);
 
-   cout << "Num threads: " << num_threads << endl;
-   cout << "Num spectra: " << num_spectra << endl;
+   //cout << "Num threads: " << num_threads << endl;
+   //cout << "Num spectra: " << num_spectra << endl;
 
    for (int thread_count = 0; thread_count < num_threads; thread_count++)
    {
@@ -103,7 +103,6 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
    if (spectrum_id == next_output_spectrum_id)
    {
       // this is the next spectrum to output
-      //cout << spectrum_id << endl;
       spectrum_writer.consumeSpectrum(spectrum);
       next_output_spectrum_id++;
 
@@ -114,7 +113,6 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
          if (index_spectrum.first == next_output_spectrum_id)
          {
             spectrum_writer.consumeSpectrum(index_spectrum.second);
-            //cout << index_spectrum.first << endl;
             output_spectrum_queue.pop();
             next_output_spectrum_id++;
          }
@@ -152,9 +150,9 @@ void Scorer::score_worker(int thread_count)
 
    while (this_spectrum_id < num_spectra)
    {
-       if ((this_spectrum_id % 100) == 0) {
-           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
-       }
+       //if ((this_spectrum_id % 100) == 0) {
+       //    cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+       //}
 
        score = score_spectra(this_spectrum_id);
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
@@ -163,7 +161,6 @@ void Scorer::score_worker(int thread_count)
        for (int index = 0; index < input_spectrum->size(); index++)
        {
            output_spectrum[index].setIntensity(score[index]);
-           //output_spectrum[index].setIntensity(42);
        }
 
        put_spectrum(this_spectrum_id, output_spectrum);
