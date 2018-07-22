@@ -53,10 +53,6 @@ function parse_args {
     while getopts "hi:o:" opt; do
         case "${opt}" in
             h)
-                # Print mode specific help if mode is defined
-                if [[ -n ${mode} ]]; then
-                    exec docker run --rm bjpop/hitime ${mode} -h
-                fi
                 show_help
                 exit 0
                 ;;
@@ -90,4 +86,6 @@ output_dir=$(absolute_filepath $( dirname "${output_filepath}" ))
 input_filename=$( basename "${input_filepath}" )
 output_filename=$( basename "${output_filepath}" )
 
-exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" score/hitime-score -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
+echo exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
+
+#exec docker run --rm -v "${input_dir}:/input/" -v "${output_dir}:/output/" bjpop/hitime -i "/input/${input_filename}" -o "/output/${output_filename}" ${remaining_args}
