@@ -57,23 +57,27 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
 ## Usage
 
 ```
-HiTIME allowed options:
-  -h [ --help ]         Show this help information
-  -a [ --iratio ] arg   Ratio of doublet intensities (isotope / parent)
-  -r [ --rtwidth ] arg  Full width at half maximum for retention time in number
-                        of scans
-  -t [ --rtwindow ] arg Retention time width boundary in standard deviations
-  -p [ --ppm ] arg      M/Z tolerance in parts per million
-  -m [ --mzwidth ] arg  M/Z full width at half maximum in parts per million
-  -z [ --mzwindow ] arg M/Z window boundary in standard deviations
-  -d [ --mzdelta ] arg  M/Z delta for doublets
-  -n [ --mindata ] arg  Minimum number of data points required in each sample 
-                        region
-  --debug               Minimum number of data points required in each sample 
-                        region
-  -j [ --threads ] arg  Number of threads to use
-  -i [ --infile ] arg   Input mzML file
-  -o [ --outfile ] arg  Output mzML file
+  -h, --help          Show this help information.
+  -a, --iratio arg    Ratio of doublet intensities (isotope / parent).
+                      Defaults to 1.000000
+  -r, --rtwidth arg   Full width at half maximum for retention time in number
+                      of scans. Defaults to 17.000000
+  -t, --rtwindow arg  Retention time width boundary in standard deviations.
+                      Defaults to 1.500000
+  -p, --ppm arg       M/Z tolerance in parts per million. Defaults to
+                      4.000000
+  -m, --mzwidth arg   M/Z full width at half maximum in parts per million.
+                      Defaults to 150.000000
+  -z, --mzwindow arg  M/Z window boundary in standard deviations. Defaults to
+                      1.500000
+  -d, --mzdelta arg   M/Z delta for doublets. Defaults to 6.020100
+  -n, --mindata arg   Minimum number of data points required in each sample
+                      region. Defaults to 10.828026
+      --debug         Generate debugging output
+  -j, --threads arg   Number of threads to use. Defaults to 1
+  -i, --infile arg    Input mzML file
+  -o, --outfile arg   Output mzML file
+
 ```
 
 For example:
