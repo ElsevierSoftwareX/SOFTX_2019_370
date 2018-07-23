@@ -77,6 +77,7 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
                       region. Defaults to 10.828026
       --debug         Generate debugging output
   -j, --threads arg   Number of threads to use. Defaults to 1
+  -c, --cache arg     Number of input spectra to retain in cache. Defaults to 50
   -i, --infile arg    Input mzML file
   -o, --outfile arg   Output mzML file
 
@@ -96,15 +97,4 @@ for a computation using 4 threads, where `example.mzML` contains the input mass 
 FileConverter -ini openms.ini -in input.mzML -out data/input_indexed.mzML
 ```
 
-openms.ini:
-```
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<PARAMETERS version="1.6.2" xsi:noNamespaceSchemaLocation="http://open-ms.sourceforge.net/schemas/Param_1_6_2.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <NODE name="FileConverter" description="Converts between different MS file formats.">
-    <ITEM name="version" value="2.0.1" type="string" description="Version of the tool that generated this parameters file." required="false" advanced="true" />
-    <NODE name="1" description="Instance &apos;1&apos; section for &apos;FileConverter&apos;">
-      <ITEM name="write_mzML_index" value="true" type="string" description="Add an index to the file when writing mzML files (default: no index)" required="false" advanced="false" restrictions="true,false" />
-    </NODE>
-  </NODE>
-</PARAMETERS>
-```
+An example openms.ini can be found in `notes/openms.ini`.
