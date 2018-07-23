@@ -1,3 +1,5 @@
+[![travis](https://travis-ci.org/bjpop/HiTIME-CPP.svg?branch=master)](https://travis-ci.org/bjpop/HiTIME-CPP)
+
 # HiTIME-CPP
 
 HiTIME-CPP is a program for identifying twin-ion signals in
