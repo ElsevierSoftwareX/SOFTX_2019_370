@@ -20,6 +20,7 @@ Options::Options(int argc, char* argv[])
     out_file = "";
     debug = false;
     num_threads = 1;
+    input_spectrum_cache_size = default_input_spectrum_cache_size;
     int num_args;
 
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
@@ -32,6 +33,7 @@ Options::Options(int argc, char* argv[])
     string minsample_str = "Minimum number of data points required in each sample region. Defaults to " + to_string(default_min_sample);
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data";
+    string input_spectrum_cache_size_str = "Number of input spectra to retain in cache. Defaults to " + to_string(default_input_spectrum_cache_size);
 
     try {
         cxxopts::Options options("HiTIME-CPP", desc);
@@ -47,6 +49,7 @@ Options::Options(int argc, char* argv[])
             ("n,mindata", minsample_str, cxxopts::value<int>())
             ("debug", "Generate debugging output")
             ("j,threads", threads_str, cxxopts::value<int>())
+            ("c,cache", input_spectrum_cache_size_str , cxxopts::value<int>())
             ("i,infile", "Input mzML file", cxxopts::value<string>())
             ("o,outfile", "Output mzML file", cxxopts::value<string>());
 
@@ -106,6 +109,15 @@ Options::Options(int argc, char* argv[])
                 exit(-1);
             }
             num_threads = requested_threads;
+        }
+        if (result.count("cache")) {
+            int requested_size = result["cache"].as<int>();
+            if (requested_size < 0)
+            {
+                cerr << program_name << " ERROR: requested cache size must be non-negative";
+                exit(-1);
+            }
+            input_spectrum_cache_size = requested_size;
         }
     }
 

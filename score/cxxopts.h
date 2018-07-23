@@ -1,3 +1,5 @@
+#ifndef HITIME_CXXOPTS_H
+#define HITIME_CXXOPTS_H
 /*
 
 Copyright (c) 2014, 2015, 2016, 2017 Jarryd Beck
@@ -21,9 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 */
-
-#ifndef HITIME_CXXOPTS_H
-#define HITIME_CXXOPTS_H
 
 #include <cstring>
 #include <cctype>

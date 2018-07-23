@@ -63,7 +63,8 @@ private:
 public:
    Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma,
          double ppm, double mz_width, double mz_sigma, double mz_delta,
-         double min_sample, int num_threads, string in_file, string out_file);
+         double min_sample, int num_threads, int input_spectrum_cache_size,
+         string in_file, string out_file);
   void score_worker(int thread_count);
 };
 #endif

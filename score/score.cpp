@@ -12,7 +12,7 @@
 
 // input cache size
 // #define CACHE_SIZE 30
-#define CACHE_SIZE 1000 
+// #define CACHE_SIZE 1000 
 
 using namespace OpenMS;
 using namespace std;
@@ -24,7 +24,7 @@ mutex input_spectrum_lock;
 
 Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma, double ppm,
                double mz_width, double mz_sigma, double mz_delta, double min_sample, int num_threads,
-               string in_file, string out_file)
+               int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
    , intensity_ratio(intensity_ratio)
    , rt_width(rt_width)
@@ -37,7 +37,7 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
    , num_threads(num_threads)
    , in_file(in_file)
    , out_file(out_file)
-   , input_spectrum_cache(CACHE_SIZE)
+   , input_spectrum_cache(input_spectrum_cache_size)
    , spectrum_writer(out_file)
    , current_spectrum_id{0}
    , next_output_spectrum_id{0}

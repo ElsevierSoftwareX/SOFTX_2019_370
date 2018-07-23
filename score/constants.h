@@ -27,5 +27,11 @@ const float default_min_sample = default_rt_width * default_rt_sigma / std_dev_i
 const double root2pi = sqrt(2.0 * M_PI);
 // The name of the program
 const std::string program_name = "HiTIME";
+// Number of spectra to keep in cache when reading from file.
+// If the number is too small we may end up reading the same spectrum from disk multiple times
+// and duplicating it in RAM. This may also limit multithreaded scalability.
+// If we make it too big we might keep spectra in memory longer than needed and thus may
+// waste some space.
+const int default_input_spectrum_cache_size = 50;
 
 #endif

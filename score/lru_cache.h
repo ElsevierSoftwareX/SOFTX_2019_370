@@ -1,3 +1,5 @@
+#ifndef HITIME_LRUCACHE_H
+#define	HITIME_LRUCACHE_H
 /* 
  * File:   lrucache.hpp
  * Author: Alexander Ponomarev
@@ -7,9 +9,6 @@
 
 // Licensed under BSD 3 Clause
 // Downloaded from https://github.com/lamerman/cpp-lru-cache
-
-#ifndef HITIME_LRUCACHE_H
-#define	HITIME_LRUCACHE_H
 
 #include <unordered_map>
 #include <list>
