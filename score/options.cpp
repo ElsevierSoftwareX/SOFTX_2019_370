@@ -16,6 +16,7 @@ Options::Options(int argc, char* argv[])
     mz_sigma = default_mz_sigma;
     mz_delta = default_mz_delta;
     min_sample = default_min_sample;
+    confidence = default_confidence;
     in_file = "";
     out_file = "";
     debug = false;
@@ -30,6 +31,7 @@ Options::Options(int argc, char* argv[])
     string mzwidth_str = "M/Z full width at half maximum in parts per million. Defaults to " + to_string(default_fwhm);
     string mzsigma_str = "M/Z window boundary in standard deviations. Defaults to " + to_string(default_mz_sigma);
     string mzdelta_str = "M/Z delta for doublets. Defaults to " + to_string(default_mz_delta);
+    string confidence_str = "If non-zero, sets lower confidence interval to filter scoring (In standard deviations). Defaults to " + to_string(default_confidence);
     string minsample_str = "Minimum number of data points required in each sample region. Defaults to " + to_string(default_min_sample);
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data";
@@ -47,6 +49,7 @@ Options::Options(int argc, char* argv[])
             ("z,mzwindow", mzsigma_str, cxxopts::value<double>())
             ("d,mzdelta", mzdelta_str, cxxopts::value<double>())
             ("n,mindata", minsample_str, cxxopts::value<int>())
+            ("z,confidence", confidence_str, cxxopts::value<double>())
             ("debug", "Generate debugging output")
             ("j,threads", threads_str, cxxopts::value<int>())
             ("c,cache", input_spectrum_cache_size_str , cxxopts::value<int>())
@@ -91,6 +94,9 @@ Options::Options(int argc, char* argv[])
         }
         if (result.count("mindata")) {
             min_sample = result["mindata"].as<double>();
+        }
+        if (result.count("confidence")) {
+            confidence = result["confidence"].as<double>();
         }
         if (result.count("infile")) {
             in_file = result["infile"].as<string>();

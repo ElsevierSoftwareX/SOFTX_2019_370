@@ -24,6 +24,7 @@ mutex input_spectrum_lock;
 
 Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma, double ppm,
                double mz_width, double mz_sigma, double mz_delta, double min_sample, int num_threads,
+               double confidence,
                int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
    , intensity_ratio(intensity_ratio)
@@ -35,6 +36,7 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
    , mz_delta(mz_delta)
    , min_sample(min_sample)
    , num_threads(num_threads)
+   , confidence(confidence)
    , in_file(in_file)
    , out_file(out_file)
    , input_spectrum_cache(input_spectrum_cache_size)
@@ -49,6 +51,7 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
 
    half_window = ceil(rt_sigma * rt_width / std_dev_in_fwhm);
    num_spectra = input_map.getNrSpectra();
+   local_rows = (2 * half_window) + 1;
 
    vector<thread> threads(num_threads);
 
@@ -170,14 +173,14 @@ void Scorer::score_worker(int thread_count)
 
 }
 
-void Scorer::collect_local_rows(Size rt_offset, Size rt_len,
+void Scorer::collect_local_rows(Size rt_offset,
                 double_2d &mz_vals, double_2d &amp_vals)
 {
     // Iterate over the spectra in the window
     for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
     {
         // window can go outside start and end of scans, so check bounds
-        if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
+        if (rowi + rt_offset >= 0 && rowi + rt_offset < num_spectra)
         {
             PeakSpectrumPtr rowi_spectrum;
             rowi_spectrum = get_spectrum(rowi + rt_offset);
@@ -208,7 +211,7 @@ void Scorer::collect_local_rows(Size rt_offset, Size rt_len,
     }
 }
 
-void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
+void Scorer::collect_window_data(Size rt_offset, double scale,
                double_vect & rt_shape,
                double centre, double sigma,
                double_2d & mz_vals, double_2d & amp_vals,
@@ -219,7 +222,7 @@ void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
         for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
         {
             // window can go outside start and end of scans, so check bounds
-            if (rowi + rt_offset >= 0 && rowi + rt_offset < rt_len)
+            if (rowi + rt_offset >= 0 && rowi + rt_offset < num_spectra)
             {
                 double rt_shape_i = rt_shape[rowi] * scale;
 
@@ -261,53 +264,73 @@ void Scorer::collect_window_data(Size rt_offset, Size rt_len, double scale,
         }
 }
 
+double correlation(double_vect &data, double_vect &shape)
+{
+    // Zero correlation if not enough data in either region
+    if (data.size() < 2 or shape.size() < 2) return 0.0;
+
+    // local copies
+    double_vect X (data);
+    double_vect Y (shape);
+
+    double EX = std::accumulate(X.begin(), X.end(), 0.0) / X.size();
+    double EY = std::accumulate(Y.begin(), Y.end(), 0.0) / Y.size();
+
+    // Centre data in regions relative to combined means
+    for (auto& val : X) val -= EX;
+    for (auto& val : Y) val -= EY;
+
+    // COV and VAR
+    double COV = inner_product(X.begin(), X.end(), Y.begin(), 0.0);
+    double VARX = inner_product(X.begin(), X.end(), X.begin(), 0.0);
+    double VARY = inner_product(Y.begin(), Y.end(), Y.begin(), 0.0);
+
+    double correl = COV / std::sqrt(VARX * VARY);
+    if (std::isnan(correl) or std::isinf(correl)) correl = 0.0;
+
+    return correl;
+}
+
 double combined_correlation(double_vect &data_nat, double_vect &data_iso,
                 double_vect &shape_nat, double_vect &shape_iso)
 {
-    // Region means
-    // E(Xa) 
-    // E(Xb)
-    // E(Ya)
-    // E(Yb)
-    double EXa = mean_vector(data_nat);
-    double EXb = mean_vector(data_iso);
-    double EYa = mean_vector(shape_nat);
-    double EYb = mean_vector(shape_iso);
+    // local copies
+    double_vect Xa (data_nat);
+    double_vect Xb (data_iso);
+    double_vect Ya (shape_nat);
+    double_vect Yb (shape_iso);
+
+    double EXa = std::accumulate(Xa.begin(), Xa.end(), 0.0) / Xa.size();
+    double EXb = std::accumulate(Xb.begin(), Xb.end(), 0.0) / Xb.size();
+    double EYa = std::accumulate(Ya.begin(), Ya.end(), 0.0) / Ya.size();
+    double EYb = std::accumulate(Yb.begin(), Yb.end(), 0.0) / Yb.size();
 
     // Combined mean is mean of means
-    // E(Xab) =  E(E(Xa), E(Xb))
-    // E(Yab) =  E(E(Ya), E(Yb))
-    double EXab = 0.5 * (EXa + EXb);
-    double EYab = 0.5 * (EYa + EYb);
+    double EXab = 0.5 * (EXa + EXb);  // E(Xab) =  E(E(Xa), E(Xb))
+    double EYab = 0.5 * (EYa + EYb);  // E(Yab) =  E(E(Ya), E(Yb))
 
     // Centre data in regions relative to combined means
-    double_vect CXa (data_nat);    // (Xa - E(Xab)) --> C(Xa)
-    double_vect CXb (data_iso);    // (Xb - E(Xab))
-    double_vect CYa (shape_nat);    // (Ya - E(Yab))
-    double_vect CYb (shape_iso);    // (Yb - E(Yab))
-
-    // Centre data in regions relative to combined means
-    for (auto& val : CXa) val -= EXab;
-    for (auto& val : CXb) val -= EXab;
-    for (auto& val : CYa) val -= EYab;
-    for (auto& val : CYb) val -= EYab;
+    for (auto& val : Xa) val -= EXab;  // (Xa - E(Xab)) --> C(Xa) 
+    for (auto& val : Xb) val -= EXab;  // (Xb - E(Xab))
+    for (auto& val : Ya) val -= EYab;  // (Ya - E(Yab))
+    for (auto& val : Yb) val -= EYab;  // (Yb - E(Yab))
 
     // region expected values
     // E((Xa - E(Xab))(Ya - E(Yab)))
     // E((Xa - E(Xab))^2)
     // E((Ya - E(Yab))^2)
+    double ECXaCYa = inner_product(Xa.begin(), Xa.end(), Ya.begin(), 0.0);
+    double ECXa2 = inner_product(Xa.begin(), Xa.end(), Xa.begin(), 0.0);
+    double ECXb2 = inner_product(Xb.begin(), Xb.end(), Xb.begin(), 0.0);
 
     // E((Xb - E(Xab))(Yb - E(Yab)))
     // E((Xb - E(Xab))^2)
     // E((Yb - E(Yab))^2)
+    double ECXbCYb = inner_product(Xb.begin(), Xb.end(), Yb.begin(), 0.0);
+    double ECYa2 = inner_product(Ya.begin(), Ya.end(), Ya.begin(), 0.0);
+    double ECYb2 = inner_product(Yb.begin(), Yb.end(), Yb.begin(), 0.0);
 
-    double ECXaCYa = inner_product(CXa.begin(), CXa.end(), CYa.begin(), 0.0);
-    double ECXbCYb = inner_product(CXb.begin(), CXb.end(), CYb.begin(), 0.0);
-    double ECXa2 = inner_product(CXa.begin(), CXa.end(), CXa.begin(), 0.0);
-    double ECXb2 = inner_product(CXb.begin(), CXb.end(), CXb.begin(), 0.0);
-    double ECYa2 = inner_product(CYa.begin(), CYa.end(), CYa.begin(), 0.0);
-    double ECYb2 = inner_product(CYb.begin(), CYb.end(), CYb.begin(), 0.0);
-
+    // Combined COV, VAR as mean region COV and VAR
     double cov_Xab = 0.5 * (ECXaCYa + ECXbCYb);
     double var_Xab = 0.5 * (ECXa2 + ECXb2);
     double var_Yab = 0.5 * (ECYa2 + ECYb2);
@@ -324,7 +347,7 @@ double combined_correlation(double_vect &data_nat, double_vect &data_iso,
  * Comparing Correlated Correlation Coefficients,
  * Psychological Bulletin 111(1), 172-175.
  */
-double Scorer::mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
+double mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
 {
         // Calculate rm values between correlations
         double rm2 = 0.5 * (rhoXY * rhoXY + rhoXZ * rhoXZ);
@@ -337,13 +360,16 @@ double Scorer::mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
         double h = (1.0 - f * rm2) / (1.0 - rm2);
     
         // Calculate z scores
-        double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) *
-               std::sqrt( (samples - 3.0) / (2.0 * (1.0 - rhoYZ) * h) );
-        if (std::isnan(z) or std::isinf(z) or z < 0.0) z = 0.0;
-
-        // only return Z score if lower confidence interval > 0
-        // TODO: make CONFIDENCE a parameter
-        double CONFIDENCE = 1.96;  // 5% error
+        if (confidence > 0.0) {
+            // Use lower confidence interval as score
+            double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) - confidence *
+                    std::sqrt((2.0 * (1.0 - rhoYZ) * h) / (samples - 3.0));
+        } else {
+           // Use Z score
+           double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) *
+                   std::sqrt( (samples - 3.0) / (2.0 * (1.0 - rhoYZ) * h) );
+        }
+        if (std::isnan(z) or std::isinf(z) or z <= 0.0) z = 0.0;
 
         return z;
 }
@@ -365,8 +391,6 @@ double_vect Scorer::score_spectra(int centre_idx)
     // Calculate constant values
     double local_rt_sigma = rt_width / std_dev_in_fwhm;
     double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
-    Size rt_len = input_map.getNrSpectra();
-    Size local_rows = (2 * half_window) + 1;
     double lower_tol = 1.0 - mz_sigma * mz_ppm_sigma;
     double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
     Size rt_offset = centre_idx - half_window;
@@ -375,7 +399,6 @@ double_vect Scorer::score_spectra(int centre_idx)
     // Spacing should also be based on scan intervals
     // (curently assumed fixed spacing)
     double_vect rt_shape (local_rows);
-//    rt_shape.resize(local_rows);
 
     // Calculate Gaussian shape in the RT direction
     for (Size i = 0; i < local_rows; ++i)
@@ -414,7 +437,7 @@ double_vect Scorer::score_spectra(int centre_idx)
     double_2d amp_vals (local_rows);
 
     // collect all row data
-    collect_local_rows(rt_offset, rt_len, mz_vals, amp_vals);
+    collect_local_rows(rt_offset, mz_vals, amp_vals);
 
     // Calculate tolerances for the lo and hi peak for each central MZ
     double_vect data_nat;
@@ -442,32 +465,25 @@ double_vect Scorer::score_spectra(int centre_idx)
         shape_nat.clear();
         shape_iso.clear();
 
-        collect_window_data(rt_offset, rt_len, 1.0,  rt_shape,
+        collect_window_data(rt_offset, 1.0,  rt_shape,
                         centre, sigma, mz_vals, amp_vals,
                         lower_bound_nat, upper_bound_nat, data_nat, shape_nat);
-        collect_window_data(rt_offset, rt_len, intensity_ratio, rt_shape,
+        collect_window_data(rt_offset, intensity_ratio, rt_shape,
                         centre_iso, sigma_iso, mz_vals, amp_vals,
                         lower_bound_iso, upper_bound_iso, data_iso, shape_iso);
 
-        // Ignore regions with insufficient number of samples
-        // If any region is ignored, set all to empty
-        if (data_nat.size() < min_sample || data_iso.size() < min_sample)
+        // Zero score if not enough data in either region
+        if (data_nat.size() < min_sample or data_nat.size() < min_sample)
         {
-            data_nat.clear();
-            shape_nat.clear();
-            data_iso.clear();
-            shape_iso.clear();
-            nAB = 0;
-        }
-        else
-        {
-            nAB = data_nat.size() + data_iso.size();
+            min_score_vect.push_back(0.0);
+            continue;
         }
 
         /*
          * Competing models
-         * Low ion window, High ion window
-         * Empty low ion window, flat high ion window
+         * Target model with desired isotope ion ratio
+         * Model 1, higher ratio
+         * Model 2, lower ratio
          */
 
         /* Formulation
@@ -480,26 +496,43 @@ double_vect Scorer::score_spectra(int centre_idx)
          * Model Variance = E(E((Ya - E(Yab))^2), E((Yb - E(Yab))^2))
          */
 
+        // Only contrast if natural ion correlates to model
+        // User lower confidence interval at given CONFIDENCE
+        if (confidence > 0.0) {
+            double z1 = correlation(data_nat, shape_nat);
+            z1 = std::atanh(z1) - CONFIDENCE/std::sqrt(data_nat.size() - 3.0);
+            if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
+            {
+                min_score_vect.push_back(0.0);
+                continue;
+            }
+            // Only contrast if isotope ion correlates to model
+            z1 = correlation(data_iso, shape_iso);
+            z1 = std::atanh(z1) - CONFIDENCE/std::sqrt(data_nat.size() - 3.0);
+            if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
+            {
+                min_score_vect.push_back(0.0);
+                continue;
+            }
+        }
+
         /* Alternate models */
-        // low region and high region modelled as flat
-
-        // Correlations
+        // Twin ion with different ratios
         double correl_XabYab = combined_correlation(data_nat, data_iso, shape_nat, shape_iso);
-
-        double_vect shape_flat (shape_iso.size(), 0.0);
-        double correl_XabYa_ = combined_correlation(data_nat, data_iso, shape_nat, shape_flat);
-
-        // Yab, Ya_ covariance...
-        double correl_YabYa_ = combined_correlation(shape_nat, shape_iso, shape_nat, shape_flat);
-
-        shape_flat.clear();
-        shape_flat.resize(shape_nat.size(), 0.0);
-        double correl_XabY_b = combined_correlation(data_nat, data_iso, shape_flat, shape_iso);
-
-        // Yab, Y_b covariance...
-        double correl_YabY_b = combined_correlation(shape_nat, shape_iso, shape_flat, shape_iso);
+        double_vect iso_lower (shape_iso);
+        for (auto& val : iso_lower) val *= 0.001;
+        double correl_XabYa_ = combined_correlation(data_nat, data_iso, shape_nat, iso_lower);
+        // inter shape correlation
+        double correl_YabYa_ = combined_correlation(shape_nat, shape_iso, shape_nat, iso_lower);
+ 
+        double_vect nat_lower (shape_nat);
+        for (auto& val : nat_lower) val *= 0.001;
+        double correl_XabY_b = combined_correlation(data_nat, data_iso, nat_lower, shape_iso);
+        // inter shape correlation
+        double correl_YabY_b = combined_correlation(shape_nat, shape_iso, nat_lower, shape_iso);
 
         // Calculate z scores
+        nAB = data_nat.size() + data_iso.size();
         double zABA0 = mengZ(correl_XabYab, correl_XabYa_, correl_YabYa_, nAB);
         double zAB0B = mengZ(correl_XabYab, correl_XabY_b, correl_YabY_b, nAB);
     
