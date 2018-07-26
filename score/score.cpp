@@ -23,9 +23,9 @@ mutex input_spectrum_lock;
 
 
 Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma, double ppm,
-               double mz_width, double mz_sigma, double mz_delta, double min_sample, int num_threads,
+               double mz_width, double mz_sigma, double mz_delta, double min_sample,
                double confidence,
-               int input_spectrum_cache_size, string in_file, string out_file)
+               int num_threads, int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
    , intensity_ratio(intensity_ratio)
    , rt_width(rt_width)
@@ -347,7 +347,7 @@ double combined_correlation(double_vect &data_nat, double_vect &data_iso,
  * Comparing Correlated Correlation Coefficients,
  * Psychological Bulletin 111(1), 172-175.
  */
-double mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
+double mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples, double confidence)
 {
         // Calculate rm values between correlations
         double rm2 = 0.5 * (rhoXY * rhoXY + rhoXZ * rhoXZ);
@@ -360,16 +360,16 @@ double mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples)
         double h = (1.0 - f * rm2) / (1.0 - rm2);
     
         // Calculate z scores
+        double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) *
+                std::sqrt( (samples - 3.0) / (2.0 * (1.0 - rhoYZ) * h) );
+        if (std::isnan(z) or std::isinf(z) or z < 0.0) z = 0.0;
         if (confidence > 0.0) {
-            // Use lower confidence interval as score
-            double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) - confidence *
+            // Only use score if lower confidence greater than zero
+            double lCI = (std::atanh(rhoXY) - std::atanh(rhoXZ)) - confidence *
                     std::sqrt((2.0 * (1.0 - rhoYZ) * h) / (samples - 3.0));
-        } else {
-           // Use Z score
-           double z = (std::atanh(rhoXY) - std::atanh(rhoXZ)) *
-                   std::sqrt( (samples - 3.0) / (2.0 * (1.0 - rhoYZ) * h) );
+            if (std::isnan(lCI) or std::isinf(lCI) or lCI < 0.0) lCI = 0.0;
+            if (lCI > 0.0) return z;
         }
-        if (std::isnan(z) or std::isinf(z) or z <= 0.0) z = 0.0;
 
         return z;
 }
@@ -497,10 +497,10 @@ double_vect Scorer::score_spectra(int centre_idx)
          */
 
         // Only contrast if natural ion correlates to model
-        // User lower confidence interval at given CONFIDENCE
+        // User lower confidence interval at given confidence
         if (confidence > 0.0) {
             double z1 = correlation(data_nat, shape_nat);
-            z1 = std::atanh(z1) - CONFIDENCE/std::sqrt(data_nat.size() - 3.0);
+            z1 = std::atanh(z1) - confidence/std::sqrt(data_nat.size() - 3.0);
             if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
             {
                 min_score_vect.push_back(0.0);
@@ -508,7 +508,7 @@ double_vect Scorer::score_spectra(int centre_idx)
             }
             // Only contrast if isotope ion correlates to model
             z1 = correlation(data_iso, shape_iso);
-            z1 = std::atanh(z1) - CONFIDENCE/std::sqrt(data_nat.size() - 3.0);
+            z1 = std::atanh(z1) - confidence/std::sqrt(data_nat.size() - 3.0);
             if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
             {
                 min_score_vect.push_back(0.0);
@@ -533,8 +533,8 @@ double_vect Scorer::score_spectra(int centre_idx)
 
         // Calculate z scores
         nAB = data_nat.size() + data_iso.size();
-        double zABA0 = mengZ(correl_XabYab, correl_XabYa_, correl_YabYa_, nAB);
-        double zAB0B = mengZ(correl_XabYab, correl_XabY_b, correl_YabY_b, nAB);
+        double zABA0 = mengZ(correl_XabYab, correl_XabYa_, correl_YabYa_, nAB, confidence);
+        double zAB0B = mengZ(correl_XabYab, correl_XabY_b, correl_YabY_b, nAB, confidence);
     
         // Find the minimum scores, bounded at zero
         double min_score = std::max({0.0, std::min({zABA0, zAB0B})});
