@@ -9,13 +9,9 @@ using namespace std;
 Options::Options(int argc, char* argv[])
 {
     intensity_ratio = default_intensity_ratio;
-    rt_width = default_rt_width;
-    rt_sigma = default_rt_sigma;
-    ppm = default_ppm;
-    mz_width = default_fwhm;
-    mz_sigma = default_mz_sigma;
-    mz_delta = default_mz_delta;
-    min_sample = default_min_sample;
+//    rt_width = default_rt_width;
+//    mz_width = default_fwhm;
+//    mz_delta = default_mz_delta;
     confidence = default_confidence;
     in_file = "";
     out_file = "";
@@ -25,31 +21,24 @@ Options::Options(int argc, char* argv[])
     int num_args;
 
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
-    string rtwidth_str = "Full width at half maximum for retention time in number of scans. Defaults to " + to_string(default_rt_width);
-    string rtwindow_str = "Retention time width boundary in standard deviations. Defaults to " + to_string(default_rt_sigma);
-    string ppm_str = "M/Z tolerance in parts per million. Defaults to " + to_string(default_ppm);
-    string mzwidth_str = "M/Z full width at half maximum in parts per million. Defaults to " + to_string(default_fwhm);
-    string mzsigma_str = "M/Z window boundary in standard deviations. Defaults to " + to_string(default_mz_sigma);
-    string mzdelta_str = "M/Z delta for doublets. Defaults to " + to_string(default_mz_delta);
-    string confidence_str = "If non-zero, sets lower confidence interval to filter scoring (In standard deviations). Defaults to " + to_string(default_confidence);
-    string minsample_str = "Minimum number of data points required in each sample region. Defaults to " + to_string(default_min_sample);
+    string rtwidth_str = "REQUIRED: Full width at half maximum for retention time in number of scans. Eg: " + to_string(default_rt_width);
+    string mzwidth_str = "REQUIRED: M/Z full width at half maximum in parts per million. Eg: " + to_string(default_fwhm);
+    string mzdelta_str = "REQUIRED: M/Z delta for doublets. Eg: " + to_string(default_mz_delta);
+    string confidence_str = "If greater than zero, sets lower confidence interval to filter scoring (In standard deviations). Defaults to " + to_string(default_confidence);
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data";
     string input_spectrum_cache_size_str = "Number of input spectra to retain in cache. Defaults to " + to_string(default_input_spectrum_cache_size);
 
+    string msgs = "";
     try {
         cxxopts::Options options("HiTIME-CPP", desc);
         options.add_options()
             ("h,help", "Show this help information.")
             ("a,iratio", iratio_str, cxxopts::value<double>())
             ("r,rtwidth", rtwidth_str, cxxopts::value<double>())
-            ("t,rtwindow", rtwindow_str, cxxopts::value<double>())
-            ("p,ppm", ppm_str, cxxopts::value<double>())
             ("m,mzwidth", mzwidth_str, cxxopts::value<double>())
-            ("z,mzwindow", mzsigma_str, cxxopts::value<double>())
             ("d,mzdelta", mzdelta_str, cxxopts::value<double>())
-            ("n,mindata", minsample_str, cxxopts::value<int>())
-            ("Z,confidence", confidence_str, cxxopts::value<double>())
+            ("z,confidence", confidence_str, cxxopts::value<double>())
             ("debug", "Generate debugging output")
             ("j,threads", threads_str, cxxopts::value<int>())
             ("c,cache", input_spectrum_cache_size_str , cxxopts::value<int>())
@@ -76,27 +65,47 @@ Options::Options(int argc, char* argv[])
         }
         if (result.count("rtwidth")) {
             rt_width = result["rtwidth"].as<double>();
+            if (rt_width <= 0)
+            {
+                cerr << program_name << " ERROR: Retention time full width at half maximum must be greater than zero";
+                exit(-1);
+            }
         }
-        if (result.count("rtwindow")) {
-            rt_sigma = result["rtwindow"].as<double>();
-        }
-        if (result.count("ppm")) {
-            ppm = result["ppm"].as<double>();
+        else
+        {
+            msgs += "MISSING: Retention time full width at half maximum must be given.\n";
         }
         if (result.count("mzwidth")) {
             mz_width = result["mzwidth"].as<double>();
+            if (mz_width <= 0)
+            {
+                cerr << program_name << " ERROR: m/z full width at half maximum must be greater than zero";
+                exit(-1);
+            }
         }
-        if (result.count("mzwindow")) {
-            mz_sigma = result["mzwindow"].as<double>();
+        else
+        {
+            msgs += "MISSING: m/z full width at half maximum must be given.\n";
         }
         if (result.count("mzdelta")) {
             mz_delta = result["mzdelta"].as<double>();
+            if (mz_delta <= 0)
+            {
+                cerr << program_name << " ERROR: m/z twin ion mass difference must be greater than zero";
+                exit(-1);
+            }
         }
-        if (result.count("mindata")) {
-            min_sample = result["mindata"].as<double>();
+        else
+        {
+            msgs += "MISSING: m/z twin ion mass difference must be given.\n";
         }
         if (result.count("confidence")) {
             confidence = result["confidence"].as<double>();
+            if (confidence <= 0)
+            {
+                cerr << program_name << " ERROR: confidance must be greater than zero";
+                exit(-1);
+            }
         }
         if (result.count("infile")) {
             in_file = result["infile"].as<string>();
@@ -124,6 +133,11 @@ Options::Options(int argc, char* argv[])
                 exit(-1);
             }
             input_spectrum_cache_size = requested_size;
+        }
+        if (msgs != "") {
+            cout << program_name << endl;
+            cout << msgs << endl;
+            exit(-1);
         }
     }
 
