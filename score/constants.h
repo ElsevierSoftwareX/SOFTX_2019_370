@@ -7,18 +7,16 @@
 const float std_dev_in_fwhm = 2.355;
 //! Default difference in mass of isotopes.
 const float default_mz_delta = 6.0201;
-//! Default MZ tolerance in parts per million.
-const float default_ppm = 4.0;
 //! Defualt MZ Full Width Half Maximum in PPM.
 const float default_fwhm = 150.0;
 //! Default MZ boundary sigma.
-const float default_mz_sigma = 1.5;
+const float default_mz_sigma = 2;
 //! Default ratio of peak intensities.
 const float default_intensity_ratio = 1.0;
 //! Default retention time FWHM in scans.
 const float default_rt_width = 17.0;
 //! Default RT boundary sigma.
-const float default_rt_sigma = 1.5;
+const float default_rt_sigma = 2;
 //! Default confidence sigma.
 const float default_confidence = 0.0;
 

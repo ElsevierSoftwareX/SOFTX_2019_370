@@ -22,19 +22,15 @@ mutex next_spectrum_lock;
 mutex input_spectrum_lock;
 
 
-Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma, double ppm,
-               double mz_width, double mz_sigma, double mz_delta, double min_sample,
+Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, 
+               double mz_width, double mz_delta,
                double confidence,
                int num_threads, int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
    , intensity_ratio(intensity_ratio)
    , rt_width(rt_width)
-   , rt_sigma(rt_sigma)
-   , ppm(ppm)
    , mz_width(mz_width)
-   , mz_sigma(mz_sigma)
    , mz_delta(mz_delta)
-   , min_sample(min_sample)
    , num_threads(num_threads)
    , confidence(confidence)
    , in_file(in_file)
@@ -46,12 +42,16 @@ Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, double rt_si
 {
 
    IndexedMzMLFileLoader mzml;
+   rt_sigma = default_rt_sigma;
+   mz_sigma = default_mz_sigma;
 
    mzml.load(in_file, input_map);
 
    half_window = ceil(rt_sigma * rt_width / std_dev_in_fwhm);
    num_spectra = input_map.getNrSpectra();
    local_rows = (2 * half_window) + 1;
+
+   Size min_sample = half_window;
 
    vector<thread> threads(num_threads);
 

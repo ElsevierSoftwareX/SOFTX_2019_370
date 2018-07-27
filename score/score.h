@@ -62,10 +62,8 @@ private:
                   double, double, double_vect&, double_vect&);
 
 public:
-   Scorer(bool debug, double intensity_ratio, double rt_width, double rt_sigma,
-         double ppm, double mz_width, double mz_sigma, double mz_delta,
-         double min_sample,
-         double confidence,
+   Scorer(bool debug, double intensity_ratio, double rt_width, 
+         double mz_width, double mz_delta, double confidence,
          int num_threads, int input_spectrum_cache_size,
          string in_file, string out_file);
   void score_worker(int thread_count);
