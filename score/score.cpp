@@ -173,16 +173,17 @@ void Scorer::score_worker(int thread_count)
 
 }
 
-void Scorer::collect_local_rows(Size rt_offset,
-                double_2d &mz_vals, double_2d &amp_vals)
+void Scorer::collect_local_rows(double_2d &mz_vals, double_2d &amp_vals,
+                double_vect & rt_shape)
 {
+    PeakSpectrumPtr rowi_spectrum;
+    rowi_spectrum = get_spectrum(rowi + rt_offset);
     // Iterate over the spectra in the window
     for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
     {
         // window can go outside start and end of scans, so check bounds
         if (rowi + rt_offset >= 0 && rowi + rt_offset < num_spectra)
         {
-            PeakSpectrumPtr rowi_spectrum;
             rowi_spectrum = get_spectrum(rowi + rt_offset);
             Size elements = rowi_spectrum->size();
 
@@ -211,57 +212,53 @@ void Scorer::collect_local_rows(Size rt_offset,
     }
 }
 
-void Scorer::collect_window_data(Size rt_offset, double scale,
+void Scorer::collect_window_data(double scale,
                double_vect & rt_shape,
                double centre, double sigma,
                double_2d & mz_vals, double_2d & amp_vals,
                double lower_bound_mz, double upper_bound_mz,
                double_vect & data_out, double_vect & shape_out)
 {
-        // Iterate over the spectra in the window
-        for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
+    // Iterate over the spectra in the window
+    for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
+    {
+        double rt_shape_i = rt_shape[rowi] * scale;
+
+        // Select points within tolerance for current spectrum
+        // Want index of bounds
+        // Need to convert iterator to index
+        Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                    mz_vals[rowi].end(),
+                                    lower_bound_mz)
+                                -
+                                mz_vals[rowi].begin());
+        if (lower_index < 0) lower_index = 0;
+        Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                    mz_vals[rowi].end(),
+                                    upper_bound_mz)
+                                -
+                                mz_vals[rowi].begin());
+        // this test should also stop lookup in empty rows
+        if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
+
+        // Calculate Gaussian value for each found MZ
+        for (Size index = lower_index; index <= upper_index; ++index)
         {
-            // window can go outside start and end of scans, so check bounds
-            if (rowi + rt_offset >= 0 && rowi + rt_offset < num_spectra)
-            {
-                double rt_shape_i = rt_shape[rowi] * scale;
+            double mz = mz_vals[rowi][index];
+            double intensity = amp_vals[rowi][index];
 
-                // Select points within tolerance for current spectrum
-                // Want index of bounds
-                // Need to convert iterator to index
-                Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-                                            mz_vals[rowi].end(),
-                                            lower_bound_mz)
-                                        -
-                                        mz_vals[rowi].begin());
-                if (lower_index < 0) lower_index = 0;
-                Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
-                                            mz_vals[rowi].end(),
-                                            upper_bound_mz)
-                                        -
-                                        mz_vals[rowi].begin());
-                // this test should also stop lookup in empty rows
-                if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
+            // just in case
+            if (mz < lower_bound_mz || mz > upper_bound_mz) continue;
 
-                // Calculate Gaussian value for each found MZ
-                for (Size index = lower_index; index <= upper_index; ++index)
-                {
-                    double mz = mz_vals[rowi][index];
-                    double intensity = amp_vals[rowi][index];
+            // calc mz fit
+            mz = (mz - centre) / sigma;
+            mz = -0.5 * mz * mz;
+            double fit = exp(mz) / (sigma * root2pi);
 
-                    // just in case
-                    if (mz < lower_bound_mz || mz > upper_bound_mz) continue;
-
-                    // calc mz fit
-                    mz = (mz - centre) / sigma;
-                    mz = -0.5 * mz * mz;
-                    double fit = exp(mz) / (sigma * root2pi);
-
-                    data_out.push_back(intensity);
-                    shape_out.push_back(fit * rt_shape_i);
-                }
-            }
+            data_out.push_back(intensity);
+            shape_out.push_back(fit * rt_shape_i);
         }
+    }
 }
 
 double correlation(double_vect &data, double_vect &shape)
@@ -473,7 +470,7 @@ double_vect Scorer::score_spectra(int centre_idx)
                         lower_bound_iso, upper_bound_iso, data_iso, shape_iso);
 
         // Zero score if not enough data in either region
-        if (data_nat.size() < min_sample or data_nat.size() < min_sample)
+        if (data_nat.size() < min_sample or data_iso.size() < min_sample)
         {
             min_score_vect.push_back(0.0);
             continue;
