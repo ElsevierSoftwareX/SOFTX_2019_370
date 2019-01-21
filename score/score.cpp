@@ -173,11 +173,9 @@ void Scorer::score_worker(int thread_count)
 
 }
 
-void Scorer::collect_local_rows(double_2d &mz_vals, double_2d &amp_vals,
-                double_vect & rt_shape)
+void Scorer::collect_local_rows(int rt_offset, double_2d &mz_vals, double_2d &amp_vals)
 {
     PeakSpectrumPtr rowi_spectrum;
-    rowi_spectrum = get_spectrum(rowi + rt_offset);
     // Iterate over the spectra in the window
     for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
     {
@@ -390,7 +388,7 @@ double_vect Scorer::score_spectra(int centre_idx)
     double mz_ppm_sigma = mz_width / (std_dev_in_fwhm * 1e6);
     double lower_tol = 1.0 - mz_sigma * mz_ppm_sigma;
     double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
-    Size rt_offset = centre_idx - half_window;
+    int rt_offset = centre_idx - half_window;
 
     // XXX This should be calculated once, then used as look-up
     // Spacing should also be based on scan intervals
@@ -462,10 +460,10 @@ double_vect Scorer::score_spectra(int centre_idx)
         shape_nat.clear();
         shape_iso.clear();
 
-        collect_window_data(rt_offset, 1.0,  rt_shape,
+        collect_window_data(1.0,  rt_shape,
                         centre, sigma, mz_vals, amp_vals,
                         lower_bound_nat, upper_bound_nat, data_nat, shape_nat);
-        collect_window_data(rt_offset, intensity_ratio, rt_shape,
+        collect_window_data(intensity_ratio, rt_shape,
                         centre_iso, sigma_iso, mz_vals, amp_vals,
                         lower_bound_iso, upper_bound_iso, data_iso, shape_iso);
 
