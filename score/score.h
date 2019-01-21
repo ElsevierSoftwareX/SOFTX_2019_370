@@ -56,8 +56,8 @@ private:
    void put_spectrum(int spectrum_id, PeakSpectrum spectrum);
    PeakSpectrumPtr get_spectrum(int spectrum_id);
    double_vect score_spectra(int centre_idx);
-   void collect_local_rows(OpenMS::Size, double_2d&, double_2d&);
-   void collect_window_data(OpenMS::Size, double,
+   void collect_local_rows(int, double_2d&, double_2d&);
+   void collect_window_data(double,
                   double_vect&, double, double, double_2d&, double_2d&,
                   double, double, double_vect&, double_vect&);
 
