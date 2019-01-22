@@ -106,7 +106,7 @@ Small dataset (1.9 MB)
 curl -sL https://melbourne.figshare.com/ndownloader/files/14131079 > BSA_SUBSET.mzML
 ```
 
-Larger dataset (82 MB).
+Larger dataset (82 MB)
 
 A pure protein that was reduced, reacted with heavy/light paracetamol and then digested. It contains lots of twin ions. Because these twin-ions are mostly peptide derivatives, they come in multiple charge states which effectively gives us a few different doublet spacings. There are many separated by 6.0201, a good number separated by 3.01005 and a few separated by 2.0067. We have removed any points with intensity <1000 to make the file smaller.
 ```
