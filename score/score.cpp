@@ -218,10 +218,9 @@ void Scorer::collect_window_data(double scale,
                double_vect & data_out, double_vect & shape_out)
 {
     // Iterate over the spectra in the window
-    for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
+    for (Size rowi = 0; rowi < mz_vals.size() && rowi < rt_shape.size(); ++rowi)
     {
         double rt_shape_i = rt_shape[rowi] * scale;
-
         // Select points within tolerance for current spectrum
         // Want index of bounds
         // Need to convert iterator to index
@@ -236,11 +235,9 @@ void Scorer::collect_window_data(double scale,
                                     upper_bound_mz)
                                 -
                                 mz_vals[rowi].begin());
-        // this test should also stop lookup in empty rows
-        if (upper_index >= mz_vals[rowi].size()) upper_index = mz_vals[rowi].size() - 1;
 
         // Calculate Gaussian value for each found MZ
-        for (Size index = lower_index; index <= upper_index; ++index)
+        for (Size index = lower_index; index <= upper_index && index < mz_vals[rowi].size(); ++index)
         {
             double mz = mz_vals[rowi][index];
             double intensity = amp_vals[rowi][index];
