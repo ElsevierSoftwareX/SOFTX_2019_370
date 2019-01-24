@@ -8,11 +8,9 @@ using namespace std;
 
 Options::Options(int argc, char* argv[])
 {
+    list_max = false;
     intensity_ratio = default_intensity_ratio;
-//    rt_width = default_rt_width;
-//    mz_width = default_fwhm;
-//    mz_delta = default_mz_delta;
-    confidence = default_confidence;
+    confidence = 0;
     in_file = "";
     out_file = "";
     debug = false;
@@ -20,11 +18,12 @@ Options::Options(int argc, char* argv[])
     input_spectrum_cache_size = default_input_spectrum_cache_size;
     int num_args;
 
+    string list_max_str = "Flag to only output list of local maximum in window set by M/Z width by retention time width. Default: not set, i.e. calculate scores";
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
     string rtwidth_str = "REQUIRED: Full width at half maximum for retention time in number of scans. Eg: " + to_string(default_rt_width);
     string mzwidth_str = "REQUIRED: M/Z full width at half maximum in parts per million. Eg: " + to_string(default_fwhm);
     string mzdelta_str = "REQUIRED: M/Z delta for doublets. Eg: " + to_string(default_mz_delta);
-    string confidence_str = "If greater than zero, sets lower confidence interval to filter scoring (In standard deviations). Defaults to " + to_string(default_confidence);
+    string confidence_str = "If greater than zero, sets lower confidence interval to filter scoring (In standard deviations). Default: no score or model filtering";
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data";
     string input_spectrum_cache_size_str = "Number of input spectra to retain in cache. Defaults to " + to_string(default_input_spectrum_cache_size);
@@ -34,6 +33,7 @@ Options::Options(int argc, char* argv[])
         cxxopts::Options options("HiTIME-CPP", desc);
         options.add_options()
             ("h,help", "Show this help information.")
+            ("l,listmax", list_max_str, cxxopts::value<bool>())
             ("a,iratio", iratio_str, cxxopts::value<double>())
             ("r,rtwidth", rtwidth_str, cxxopts::value<double>())
             ("m,mzwidth", mzwidth_str, cxxopts::value<double>())
@@ -60,6 +60,9 @@ Options::Options(int argc, char* argv[])
             exit(0);
         }
 
+        if (result.count("listmax")) {
+            list_max = result["listmax"].as<bool>();
+        }
         if (result.count("iratio")) {
             intensity_ratio = result["iratio"].as<double>();
         }
@@ -95,7 +98,8 @@ Options::Options(int argc, char* argv[])
                 exit(-1);
             }
         }
-        else
+        // Need M/Z mass difference unless listing local maxima
+        else if (result.count("listmax") == false)
         {
             msgs += "MISSING: m/z twin ion mass difference must be given.\n";
         }
@@ -137,6 +141,7 @@ Options::Options(int argc, char* argv[])
         if (msgs != "") {
             cout << program_name << endl;
             cout << msgs << endl;
+            cout << options.help() << endl;
             exit(-1);
         }
     }

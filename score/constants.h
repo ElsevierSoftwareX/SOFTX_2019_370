@@ -17,8 +17,6 @@ const float default_intensity_ratio = 1.0;
 const float default_rt_width = 17.0;
 //! Default RT boundary sigma.
 const float default_rt_sigma = 2;
-//! Default confidence sigma.
-const float default_confidence = 0.0;
 
 /*! @brief Default minimum number of samples in score regions.
  *
