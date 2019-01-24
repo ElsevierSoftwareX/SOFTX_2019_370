@@ -8,6 +8,7 @@ class Options {
 
     public:
         bool debug;
+        double list_max; //!< Flag, if set list local maxima only.
         double intensity_ratio; //!< Intensity ratio between lo and hi peaks.
         double rt_width; //!< Retention time FWHM in scans.
         double rt_sigma; //!< Boundary for RT width in SDs.

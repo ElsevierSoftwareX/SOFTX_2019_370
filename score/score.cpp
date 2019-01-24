@@ -22,11 +22,12 @@ mutex next_spectrum_lock;
 mutex input_spectrum_lock;
 
 
-Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, 
+Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_width, 
                double mz_width, double mz_delta,
                double confidence,
                int num_threads, int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
+   , list_max(list_max)
    , intensity_ratio(intensity_ratio)
    , rt_width(rt_width)
    , mz_width(mz_width)
@@ -157,7 +158,14 @@ void Scorer::score_worker(int thread_count)
        //    cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
        //}
 
-       score = score_spectra(this_spectrum_id);
+       if (list_max)
+       {
+           score = local_max_spectra(this_spectrum_id);
+       }
+       else
+       {
+           score = score_spectra(this_spectrum_id);
+       }
        PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
        PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
@@ -532,6 +540,87 @@ double_vect Scorer::score_spectra(int centre_idx)
         double min_score = std::max({0.0, std::min({zABA0, zAB0B})});
     
         min_score_vect.push_back(min_score);
+    } 
+    return min_score_vect;
+}
+
+
+bool Scorer::local_max_data(double centre_amp,
+               double_2d & mz_vals, double_2d & amp_vals,
+               double lower_bound_mz, double upper_bound_mz)
+{
+    // Iterate over the spectra in the window
+    for (Size rowi = 0; rowi < mz_vals.size(); ++rowi)
+    {
+        // Select points within tolerance for current spectrum
+        // Want index of bounds
+        // Need to convert iterator to index
+        Size lower_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                    mz_vals[rowi].end(),
+                                    lower_bound_mz)
+                                -
+                                mz_vals[rowi].begin());
+        if (lower_index < 0) lower_index = 0;
+        Size upper_index = Size(std::lower_bound(mz_vals[rowi].begin(),
+                                    mz_vals[rowi].end(),
+                                    upper_bound_mz)
+                                -
+                                mz_vals[rowi].begin());
+
+        // Calculate Gaussian value for each found MZ
+        for (Size index = lower_index; index <= upper_index && index < mz_vals[rowi].size(); ++index)
+        {
+            double mz = mz_vals[rowi][index];
+            double intensity = amp_vals[rowi][index];
+
+            // just in case
+            if (mz < lower_bound_mz || mz > upper_bound_mz) continue;
+
+            if (intensity > centre_amp)
+                return false;
+
+        }
+    }
+    return true;
+}
+
+
+double_vect Scorer::local_max_spectra(int centre_idx)
+{
+    // Calculate constant values
+    double local_rt_sigma = rt_width / std_dev_in_fwhm;
+    int rt_offset = centre_idx - half_window;
+
+    PeakSpectrumPtr centre_row_points = get_spectrum(centre_idx);
+
+    // Length of all vectors (= # windows)
+    Size mz_windows = centre_row_points->size();
+
+    double_vect min_score_vect;
+    min_score_vect.reserve(mz_windows);
+
+    // NOTE: much faster to collect all local row data 1st
+    double_2d mz_vals (local_rows);
+    double_2d amp_vals (local_rows);
+
+    // collect all row data
+    collect_local_rows(rt_offset, mz_vals, amp_vals);
+
+    PeakSpectrum::Iterator it;
+    for (it = centre_row_points->begin(); it != centre_row_points->end(); ++it)
+    {
+        double centre_mz = it->getMZ();
+        double centre_amp = it->getIntensity();
+
+        if (local_max_data(centre_amp, mz_vals, amp_vals,
+                           centre_mz - mz_width, centre_mz + mz_width))
+        {
+            min_score_vect.push_back(centre_amp);
+        }
+        else
+        {
+            min_score_vect.push_back(0.0);
+        }
     } 
     return min_score_vect;
 }
