@@ -10,10 +10,6 @@
 #include "lru_cache.h"
 #include "score.h"
 
-// input cache size
-// #define CACHE_SIZE 30
-// #define CACHE_SIZE 1000 
-
 using namespace OpenMS;
 using namespace std;
 
@@ -42,6 +38,14 @@ Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_widt
    , next_output_spectrum_id{0}
 {
 
+   if (list_max)
+   {
+      // quick and dirty change out_file extension to .csv
+      string csv_out_filename = out_file.substr(0,out_file.find_last_of('.'))+".csv";
+      csv_fs.open (csv_out_filename);
+      csv_fs.exceptions(ofstream::badbit | ofstream::failbit);
+   }
+
    IndexedMzMLFileLoader mzml;
    rt_sigma = default_rt_sigma;
    mz_sigma = default_mz_sigma;
@@ -56,9 +60,6 @@ Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_widt
 
    vector<thread> threads(num_threads);
 
-   //cout << "Num threads: " << num_threads << endl;
-   //cout << "Num spectra: " << num_spectra << endl;
-
    for (int thread_count = 0; thread_count < num_threads; thread_count++)
    {
       threads[thread_count] = thread(&Scorer::score_worker, this, thread_count);
@@ -69,19 +70,11 @@ Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_widt
    {
        threads[thread_count].join();
    }
+
+   if (list_max)
+      csv_fs.close();
 }
 
-/*
-PeakSpectrumPtr Scorer::get_spectrum(int spectrum_id)
-{
-   PeakSpectrumPtr spectrum_ptr;
-
-   input_spectrum_lock.lock();
-   spectrum_ptr = make_shared<PeakSpectrum>(input_map.getSpectrum(spectrum_id));
-   input_spectrum_lock.unlock();
-   return spectrum_ptr;
-}
-*/
 PeakSpectrumPtr Scorer::get_spectrum(int spectrum_id)
 {
    PeakSpectrumPtr spectrum_ptr;
@@ -107,7 +100,17 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
    if (spectrum_id == next_output_spectrum_id)
    {
       // this is the next spectrum to output
-      spectrum_writer.consumeSpectrum(spectrum);
+      if (spectrum.size() > 0)
+      {
+         spectrum_writer.consumeSpectrum(spectrum);
+         if (list_max)
+         {
+            for (auto it = spectrum.begin(); it != spectrum.end(); ++it)
+            {
+               csv_fs << spectrum.getRT() << "," << it->getMZ() << "," << it->getIntensity() << endl; 
+            }
+         }
+      }
       next_output_spectrum_id++;
 
       // try to output more spectra
@@ -116,7 +119,18 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
          IndexSpectrum index_spectrum = output_spectrum_queue.top();
          if (index_spectrum.first == next_output_spectrum_id)
          {
-            spectrum_writer.consumeSpectrum(index_spectrum.second);
+            spectrum = index_spectrum.second;  // next in queue
+            if (spectrum.size() > 0)
+            {
+               spectrum_writer.consumeSpectrum(spectrum);
+               if (list_max)
+               {
+                  for (auto it = spectrum.begin(); it != spectrum.end(); ++it)
+                  {
+                     csv_fs << spectrum.getRT() << "," << it->getMZ() << "," << it->getIntensity() << endl; 
+                  }
+               }
+            }
             output_spectrum_queue.pop();
             next_output_spectrum_id++;
          }
@@ -147,16 +161,17 @@ int Scorer::get_next_spectrum_todo(void)
 
 void Scorer::score_worker(int thread_count)
 {
-   double_vect score;
+   PeakSpectrum score;
    int this_spectrum_id;
 
    this_spectrum_id = get_next_spectrum_todo(); 
 
    while (this_spectrum_id < num_spectra)
    {
-       //if ((this_spectrum_id % 100) == 0) {
-       //    cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
-       //}
+       if (debug and (this_spectrum_id % 100) == 0)
+       {
+           cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
+       }
 
        if (list_max)
        {
@@ -166,15 +181,12 @@ void Scorer::score_worker(int thread_count)
        {
            score = score_spectra(this_spectrum_id);
        }
-       PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
        
-       PeakSpectrum output_spectrum = MSSpectrum<Peak1D>(*input_spectrum);
-       for (int index = 0; index < input_spectrum->size(); index++)
-       {
-           output_spectrum[index].setIntensity(score[index]);
-       }
-
-       put_spectrum(this_spectrum_id, output_spectrum);
+       // add RT to spectrum
+       PeakSpectrumPtr input_spectrum = get_spectrum(this_spectrum_id);
+       score.setRT(input_spectrum->getRT());
+       // add to write queue
+       put_spectrum(this_spectrum_id, score);
        
        this_spectrum_id = get_next_spectrum_todo(); 
    }
@@ -196,9 +208,8 @@ void Scorer::collect_local_rows(int rt_offset, double_2d &mz_vals, double_2d &am
             mz_vals[rowi].resize(elements);
             amp_vals[rowi].resize(elements);
 
-            // This shouldn't happen, so want to but want know if it does
-            // XXX maybe we should provide an option to avoid this for performance reasons?
-            if (!rowi_spectrum->isSorted()) throw std::runtime_error ("Spectrum not sorted");
+            if (!rowi_spectrum->isSorted())
+               rowi_spectrum->sortByPosition();
 
             for (Size index = 0; index < elements; ++index)
             {
@@ -386,7 +397,7 @@ double mengZ(double rhoXY, double rhoXZ, double rhoYZ, Size samples, double conf
  * @return Vector of score at each MZ in central spectrum.
  */
 
-double_vect Scorer::score_spectra(int centre_idx)
+PeakSpectrum Scorer::score_spectra(int centre_idx)
 {
     // Calculate constant values
     double local_rt_sigma = rt_width / std_dev_in_fwhm;
@@ -395,7 +406,7 @@ double_vect Scorer::score_spectra(int centre_idx)
     double upper_tol = 1.0 + mz_sigma * mz_ppm_sigma;
     int rt_offset = centre_idx - half_window;
 
-    // XXX This should be calculated once, then used as look-up
+    // TODO This should be calculated once, then used as look-up
     // Spacing should also be based on scan intervals
     // (curently assumed fixed spacing)
     double_vect rt_shape (local_rows);
@@ -445,6 +456,8 @@ double_vect Scorer::score_spectra(int centre_idx)
     double_vect shape_nat;
     double_vect shape_iso;
 
+    PeakSpectrum out_spectrum;
+    Peak1D peak;
     PeakSpectrum::Iterator it;
     for (it = centre_row_points->begin(); it != centre_row_points->end(); ++it)
     {
@@ -475,7 +488,6 @@ double_vect Scorer::score_spectra(int centre_idx)
         // Zero score if not enough data in either region
         if (data_nat.size() < min_sample or data_iso.size() < min_sample)
         {
-            min_score_vect.push_back(0.0);
             continue;
         }
 
@@ -503,7 +515,6 @@ double_vect Scorer::score_spectra(int centre_idx)
             z1 = std::atanh(z1) - confidence/std::sqrt(data_nat.size() - 3.0);
             if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
             {
-                min_score_vect.push_back(0.0);
                 continue;
             }
             // Only contrast if isotope ion correlates to model
@@ -511,7 +522,6 @@ double_vect Scorer::score_spectra(int centre_idx)
             z1 = std::atanh(z1) - confidence/std::sqrt(data_nat.size() - 3.0);
             if (std::isnan(z1) or std::isinf(z1) or z1 <= 0.0)
             {
-                min_score_vect.push_back(0.0);
                 continue;
             }
         }
@@ -539,9 +549,15 @@ double_vect Scorer::score_spectra(int centre_idx)
         // Find the minimum scores, bounded at zero
         double min_score = std::max({0.0, std::min({zABA0, zAB0B})});
     
-        min_score_vect.push_back(min_score);
+        if (min_score > 0)
+        {
+            peak.setMZ(centre);
+            peak.setIntensity(min_score);
+            out_spectrum.push_back(peak);
+        }
     } 
-    return min_score_vect;
+
+    return out_spectrum;
 }
 
 
@@ -567,7 +583,7 @@ bool Scorer::local_max_data(double centre_amp,
                                 -
                                 mz_vals[rowi].begin());
 
-        // Calculate Gaussian value for each found MZ
+        // fail if larger value found
         for (Size index = lower_index; index <= upper_index && index < mz_vals[rowi].size(); ++index)
         {
             double mz = mz_vals[rowi][index];
@@ -581,11 +597,11 @@ bool Scorer::local_max_data(double centre_amp,
 
         }
     }
-    return true;
+    return true;  // nothing greater found
 }
 
 
-double_vect Scorer::local_max_spectra(int centre_idx)
+PeakSpectrum Scorer::local_max_spectra(int centre_idx)
 {
     // Calculate constant values
     double local_rt_sigma = rt_width / std_dev_in_fwhm;
@@ -596,9 +612,6 @@ double_vect Scorer::local_max_spectra(int centre_idx)
     // Length of all vectors (= # windows)
     Size mz_windows = centre_row_points->size();
 
-    double_vect min_score_vect;
-    min_score_vect.reserve(mz_windows);
-
     // NOTE: much faster to collect all local row data 1st
     double_2d mz_vals (local_rows);
     double_2d amp_vals (local_rows);
@@ -606,6 +619,8 @@ double_vect Scorer::local_max_spectra(int centre_idx)
     // collect all row data
     collect_local_rows(rt_offset, mz_vals, amp_vals);
 
+    PeakSpectrum out_spectrum;
+    Peak1D peak;
     PeakSpectrum::Iterator it;
     for (it = centre_row_points->begin(); it != centre_row_points->end(); ++it)
     {
@@ -615,12 +630,11 @@ double_vect Scorer::local_max_spectra(int centre_idx)
         if (local_max_data(centre_amp, mz_vals, amp_vals,
                            centre_mz - mz_width, centre_mz + mz_width))
         {
-            min_score_vect.push_back(centre_amp);
-        }
-        else
-        {
-            min_score_vect.push_back(0.0);
+            peak.setMZ(centre_mz);
+            peak.setIntensity(centre_amp);
+            out_spectrum.push_back(peak);
         }
     } 
-    return min_score_vect;
+
+    return out_spectrum;
 }
