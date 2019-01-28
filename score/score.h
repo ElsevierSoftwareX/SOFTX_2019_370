@@ -51,13 +51,14 @@ private:
    PlainMSDataWritingConsumer spectrum_writer;
    SpectrumLRUCache input_spectrum_cache;
    SpectrumQueue output_spectrum_queue;
+   std::ofstream csv_fs;
    
    // methods
    int get_next_spectrum_todo(void);
    void put_spectrum(int spectrum_id, PeakSpectrum spectrum);
    PeakSpectrumPtr get_spectrum(int spectrum_id);
-   double_vect score_spectra(int centre_idx);
-   double_vect local_max_spectra(int centre_idx);
+   PeakSpectrum score_spectra(int centre_idx);
+   PeakSpectrum local_max_spectra(int centre_idx);
    void collect_local_rows(int, double_2d&, double_2d&);
    void collect_window_data(double,
                   double_vect&, double, double, double_2d&, double_2d&,
