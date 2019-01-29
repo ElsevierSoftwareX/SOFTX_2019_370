@@ -10,4 +10,4 @@ before_install:
    - docker build -t bjpop/hitime .
 
 script:
-   - ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML
+   - ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -d 6.0201 -r 17 -m 150
