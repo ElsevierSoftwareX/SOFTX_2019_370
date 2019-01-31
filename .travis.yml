@@ -11,3 +11,5 @@ before_install:
 
 script:
    - ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -d 6.0201 -r 17 -m 150
+   - ./hitime-docker.sh -i data/scored.mzML -o data/max.scored.mzML -- -r 17 -m 0.25 -l
+

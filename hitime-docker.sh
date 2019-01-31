@@ -13,16 +13,20 @@ cat << UsageMessage
 ${program_name}: detect twin ion signals in Mass Spectrometry data 
 
 Usage:
-    ${program_name} [-h] -i input.mzML -o output.mzML [-- optional arguments]
+    ${program_name} [-h] -i input.mzML -o output.mzML -- -d <M/Z delta> -r <RT FWHM scans> -m <M/Z FWHM ppm> [optional arguments]
+    ${program_name} [-h] -i input.mzML -o output.mzML -- -r <RT FWHM scans> -m <M/Z +/-bound> -l
 
 This is a wrapper for the HiTIME-CPP docker container.
 
-The score mode re-scales the peaks in the input file based on their similarity to
+The default use re-scales the peaks in the input file based on their similarity to
 an ideal twin ion peak.
+
+The list, '-l', option filters for the local maximum and outputs to the specified <outfile>.mzML file, and a text file <outfile>.csv
 
 Example usage:
 
-   ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -j 2
+   ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -d 6.0201 -r 17 -m 150 -j 2
+   ./hitime-docker.sh -i data/scored.mzML -o data/max.scored.mzML -- -r 17 -m 0.25 -l
 
 UsageMessage
 }
