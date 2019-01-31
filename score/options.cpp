@@ -18,12 +18,12 @@ Options::Options(int argc, char* argv[])
     input_spectrum_cache_size = default_input_spectrum_cache_size;
     int num_args;
 
-    string list_max_str = "Flag to only output list of local maximum in window set by M/Z width by retention time width. Default: not set, i.e. calculate scores";
+    string list_max_str = "Flag, only output list of local maximum in window defined by M/Z width and retention time width. Default: not set";
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
-    string rtwidth_str = "REQUIRED: Full width at half maximum for retention time in number of scans. Eg: " + to_string(default_rt_width);
-    string mzwidth_str = "REQUIRED: M/Z full width at half maximum in parts per million. Eg: " + to_string(default_fwhm);
+    string rtwidth_str = "REQUIRED: Full width at half maximum for retention time in number of scans. Eg: 17";
+    string mzwidth_str = "REQUIRED: M/Z full width at half maximum in parts per million. Eg: 150. If '--listmax', then upper and lower M/Z offset, e.g. 0.25";
     string mzdelta_str = "REQUIRED: M/Z delta for doublets. Eg: " + to_string(default_mz_delta);
-    string confidence_str = "If greater than zero, sets lower confidence interval to filter scoring (In standard deviations). Default: no score or model filtering";
+    string confidence_str = "Lower confidence interval to apply during scoring (In standard deviations, e.g. 1.96 for a 95% CI). Default: ignore confidence intervals";
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data";
     string input_spectrum_cache_size_str = "Number of input spectra to retain in cache. Defaults to " + to_string(default_input_spectrum_cache_size);
