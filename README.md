@@ -50,7 +50,7 @@ Test data is included in the `data` folder within the repository. Running the fo
 should produce meaningful output saved in `results.mzML`. 
 
 ```
-./hitime-docker.sh -i data/testing.mzML -o data/results.mzML -- -d 6.0201 -r 17 -m 150
+./hitime-docker.sh -i data/testing.mzML -o results.mzML -- -d 6.0201 -r 17 -m 150
 ```
 
 You might see some warnings in the output which complain about the format the of input `testing.mzML` file. You can
@@ -85,7 +85,7 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
 ### For example:
 
 ```
-hitime -j 4 -i example.mzML -o results.mzML -d 6.0201 -r 17 -m 150
+hitime -j 4 -i data/testing.mzML -o results.mzML -d 6.0201 -r 17 -m 150
 ```
 
 for a computation using 4 threads, where `example.mzML` contains the input mass spectrometry data in mzML format, and the output file is called `results.mzML`.
@@ -105,7 +105,7 @@ This will produce two files, `max.results.mzML` and `max.results.csv`.  The CSV 
 HITIME assumes that the input mzML file is indexed.  To index an input file, the OpenMS `FileConverter` tool can be used, eg:
 
 ```
-FileConverter -ini openms.ini -in input.mzML -out data/input_indexed.mzML
+FileConverter -ini openms.ini -in input.mzML -out input_indexed.mzML
 ```
 
 An example openms.ini can be found in `notes/openms.ini`.
