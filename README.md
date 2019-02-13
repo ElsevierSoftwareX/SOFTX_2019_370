@@ -88,7 +88,7 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
 hitime -j 4 -i data/testing.mzML -o results.mzML -d 6.0201 -r 17 -m 150
 ```
 
-for a computation using 4 threads, where `example.mzML` contains the input mass spectrometry data in mzML format, and the output file is called `results.mzML`.
+for a computation using 4 threads, where `data/testing.mzML` contains the input mass spectrometry data in mzML format, and the output file is called `results.mzML`.
 
 The parameters defining the taget twin-ion signal are, `-d 6.0201` the M/Z diference between the natural and heavy isotope versions of the precursor, `-r 17` the retention time (RT) full width half maximum (FWHM) size in number of RT steps (scans), `-m 150` the M/Z FWHM size in parts per million (ppm).  These values can be determined by measurement of the precursor signal in standard visulisation software.
 
