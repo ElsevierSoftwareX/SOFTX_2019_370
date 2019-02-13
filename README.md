@@ -1,15 +1,15 @@
 [![travis](https://travis-ci.org/bjpop/HiTIME-CPP.svg?branch=master)](https://travis-ci.org/bjpop/HiTIME-CPP)
 
-# HiTIME-CPP
+# HiTIME
 
-HiTIME-CPP is a program for identifying twin-ion signals in
+HiTIME is a program for identifying twin-ion signals in
 [Liquid chromatography-mass spectrometry (LCMS)](https://en.wikipedia.org/wiki/Liquid_chromatography%E2%80%93mass_spectrometry) data. 
-HiTIME-CPP is designed to be integrated with existing analysis pipelines, such as those 
+HiTIME is designed to be integrated with existing analysis pipelines, such as those 
 created with [OpenMS](https://www.openms.de/). 
 
-HiTIME-CPP filters twin-ion signals in LCMS data. This process re-weights each data point to a Z-score of how well the point matches an idealised twin-ion signal versus alternative ion signatures.
+HiTIME filters twin-ion signals in LCMS data. This process re-weights each data point to a Z-score of how well the point matches an idealised twin-ion signal versus alternative ion signatures.
 
-  * `hitime-score`: takes an [mzML](https://en.wikipedia.org/wiki/Mass_spectrometry_data_format#mzML) file as input and produces an mzML file as output. Intentsity values in the input file which correspond to the lower mass in a twin-ion peak are retained and scored highly in the output, all other intensities are downweighted towards zero.
+  * The `hitime` program takes an [mzML](https://en.wikipedia.org/wiki/Mass_spectrometry_data_format#mzML) file as input and produces an mzML file as output. Intentsity values in the input file which correspond to the lower mass in a twin-ion peak are retained and scored highly in the output, all other intensities are downweighted towards zero.
 
 ## License
 
@@ -19,7 +19,7 @@ code repository for a copy of the terms.
 
 ## Installation
 
-HiTIME-CPP is provided as a Docker container, which can be installed like so (assuming you have docker installed on your computer):
+HiTIME is provided as a Docker container, which can be installed like so (assuming you have docker installed on your computer):
 
 ```
 docker pull bjpop/hitime
@@ -27,14 +27,14 @@ docker pull bjpop/hitime
 
 Docker can be installed on all modern operating systems. Please review the Docker [installation instructions](https://docs.docker.com/engine/installation/) for more information.
 
-## Building HiTIME-CPP from source 
+## Building HiTIME from source 
 
-HiTIME-CPP can be build from source by following the instructions in the `notes` folder:
+HiTIME can be build from source by following the instructions in the `notes` folder:
 
  * Mac OS X: `notes/build.osx.sh`
  * Linux: `notes/build.linux.sh`
 
-## Builiding HiTIME-CPP using Docker
+## Builiding HiTIME using Docker
 
 Run this command in the top-level directory of the source tree:
 
@@ -44,7 +44,7 @@ docker build -t bjpop/hitime .
 
 ## Example docker usage 
 
-We provide a convenient wrapper script to run the HiTIME-CPP docker container.
+We provide a convenient wrapper script to run the HiTIME docker container.
 
 Test data is included in the `data` folder within the repository. Running the following command
 should produce meaningful output saved in `results.mzML`. 
