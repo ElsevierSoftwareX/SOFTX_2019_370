@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "options.h"
 #include "cxxopts.h"
+#include "version.h"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ Options::Options(int argc, char* argv[])
             ("d,mzdelta", mzdelta_str, cxxopts::value<double>())
             ("z,confidence", confidence_str, cxxopts::value<double>())
             ("debug", "Generate debugging output")
+            ("version", "Print version number and exit")
             ("j,threads", threads_str, cxxopts::value<int>())
             ("c,cache", input_spectrum_cache_size_str , cxxopts::value<int>())
             ("i,infile", "Input mzML file", cxxopts::value<string>())
@@ -119,6 +121,10 @@ Options::Options(int argc, char* argv[])
         }
         if (result.count("debug")) {
             debug = true;
+        }
+        if (result.count("version")) {
+            cout << program_name << " version " << HITIME_VERSION << endl; 
+            exit(0);
         }
         if (result.count("threads")) {
             int requested_threads = result["threads"].as<int>();

@@ -13,8 +13,8 @@ cat << UsageMessage
 ${program_name}: detect twin ion signals in Mass Spectrometry data 
 
 Usage:
-    ${program_name} [-h] -i input.mzML -o output.mzML -- -d <M/Z delta> -r <RT FWHM scans> -m <M/Z FWHM ppm> [optional arguments]
-    ${program_name} [-h] -i input.mzML -o output.mzML -- -r <RT FWHM scans> -m <M/Z +/-bound> -l
+    ${program_name} [-v] [-h] -i input.mzML -o output.mzML -- -d <M/Z delta> -r <RT FWHM scans> -m <M/Z FWHM ppm> [optional arguments]
+    ${program_name} [-v] [-h] -i input.mzML -o output.mzML -- -r <RT FWHM scans> -m <M/Z +/-bound> -l
 
 This is a wrapper for the HiTIME-CPP docker container.
 
@@ -29,6 +29,11 @@ Example usage:
    ./hitime-docker.sh -i data/scored.mzML -o data/max.scored.mzML -- -r 17 -m 0.25 -l
 
 UsageMessage
+
+echo "The full set of HiTIME command line arguments are listed below:"
+echo
+
+    exec docker run --rm bjpop/hitime --help
 }
 
 # echo an error message $1 and exit with status $2
@@ -44,6 +49,10 @@ absolute_filepath () {
   esac
 }
 
+show_version () {
+    exec docker run --rm bjpop/hitime --version
+}
+
 # Parse the command line arguments and set the global variables language and new_project_name
 function parse_args {
 
@@ -54,10 +63,14 @@ function parse_args {
 
     local OPTIND opt
 
-    while getopts "hi:o:" opt; do
+    while getopts "hvi:o:" opt; do
         case "${opt}" in
             h)
                 show_help
+                exit 0
+                ;;
+            v)
+                show_version
                 exit 0
                 ;;
             i)  input_filepath="${OPTARG}"
