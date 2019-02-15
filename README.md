@@ -75,6 +75,7 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
                         standard deviations, e.g. 1.96 for a 95% CI).
                         Default: ignore confidence intervals
       --debug           Generate debugging output
+      --version         Print version number and exit
   -j, --threads arg     Number of threads to use. Defaults to 1
   -c, --cache arg       Number of input spectra to retain in cache. Defaults
                         to 50
