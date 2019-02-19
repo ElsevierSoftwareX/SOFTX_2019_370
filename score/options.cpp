@@ -20,12 +20,12 @@ Options::Options(int argc, char* argv[])
     input_spectrum_cache_size = default_input_spectrum_cache_size;
     int num_args;
 
-    string mzlower_str = "Lower M/Z offset for local max window, e.g. 0.01. Must be used with '--mzupper', can not be used with '--mzwidth'";
-    string mzupper_str = "Upper M/Z offset for local max window, e.g. 0.5. Must be used with '--mzlower', can not be used with '--mzwidth'";
+    string mzlower_str = "Lower M/Z offset for local max window, e.g. 0.3. Must be used with 'mzupper', can not be used with 'mzwidth'";
+    string mzupper_str = "Upper M/Z offset for local max window, e.g. 0.7. Must be used with 'mzlower', can not be used with 'mzwidth'";
     string iratio_str = "Ratio of doublet intensities (isotope / parent). Defaults to " + to_string(default_intensity_ratio);
     string rtwidth_str = "Full width at half maximum for retention time in number of scans. Eg: 10";
-    string mzwidth_str = "M/Z full width at half maximum in parts per million. Eg: 230. Must be used with '--mzdelta', can not be used with '--mzlower' and '--mzupper'.";
-    string mzdelta_str = "M/Z delta for doublets. Eg: 6.0201. Must be used with '--rtwidth' and '--mzwidth', can not be used with '--mzlower' and '--mzupper'.";
+    string mzwidth_str = "M/Z full width at half maximum in parts per million. Eg: 230. Must be used with 'mzdelta', can not be used with 'mzlower' and 'mzupper'.";
+    string mzdelta_str = "M/Z delta for doublets. Eg: 6.0201. Must be used with 'rtwidth' and 'mzwidth', can not be used with 'mzlower' and 'mzupper'.";
     string confidence_str = "Lower confidence interval to apply during scoring (In standard deviations, e.g. 1.96 for a 95% CI). Default: ignore confidence intervals";
     string threads_str = "Number of threads to use. Defaults to "  + to_string(num_threads);
     string desc = "Detect twin ion signal in Mass Spectrometry data.\n"
