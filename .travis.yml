@@ -10,6 +10,5 @@ before_install:
    - docker build -t bjpop/hitime .
 
 script:
-   - ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -d 6.0201 -r 17 -m 150
-   - ./hitime-docker.sh -i data/scored.mzML -o data/max.scored.mzML -- -r 17 -m 0.25 -l
-
+   - ./hitime-docker.sh -i data/testing.mzML -o data/scored.mzML -- -r 10 -d 6.0201 -m 230
+   - ./hitime-docker.sh -i data/scored.mzML -o data/max.scored.mzML -- -r 10 -l 0.3 -u 0.7
