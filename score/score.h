@@ -34,14 +34,14 @@ private:
    int half_window;
    OpenMS::Size local_rows;
    bool debug;
-   double list_max;
    double intensity_ratio;
    double rt_width;
    double rt_sigma;
-   double ppm;
    double mz_width;
    double mz_sigma;
    double mz_delta;
+   double mz_upper;
+   double mz_lower;
    double min_sample;
    double confidence;
    unsigned int num_threads;
@@ -68,8 +68,8 @@ private:
                   double, double);
 
 public:
-   Scorer(bool debug, bool list_max, double intensity_ratio, double rt_width, 
-         double mz_width, double mz_delta, double confidence,
+   Scorer(bool debug, double intensity_ratio, double rt_width, 
+         double mz_width, double mz_delta, double mz_lower, double mz_upper, double confidence,
          int num_threads, int input_spectrum_cache_size,
          string in_file, string out_file);
   void score_worker(int thread_count);

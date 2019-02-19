@@ -18,27 +18,28 @@ mutex next_spectrum_lock;
 mutex input_spectrum_lock;
 
 
-Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_width, 
-               double mz_width, double mz_delta,
+Scorer::Scorer(bool debug, double intensity_ratio, double rt_width, 
+               double mz_width, double mz_delta, double mz_lower, double mz_upper,
                double confidence,
                int num_threads, int input_spectrum_cache_size, string in_file, string out_file)
    : debug(debug)
-   , list_max(list_max)
    , intensity_ratio(intensity_ratio)
    , rt_width(rt_width)
    , mz_width(mz_width)
    , mz_delta(mz_delta)
-   , num_threads(num_threads)
+   , mz_lower(mz_lower)
+   , mz_upper(mz_upper)
    , confidence(confidence)
+   , num_threads(num_threads)
+   , input_spectrum_cache(input_spectrum_cache_size)
    , in_file(in_file)
    , out_file(out_file)
-   , input_spectrum_cache(input_spectrum_cache_size)
    , spectrum_writer(out_file)
    , current_spectrum_id{0}
    , next_output_spectrum_id{0}
 {
 
-   if (list_max)
+   if (mz_lower > 0 and mz_upper > 0)
    {
       // quick and dirty change out_file extension to .csv
       string csv_out_filename = out_file.substr(0,out_file.find_last_of('.'))+".csv";
@@ -56,7 +57,7 @@ Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_widt
    num_spectra = input_map.getNrSpectra();
    local_rows = (2 * half_window) + 1;
 
-   Size min_sample = half_window;
+   min_sample = half_window;
 
    vector<thread> threads(num_threads);
 
@@ -71,7 +72,7 @@ Scorer::Scorer(bool debug, bool list_max, double intensity_ratio, double rt_widt
        threads[thread_count].join();
    }
 
-   if (list_max)
+   if (mz_lower > 0 and mz_upper > 0)
       csv_fs.close();
 }
 
@@ -103,7 +104,7 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
       if (spectrum.size() > 0)
       {
          spectrum_writer.consumeSpectrum(spectrum);
-         if (list_max)
+         if (mz_lower > 0 and mz_upper > 0)
          {
             for (auto it = spectrum.begin(); it != spectrum.end(); ++it)
             {
@@ -123,7 +124,7 @@ void Scorer::put_spectrum(int spectrum_id, PeakSpectrum spectrum)
             if (spectrum.size() > 0)
             {
                spectrum_writer.consumeSpectrum(spectrum);
-               if (list_max)
+               if (mz_lower > 0 and mz_upper > 0)
                {
                   for (auto it = spectrum.begin(); it != spectrum.end(); ++it)
                   {
@@ -173,7 +174,7 @@ void Scorer::score_worker(int thread_count)
            cout << "Thread: " << thread_count << " Spectrum: " << this_spectrum_id << endl;
        }
 
-       if (list_max)
+       if (mz_lower > 0 and mz_upper > 0)
        {
            score = local_max_spectra(this_spectrum_id);
        }
@@ -628,7 +629,7 @@ PeakSpectrum Scorer::local_max_spectra(int centre_idx)
         double centre_amp = it->getIntensity();
 
         if (local_max_data(centre_amp, mz_vals, amp_vals,
-                           centre_mz - mz_width, centre_mz + mz_width))
+                           centre_mz - mz_lower, centre_mz + mz_upper))
         {
             peak.setMZ(centre_mz);
             peak.setIntensity(centre_amp);
