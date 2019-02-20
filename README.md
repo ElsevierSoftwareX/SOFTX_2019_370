@@ -53,6 +53,8 @@ should produce meaningful output saved in `results.mzML`.
 ./hitime-docker.sh -i data/testing.mzML -o results.mzML -- -d 6.0201 -r 10 -m 230
 ```
 
+Note that the wrapper script accepts arguments in a slightly different format than the regular executable program: the `-i` and `-o` arguments first, then all other arguments are specified after a `--` flag.
+
 You might see some warnings in the output which complain about the format the of input `testing.mzML` file. You can
 safely ignore them. It is just OpenMS being strict about the format of the file. 
 
