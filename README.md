@@ -93,6 +93,8 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
 
 ### Twin-ion scoring example
 
+Note that the examples below illustrate how to call the executable program directly. If you wish to use the Docker wrapper script`hitime-docker.sh` then you will need to adjust the syntax accordingly; see the notes above about using the wrapper script. 
+
 ```
 hitime -j 4 -i data/testing.mzML -o results.mzML -d 6.0201 -r 10 -m 230
 ```
