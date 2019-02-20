@@ -35,7 +35,7 @@ Options::Options(int argc, char* argv[])
 
     string msgs = "";
     try {
-        cxxopts::Options options("HiTIME-CPP", desc);
+        cxxopts::Options options("HiTIME", desc);
         options.add_options()
             ("h,help", "Show this help information.")
             ("l,mzlower", mzlower_str, cxxopts::value<double>())
@@ -60,7 +60,7 @@ Options::Options(int argc, char* argv[])
             exit(0);
         }
         if (result.count("version")) {
-            cout << " version " << HITIME_VERSION << endl; 
+            cout << "HiTIME version " << HITIME_VERSION << endl; 
             exit(0);
         }
 
