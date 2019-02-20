@@ -50,27 +50,33 @@ Test data is included in the `data` folder within the repository. Running the fo
 should produce meaningful output saved in `results.mzML`. 
 
 ```
-./hitime-docker.sh -i data/testing.mzML -o results.mzML -- -d 6.0201 -r 17 -m 150
+./hitime-docker.sh -i data/testing.mzML -o results.mzML -- -d 6.0201 -r 10 -m 230
 ```
 
 You might see some warnings in the output which complain about the format the of input `testing.mzML` file. You can
 safely ignore them. It is just OpenMS being strict about the format of the file. 
 
 ## Usage
+### Command line options
 
 ```
   -h, --help            Show this help information.
-  -l, --listmax         Flag, only output list of local maximum in window
-                        defined by M/Z width and retention time width. Default:
-                        not set
+  -l, --mzlower arg     Lower M/Z offset for local max window, e.g. 0.3.
+                        Must be used with 'mzupper', can not be used with
+                        'mzwidth'
+  -u, --mzupper arg     Upper M/Z offset for local max window, e.g. 0.7. Must
+                        be used with 'mzlower', can not be used with
+                        'mzwidth'
   -a, --iratio arg      Ratio of doublet intensities (isotope / parent).
                         Defaults to 1.000000
-  -r, --rtwidth arg     REQUIRED: Full width at half maximum for retention
-                        time in number of scans. Eg: 17
-  -m, --mzwidth arg     REQUIRED: M/Z full width at half maximum in parts per
-                        million. Eg: 150. If '--listmax', then upper and
-                        lower M/Z offset, e.g. 0.25
-  -d, --mzdelta arg     REQUIRED: M/Z delta for doublets. Eg: 6.020100
+  -r, --rtwidth arg     Full width at half maximum for retention time in
+                        number of scans. Eg: 10
+  -m, --mzwidth arg     M/Z full width at half maximum in parts per million.
+                        Eg: 230. Must be used with 'mzdelta', can not be used
+                        with 'mzlower' and 'mzupper'.
+  -d, --mzdelta arg     M/Z delta for doublets. Eg: 6.0201. Must be used with
+                        'rtwidth' and 'mzwidth', can not be used with
+                        'mzlower' and 'mzupper'.
   -z, --confidence arg  Lower confidence interval to apply during scoring (In
                         standard deviations, e.g. 1.96 for a 95% CI).
                         Default: ignore confidence intervals
@@ -83,21 +89,21 @@ safely ignore them. It is just OpenMS being strict about the format of the file.
   -o, --outfile arg     Output mzML file
 ```
 
-### For example:
+### Twin-ion scoring example
 
 ```
-hitime -j 4 -i data/testing.mzML -o results.mzML -d 6.0201 -r 17 -m 150
+hitime -j 4 -i data/testing.mzML -o results.mzML -d 6.0201 -r 10 -m 230
 ```
 
 for a computation using 4 threads, where `data/testing.mzML` contains the input mass spectrometry data in mzML format, and the output file is called `results.mzML`.
 
-The parameters defining the taget twin-ion signal are, `-d 6.0201` the M/Z diference between the natural and heavy isotope versions of the precursor, `-r 17` the retention time (RT) full width half maximum (FWHM) size in number of RT steps (scans), `-m 150` the M/Z FWHM size in parts per million (ppm).  These values can be determined by measurement of the precursor signal in standard visulisation software.
+The parameters defining the taget twin-ion signal are, `-d 6.0201` the M/Z diference between the natural and heavy isotope versions of the precursor, `-r 10` the retention time (RT) full width half maximum (FWHM) size in number of RT steps (scans), `-m 230` the M/Z FWHM size in parts per million (ppm).  These values can be determined by measurement of the precursor signal in standard visulisation software.
 
-### Local Maxima
-HITIME can also be used to filter the data to only output the data point that has the largest value in a region defined by the Retention Time (RT) full width half maximum (FWHM) size, and the M/Z FWHM bounds (+/- bound).  E.g.:
+### Local maxima example
+HITIME can also be used to filter the data to only output the data point that has the largest value in a region defined by the Retention Time (RT) full width half maximum (FWHM) size, and the M/Z upper and lower bounds.  E.g.:
 
 ```
-hitime -i results.mzML -o max.results.mzML -r 17 -m 0.25 --listmax
+hitime -i results.mzML -o max.results.mzML -r 10 -l 0.3 -u 0.7
 ```
 This will produce two files, `max.results.mzML` and `max.results.csv`.  The CSV file is a comma separated text file listing the local maxima.  This list can be sorted to help identify the strongest twin-ion signal matches.  The fields are RT, M/Z, score.
 

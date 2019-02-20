@@ -9,15 +9,14 @@ class Options {
     public:
         bool debug;
         bool version;
-        double list_max; //!< Flag, if set list local maxima only.
         double intensity_ratio; //!< Intensity ratio between lo and hi peaks.
         double rt_width; //!< Retention time FWHM in scans.
         double rt_sigma; //!< Boundary for RT width in SDs.
-        double ppm; //!< MZ tolerance in PPM.
         double mz_width; //!< MZ FWHM in PPM.
         double mz_sigma; //!< Boundary for MZ in SDs.
         double mz_delta; //!< MZ difference between peaks.
-        double min_sample; //!< Minimum number of points required in each region.
+        double mz_lower; //!< MZ lower bound.
+        double mz_upper; //!< MZ upper bound.
         double confidence; //!< Confidence for keeping score.  In Standard Deviations.
         int num_threads;
         int input_spectrum_cache_size; //!< Size of input spectrum cache in number of spectra. 
