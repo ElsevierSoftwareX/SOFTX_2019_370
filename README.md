@@ -136,7 +136,15 @@ A pure protein that was reduced, reacted with heavy/light paracetamol and then d
 curl -sL https://melbourne.figshare.com/ndownloader/files/14131085 > BSA_FULL.mzML
 ```
 
-### Synthetic dataset (3.6M)
+### Larger control dataset (115MB)
+
+A control dataset to match the larger dataset above, that contains no true twin ions. 
+
+```
+curl -sL https://melbourne.figshare.com/ndownloader/files/16249331 > BSA_FULL_CONTROL.mzML
+```
+
+### Synthetic dataset (3.6MB)
 
 Synthetic LC-MS data was produced that contain exactly 17 twin-ions of varying abundance in addition to a number of non-twin-ion signals.
 
